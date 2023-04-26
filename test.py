@@ -3,19 +3,26 @@ from typing import Dict
 import torch
 from transformers import RobertaTokenizer, RobertaModel
 import wikipedia
+import model_of_GPT
+
+name_of_article = "Elvis_Presley"
 
 """
 This code graps Elvis Presley page from Wikipedia and weeds in to RoBERTa to get token embeddings
-Prints acquired data into embeddings.txt file
 """
 
 
-def parse_wiki(title: str = "Elvis_Presley") -> str:
+def parse_wiki(title: str = name_of_article) -> str:
     wikipedia.set_lang("en")
 
     target_page = wikipedia.page(title)
 
     return target_page.content
+
+
+"""
+Prints acquired data into embeddings.txt file
+"""
 
 
 def main():
@@ -54,3 +61,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    print(model_of_GPT.model(name_of_article))
