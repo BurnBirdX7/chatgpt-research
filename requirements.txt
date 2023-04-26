@@ -1,5 +1,6 @@
 torch
 numpy
+pandas
 transformers
 tokenizers
 wikipedia
