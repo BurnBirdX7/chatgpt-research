@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 from transformers import RobertaTokenizer, RobertaModel
 import wikipediaapi
+from IntervalToSource import IntervalToSource
 
 
 wikipedia = wikipediaapi.Wikipedia('en')
@@ -46,42 +47,6 @@ Prints acquired data into embeddings.txt file
 """
 
 
-class IntervalToSource:
-    def __init__(self):
-        self.starting_points: List[int] = []
-        self.sources: List[str] = []
-
-    def append_interval(self, start: int, source: str) -> None:
-        self.starting_points.append(start)
-        self.sources.append(source)
-
-    def get_source(self, index: int) -> str:
-        if len(self.starting_points) == 0:
-            raise IndexError("No intervals were set")
-
-        if self.starting_points[0] > index:
-            raise IndexError("Index is less then first starting point")
-
-        for sp, title in zip(self.starting_points, self.sources):
-            if index >= sp:
-                return title
-
-    def __str__(self) -> str:
-        text = "{ "
-        for i in range(len(self.starting_points) - 1):
-            text += f"[{self.starting_points[i]}, {self.starting_points[i + 1]})"
-            text += f" -> \"{self.sources[i]}\"\n  "
-        text += f"[{self.starting_points[len(self.starting_points) - 1]}, ∞)"
-        text += f" -> \"{self.sources[len(self.starting_points) - 1]}\"" + " }\n"
-        return text
-
-    def to_csv(self, file: str):
-        df = pd.DataFrame()
-        df['Starting Point'] = self.starting_points
-        df['Source'] = self.sources
-        df.to_csv(file)
-
-
 def main():
     model_name = 'roberta-base'
     tokenizer = RobertaTokenizer.from_pretrained(model_name)
@@ -116,7 +81,7 @@ def main():
 
     df = pd.DataFrame(embeddings)
     df.drop(df.index[-padding_len:])
-    df.to_csv('embeddings.csv')
+    df.to_csv('embeddings.csv', index=False)
 
 
 if __name__ == '__main__':
