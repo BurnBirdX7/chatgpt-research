@@ -15,26 +15,28 @@ Prints acquired data into embeddings.txt file
 """
 
 
-def traverse_sections(section: wikipediaapi.WikipediaPageSection) -> Dict[str, str]:
+def traverse_sections(section: wikipediaapi.WikipediaPageSection, page_url: str) -> Dict[str, str]:
     d = dict()
 
     # Embed title into paragraph
     text = f" {'=' * section.level} {section.title} {'=' * section.level} \n"
     text += section.text
 
-    d[section.title] = text
+    url = page_url + "#" + section.title.replace(' ', '_')
+    d[url] = text
 
     for subsection in section.sections:
-        d.update(traverse_sections(subsection))
+        d.update(traverse_sections(subsection, page_url))
     return d
 
 
 def parse_wiki(title: str = "Elvis_Presley") -> Dict[str, str]:
     target_page = wikipedia.page(title)
+    print(len(target_page.text))
     d: Dict[str, str] = dict()
 
     for section in target_page.sections:
-        d.update(traverse_sections(section))
+        d.update(traverse_sections(section, target_page.canonicalurl))
 
     return d
 
@@ -44,23 +46,23 @@ Prints acquired data into embeddings.txt file
 """
 
 
-class IntervalToTitle:
+class IntervalToSource:
     def __init__(self):
         self.starting_points: List[int] = []
-        self.titles: List[str] = []
+        self.sources: List[str] = []
 
-    def append_interval(self, start: int, title: str) -> None:
+    def append_interval(self, start: int, source: str) -> None:
         self.starting_points.append(start)
-        self.titles.append(title)
+        self.sources.append(source)
 
-    def get_title(self, index: int) -> str:
+    def get_source(self, index: int) -> str:
         if len(self.starting_points) == 0:
             raise IndexError("No intervals were set")
 
         if self.starting_points[0] > index:
             raise IndexError("Index is less then first starting point")
 
-        for sp, title in zip(self.starting_points, self.titles):
+        for sp, title in zip(self.starting_points, self.sources):
             if index >= sp:
                 return title
 
@@ -68,10 +70,16 @@ class IntervalToTitle:
         text = "{ "
         for i in range(len(self.starting_points) - 1):
             text += f"[{self.starting_points[i]}, {self.starting_points[i + 1]})"
-            text += f" -> \"{self.titles[i]}\"\n  "
+            text += f" -> \"{self.sources[i]}\"\n  "
         text += f"[{self.starting_points[len(self.starting_points) - 1]}, ∞)"
-        text += f" -> \"{self.titles[len(self.starting_points) - 1]}\"" + " }\n"
+        text += f" -> \"{self.sources[len(self.starting_points) - 1]}\"" + " }\n"
         return text
+
+    def to_csv(self, file: str):
+        df = pd.DataFrame()
+        df['Starting Point'] = self.starting_points
+        df['Source'] = self.sources
+        df.to_csv(file)
 
 
 def main():
@@ -79,17 +87,16 @@ def main():
     tokenizer = RobertaTokenizer.from_pretrained(model_name)
     model = RobertaModel.from_pretrained(model_name)
 
-    wiki_page = parse_wiki()
-    i2t = IntervalToTitle()
-
+    sections_dict = parse_wiki()
+    i2t = IntervalToSource()
     input_ids: List[int] = []
 
-    for title, text in wiki_page.items():
+    for title, text in sections_dict.items():
         i2t.append_interval(len(input_ids), title)
         tokens = tokenizer.tokenize(text)
         input_ids += tokenizer.convert_tokens_to_ids(tokens)
 
-    print(i2t)
+    i2t.to_csv('ranges.csv')
 
     # Should we add <s> </s> tags?
     vector_len: int = 512
@@ -97,14 +104,18 @@ def main():
     input_ids += [tokenizer.pad_token_id] * padding_len  # add padding
 
     input_ids_tensor = torch.tensor(input_ids).reshape((-1, vector_len))
+    print("Computing text embedding...", end="")
     output = model(input_ids_tensor)
+    print("Done")
 
     embeddings = output.last_hidden_state.detach()
-    embeddings = embeddings.reshape((-1, embeddings.size()[2]))  # Squeeze batch dimension
+    batch_size, sequence_length, embedding_len = embeddings.size()
+    embeddings = embeddings.reshape((-1, embedding_len))  # Squeeze batch dimension
 
     # We can cut padding before writing do disk / faiss
 
     df = pd.DataFrame(embeddings)
+    df.drop(df.index[-padding_len:])
     df.to_csv('embeddings.csv')
 
 
