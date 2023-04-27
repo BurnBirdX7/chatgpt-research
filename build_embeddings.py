@@ -10,12 +10,6 @@ from IntervalToSource import IntervalToSource
 wikipedia = wikipediaapi.Wikipedia('en')
 
 
-"""
-This code graps Elvis Presley page from Wikipedia and weeds in to RoBERTa to get token embeddings
-Prints acquired data into embeddings.txt file
-"""
-
-
 def traverse_sections(section: wikipediaapi.WikipediaPageSection, page_url: str) -> Dict[str, str]:
     d = dict()
 
@@ -33,18 +27,14 @@ def traverse_sections(section: wikipediaapi.WikipediaPageSection, page_url: str)
 
 def parse_wiki(title: str = "Elvis_Presley") -> Dict[str, str]:
     target_page = wikipedia.page(title)
-    print(len(target_page.text))
+    url = target_page.canonicalurl
     d: Dict[str, str] = dict()
+    d[url] = target_page.summary
 
     for section in target_page.sections:
-        d.update(traverse_sections(section, target_page.canonicalurl))
+        d.update(traverse_sections(section, url))
 
     return d
-
-
-"""
-Prints acquired data into embeddings.txt file
-"""
 
 
 def main():
@@ -80,7 +70,7 @@ def main():
     # We can cut padding before writing do disk / faiss
 
     df = pd.DataFrame(embeddings)
-    df.drop(df.index[-padding_len:])
+    df = df.drop(df.index[-padding_len:])
     df.to_csv('embeddings.csv', index=False)
 
 
