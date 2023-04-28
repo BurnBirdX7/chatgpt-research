@@ -1,22 +1,15 @@
 import faiss
 import pandas as pd
-import numpy as np
 import torch
+
+from text_embedding import *
 from IntervalToSource import IntervalToSource
 from transformers import RobertaTokenizer, RobertaModel
 
 model_name = 'roberta-base'
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 tokenizer = RobertaTokenizer.from_pretrained(model_name)
-model = RobertaModel.from_pretrained(model_name)
-
-def test_request(index, q):
-    k = 4
-    dist, ind = index.search(q, k)
-    print(f"Distances to {k} nearest neighbours:")
-    print(dist)
-    print(f"Indexes of {k} nearest neighbours:")
-    print(ind)
-
+model = RobertaModel.from_pretrained(model_name).to(device)
 
 # from 'Childhood in Tupelo' section
 childhood_w_refs = "Presley's father Vernon was of German, Scottish, and English origins,[12] and a descendant of the " \
@@ -33,6 +26,7 @@ childhood_wo_refs = "Presley's father Vernon was of German, Scottish, and Englis
             "by Elvis's granddaughter Riley Keough in 2017. Elaine Dundy, in her biography, supports the belief."
 childhood_url = 'https://en.wikipedia.org/wiki/Elvis_Presley#Childhood_in_Tupelo'
 
+# from 'Legacy' section
 legacy = "President Jimmy Carter remarked on Presley's legacy in 1977: \"His music and his personality, fusing the " \
          "styles of white country and black rhythm and blues, permanently changed the face of American popular " \
          "culture. His following was immense, and he was a symbol to people the world over of the vitality, " \
@@ -40,33 +34,36 @@ legacy = "President Jimmy Carter remarked on Presley's legacy in 1977: \"His mus
 legacy_url = 'https://en.wikipedia.org/wiki/Elvis_Presley#Legacy'
 
 
+def test_request(index, q):
+    k = 4
+    dist, ind = index.search(q, k)
+    print(f"Distances to {k} nearest neighbours:")
+    print(dist)
+    print(f"Indexes of {k} nearest neighbours:")
+    print(ind)
+
+
 def test_wiki(index, text, expected_url):
     k = 1
     i2s = IntervalToSource.read_csv('ranges.csv')
 
-    ids = tokenizer.encode(text)
-    input_ids = torch.tensor(ids).unsqueeze(0)
-    output = model(input_ids)
-    embeddings = output.last_hidden_state.detach().squeeze(0).numpy()
+    embeddings = text_embedding(text, tokenizer, model)
 
     result_dists, result_idxs = index.search(embeddings, k)
     expected_count = 0
     for i, (token_dists, token_idxs) in enumerate(zip(result_dists, result_idxs)):
-        # print(f'Token #{i+1} info...:')
         for dist, idx in zip (token_dists, token_idxs):
-            # print(f'Distance: {dist}, ', end='')
-            # print(f'ID: {idx}, ', end='')
             src = i2s.get_source(idx)
-            # print(f'Source: {src}')
 
             if src == expected_url:
                 expected_count += 1
-        # print('---')
 
     print(f"Got expected URL in {expected_count / len(result_dists) / k * 100}% of cases")
 
 
 def main():
+    faiss_use_gpu: bool = True
+
     print("Loading embeddings...", end='')
     data = np.array(pd.read_csv('embeddings.csv'),
                     order='C', dtype=np.float32)  # C-contiguous order and np.float32 type are required
@@ -75,7 +72,13 @@ def main():
     print(data.shape)
 
     print("Building index...", end="")
-    index = faiss.IndexFlatL2(embedding_len)
+    cpu_index = faiss.IndexFlatL2(embedding_len)
+    if faiss_use_gpu:
+        gpu_res = faiss.StandardGpuResources()
+        index = faiss.index_cpu_to_gpu(gpu_res, 0, cpu_index)  # index on gpu gives less precise results 🤨 ???
+    else:
+        index = cpu_index
+
     index.add(data)
     print("Done")
 

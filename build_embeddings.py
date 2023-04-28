@@ -3,11 +3,9 @@ from typing import Dict, List
 import pandas as pd
 import torch
 from transformers import RobertaTokenizer, RobertaModel
+from text_embedding import input_ids_embedding
 import wikipediaapi
 from IntervalToSource import IntervalToSource
-
-
-wikipedia = wikipediaapi.Wikipedia('en')
 
 
 def traverse_sections(section: wikipediaapi.WikipediaPageSection, page_url: str) -> Dict[str, str]:
@@ -26,6 +24,7 @@ def traverse_sections(section: wikipediaapi.WikipediaPageSection, page_url: str)
 
 
 def parse_wiki(title: str = "Elvis_Presley") -> Dict[str, str]:
+    wikipedia = wikipediaapi.Wikipedia('en')
     target_page = wikipedia.page(title)
     url = target_page.canonicalurl
     d: Dict[str, str] = dict()
@@ -39,8 +38,10 @@ def parse_wiki(title: str = "Elvis_Presley") -> Dict[str, str]:
 
 def main():
     model_name = 'roberta-base'
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     tokenizer = RobertaTokenizer.from_pretrained(model_name)
-    model = RobertaModel.from_pretrained(model_name)
+    model = RobertaModel.from_pretrained(model_name).to(device)
 
     sections_dict = parse_wiki()
     i2t = IntervalToSource()
@@ -54,24 +55,8 @@ def main():
     i2t.to_csv('ranges.csv')
 
     # Should we add <s> </s> tags?
-    vector_len: int = 512
-    padding_len: int = vector_len - (len(input_ids) % vector_len)
-    input_ids += [tokenizer.pad_token_id] * padding_len  # add padding
-
-    input_ids_tensor = torch.tensor(input_ids).reshape((-1, vector_len))
-    print("Computing text embedding...", end="")
-    output = model(input_ids_tensor)
-    print("Done")
-
-    embeddings = output.last_hidden_state.detach()
-    batch_size, sequence_length, embedding_len = embeddings.size()
-    embeddings = embeddings.reshape((-1, embedding_len))  # Squeeze batch dimension
-
-    # We can cut padding before writing do disk / faiss
-
-    df = pd.DataFrame(embeddings)
-    df = df.drop(df.index[-padding_len:])
-    df.to_csv('embeddings.csv', index=False)
+    embeddings = input_ids_embedding(input_ids, model)
+    pd.DataFrame(embeddings).to_csv('embeddings.csv', index=False)
 
 
 if __name__ == '__main__':
