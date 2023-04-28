@@ -1,15 +1,15 @@
-name: chatgpt-research
+name: gpt-gpu
 channels:
   - pytorch
   - conda-forge
+  - nvidia
   - defaults
 dependencies:
+  - python=3.9
+  - pytorch
+  - pytorch-cuda=11.8
   - numpy
   - pandas
   - wikipedia-api
-  - pytorch
   - transformers
-  - ca-certificates
-  - certifi
-  - openssl
   - faiss-gpu

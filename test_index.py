@@ -64,14 +64,13 @@ def test_wiki(index, text, expected_url):
 def main():
     faiss_use_gpu: bool = True
 
-    print("Loading embeddings...", end='')
+    print("Loading embeddings... ", end='')
     data = np.array(pd.read_csv('embeddings.csv'),
                     order='C', dtype=np.float32)  # C-contiguous order and np.float32 type are required
     sequence_len, embedding_len = data.shape
-    print('Done')
-    print(data.shape)
+    print('Done\n')
 
-    print("Building index...", end="")
+    print("Building index... ", end="")
     cpu_index = faiss.IndexFlatL2(embedding_len)
     if faiss_use_gpu:
         gpu_res = faiss.StandardGpuResources()
@@ -80,7 +79,7 @@ def main():
         index = cpu_index
 
     index.add(data)
-    print("Done")
+    print("Done\n")
 
     print("Searching first 5 embeddings...")
     test_request(index, data[:5])
