@@ -29,7 +29,7 @@ def input_ids_embedding(input_ids: List[int],
         input_ids_tensor = input_ids_tensor.to(model.device)
         output = model(input_ids_tensor)
         seq_embeddings = output.last_hidden_state.detach().squeeze(0).cpu().numpy()
-        embeddings = np.concatenate([embeddings, seq_embeddings])
+        embeddings = np.concatenate([embeddings, seq_embeddings], dtype=np.float32)
 
     assert embeddings.shape[0] == len(input_ids)
     return embeddings

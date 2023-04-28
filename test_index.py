@@ -12,7 +12,7 @@ Loads pre-built embeddings to build faiss index and tries to search
 """
 
 
-model_name = 'roberta-base'
+model_name = 'roberta-large'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 tokenizer = RobertaTokenizer.from_pretrained(model_name)
 model = RobertaModel.from_pretrained(model_name).to(device)
