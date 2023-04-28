@@ -1,9 +1,8 @@
-import math
-from typing import List, Optional
-
 import numpy as np
-from transformers import RobertaTokenizer, RobertaModel
-import torch
+import torch  # type: ignore
+
+from transformers import RobertaTokenizer, RobertaModel  # type: ignore
+from typing import List, Optional
 
 """
 Functions:
@@ -11,8 +10,7 @@ Compute embeddings for the given input
 """
 
 
-def input_ids_embedding(input_ids: List[int],
-                        model: RobertaModel) -> np.ndarray:
+def input_ids_embedding(input_ids: List[int], model: RobertaModel) -> np.ndarray:
     """
     :param input_ids: list of token ids
     :param model: model to build embeddings with
@@ -23,7 +21,7 @@ def input_ids_embedding(input_ids: List[int],
     embeddings: np.ndarray = np.empty((0, model.config.hidden_size))
     for i in range(0, len(input_ids), sequence_length):
         # Create tensor with acceptable dimensions:
-        input_ids_tensor = torch.tensor(input_ids[i:i + sequence_length]).unsqueeze(0)
+        input_ids_tensor = torch.tensor(input_ids[i : i + sequence_length]).unsqueeze(0)
 
         # Moves tensor to model's device
         input_ids_tensor = input_ids_tensor.to(model.device)
@@ -35,9 +33,9 @@ def input_ids_embedding(input_ids: List[int],
     return embeddings
 
 
-def text_embedding(text: str,
-                   tokenizer: RobertaTokenizer,
-                   model: RobertaModel) -> np.ndarray:
+def text_embedding(
+    text: str, tokenizer: RobertaTokenizer, model: RobertaModel
+) -> np.ndarray:
     """
     :param text: input
     :param tokenizer: tokenizer to split text in tokens

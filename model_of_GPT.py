@@ -18,7 +18,7 @@ def model(message_from_user):
         temperature=0.5,
         top_p=1,
         frequency_penalty=0,
-        presence_penalty=0
+        presence_penalty=0,
     )
 
     return completion.choices[0].text

@@ -32,7 +32,16 @@ conda env create --file env-gpu.yml
 conda activate gpt-gpu
 ```
 
+## config.py
+
+ * `model_name` : `roberta-base`|`roberta-large` - defines model
+ * `embeddings_file`: string - where embeddings should be saved
+ * `ranges_file`: string - where ranges should be saved
+
 
 ## Run scripts
 
-When environment is activated you can run python scripts in this project
+When environment is activated you can run python scripts in this project.
+For example `python build_embeddings.py`.
+
+
