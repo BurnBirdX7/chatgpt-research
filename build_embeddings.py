@@ -7,6 +7,11 @@ from text_embedding import input_ids_embedding
 import wikipediaapi
 from IntervalToSource import IntervalToSource
 
+"""
+Script:
+Scraps Elvis Presley wiki page and builds embeddings
+"""
+
 
 def traverse_sections(section: wikipediaapi.WikipediaPageSection, page_url: str) -> Dict[str, str]:
     d = dict()

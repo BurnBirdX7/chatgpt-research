@@ -6,6 +6,12 @@ from text_embedding import *
 from IntervalToSource import IntervalToSource
 from transformers import RobertaTokenizer, RobertaModel
 
+"""
+Script:
+Loads pre-built embeddings to build faiss index and tries to search
+"""
+
+
 model_name = 'roberta-base'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 tokenizer = RobertaTokenizer.from_pretrained(model_name)
