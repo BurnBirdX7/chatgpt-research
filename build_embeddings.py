@@ -1,9 +1,12 @@
+import numpy as np
 import pandas as pd  # type: ignore
 import torch  # type: ignore
 import wikipediaapi  # type: ignore
 
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from typing import Dict, List
+
+import roberta
 from text_embedding import input_ids_embedding
 from IntervalToSource import IntervalToSource
 
@@ -56,12 +59,7 @@ def parse_wiki(title: str = "Elvis_Presley") -> Dict[str, str]:
     return d
 
 
-def main() -> None:
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    tokenizer = RobertaTokenizer.from_pretrained(config.model_name)
-    model = RobertaModel.from_pretrained(config.model_name).to(device)
-
+def build_embeddings(tokenizer: RobertaTokenizer, model: RobertaModel) -> np.ndarray:
     print("Collecting data from wiki... ", end="")
     i2t = IntervalToSource()
     input_ids: List[int] = []
@@ -74,16 +72,19 @@ def main() -> None:
             i2t.append_interval(len(input_ids), title)
 
     i2t.to_csv(config.ranges_file)
-    print("Done.")
+    print("Done")
 
     print("Computing embeddings... ", end="")
-    # Should we add <s> </s> tags?
     embeddings = input_ids_embedding(input_ids, model)
+    print("Done")
+    
+    return embeddings
 
-    model.to("cpu")
-    torch.cuda.empty_cache()
 
-    print("Done.\nWriting to disk... ")
+def main() -> None:
+    embeddings = build_embeddings(*roberta.get_default())
+
+    print("Writing to disk... ")
     pd.DataFrame(embeddings).to_csv(config.embeddings_file, index=False)
     print("Done.")
 

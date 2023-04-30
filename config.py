@@ -1,4 +1,5 @@
 model_name: str = "roberta-large"
-embeddings_file: str = "embeddings.csv"
+embeddings_file: str = "roberta-large.csv"
 ranges_file: str = "ranges.csv"
-faiss_use_gpu = True
+index_file: str = "large.index"
+faiss_use_gpu = False

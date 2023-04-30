@@ -25,6 +25,7 @@ def input_ids_embedding(input_ids: List[int], model: RobertaModel) -> np.ndarray
 
         # Moves tensor to model's device
         input_ids_tensor = input_ids_tensor.to(model.device)
+
         output = model(input_ids_tensor)
         seq_embeddings = output.last_hidden_state.detach().squeeze(0).cpu().numpy()
         embeddings = np.concatenate([embeddings, seq_embeddings], dtype=np.float32)

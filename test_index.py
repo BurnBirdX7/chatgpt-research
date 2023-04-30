@@ -2,9 +2,10 @@ import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
 import torch  # type: ignore
 import faiss  # type: ignore
+import roberta
 
-from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from text_embedding import text_embedding
+from build_index import build_index_from_file
 from IntervalToSource import IntervalToSource
 
 import config
@@ -14,13 +15,9 @@ Script:
 Loads pre-built embeddings to build faiss index and tries to search
 """
 
-
 __all__ = ["main"]  # Export nothing but main
 
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-tokenizer = RobertaTokenizer.from_pretrained(config.model_name)
-model = RobertaModel.from_pretrained(config.model_name).to(device)
+tokenizer, model = roberta.get_default()
 
 # from 'Childhood in Tupelo' section
 childhood_w_refs = (
@@ -64,7 +61,8 @@ def test_wiki(index: faiss.Index, text: str, expected_url: str) -> None:
     i2s = IntervalToSource.read_csv(config.ranges_file)
 
     embeddings = text_embedding(text, tokenizer, model)
-
+    faiss.normalize_L2(embeddings)
+    #
     result_dists, result_ids = index.search(embeddings, 1)
     expected_count: int = 0
     dist_sum: float = 0.0
@@ -78,38 +76,35 @@ def test_wiki(index: faiss.Index, text: str, expected_url: str) -> None:
             dist_sum += dist
 
     print(
-        f"Got expected URL in {expected_count / len(result_dists) * 100:.4f}% of cases",
-        end="",
+        f"Got expected URL in {expected_count / len(result_dists) * 100:.4f}% of cases, "
+        f"average match distance: {dist_sum / len(result_dists):.4f}"
     )
-    print(f"average match distance: {dist_sum / len(result_dists)}:.4f")
 
 
 def main() -> None:
-    print("Loading embeddings... ", end="")
-    data = np.array(
-        pd.read_csv(config.embeddings_file), order="C", dtype=np.float32
-    )  # C-contiguous order and np.float32 type are required
-    sequence_len, embedding_len = data.shape
-    print("Done\n")
+    sanity_test: bool = True
+    read_index: bool = True
 
-    print("Building index... ", end="")
-    cpu_index = faiss.IndexFlatL2(embedding_len)
-    if config.faiss_use_gpu:
-        gpu_res = faiss.StandardGpuResources()
-        index = faiss.index_cpu_to_gpu(
-            gpu_res, 0, cpu_index
-        )  # index on gpu gives less precise results 🤨 ???
+    if read_index:
+        print("Readings index... ", end='')
+        index = faiss.read_index(config.index_file)
     else:
-        index = cpu_index
+        print("Building index... ", end='')
+        index = build_index_from_file(config.embeddings_file)
 
-    index.add(data)
-    print("Done\n")
+    print("Done")
+    if sanity_test:
+        print("Loading embeddings... ", end="")
+        data = np.array(pd.read_csv(config.embeddings_file),
+                        order="C", dtype=np.float32)
+        faiss.normalize_L2(data)
+        print("Done")
 
-    print("Searching first 5 embeddings...")
-    test_request(index, data[:5])
+        print("Searching first 5 embeddings...")
+        test_request(index, data[:5])
 
-    print("Searching last 5 embeddings...")
-    test_request(index, data[-5:])
+        print("Searching last 5 embeddings...")
+        test_request(index, data[-5:])
 
     print("Searching quotes from the same page:")
     print('"Childhood w references"')
