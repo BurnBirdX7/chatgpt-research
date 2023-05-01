@@ -9,14 +9,14 @@ import faiss
 import numpy as np
 
 
-def build_index(embeddings: Union[np.ndarray | pd.DataFrame]) -> faiss.Index:
+def build_index(embeddings: Union[np.ndarray, pd.DataFrame], use_gpu: bool = config.faiss_use_gpu) -> faiss.Index:
     data = np.array(embeddings, order="C", dtype=np.float32)  # C-contiguous order and np.float32 type are required
     sequence_len, embedding_len = data.shape
 
     faiss.normalize_L2(data)
     print("Building index... ", end="")
     cpu_index = faiss.IndexFlatIP(embedding_len)
-    if config.faiss_use_gpu:
+    if use_gpu:
         gpu_res = faiss.StandardGpuResources()
         index = faiss.index_cpu_to_gpu(gpu_res, 0, cpu_index)
     else:
@@ -36,7 +36,7 @@ def build_index_from_file(file: str = config.embeddings_file) -> faiss.Index:
 
 def main() -> None:
     e = build_embeddings(*roberta.get_default())
-    index = build_index(e)
+    index = build_index(e, False)
     faiss.write_index(index, config.index_file)
 
 

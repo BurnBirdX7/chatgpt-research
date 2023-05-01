@@ -83,16 +83,15 @@ def test_wiki(index: faiss.Index, text: str, expected_url: str) -> None:
 
 def main() -> None:
     sanity_test: bool = True
-    read_index: bool = True
+    read_from_disk: bool = False
 
-    if read_index:
+    if read_from_disk:
         print("Readings index... ", end='')
         index = faiss.read_index(config.index_file)
+        print("Done")
     else:
-        print("Building index... ", end='')
         index = build_index_from_file(config.embeddings_file)
 
-    print("Done")
     if sanity_test:
         print("Loading embeddings... ", end="")
         data = np.array(pd.read_csv(config.embeddings_file),
