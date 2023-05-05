@@ -3,6 +3,7 @@ import pandas as pd  # type: ignore
 import torch  # type: ignore
 import faiss  # type: ignore
 import roberta
+from model_of_GPT import build_page_template
 
 from text_embedding import text_embedding
 from build_index import build_index_from_file
@@ -64,7 +65,15 @@ def test_wiki(index: faiss.Index, src_map: IntervalToSource, text: str, expected
     result_dists, result_ids = index.search(embeddings, 1)
     expected_count: int = 0
     dist_sum: float = 0.0
+
+    intervalToSource = IntervalToSource()
+    ranges = intervalToSource.read_csv(config.ranges_file)
+    links = []
+
     for i, (token_dists, token_ids) in enumerate(zip(result_dists, result_ids)):
+        link = ranges.get_source(index=token_ids[0])
+        links.append(link)
+
         dist = token_dists[0]
         idx = token_ids[0]
         src = src_map.get_source(idx)
@@ -77,6 +86,8 @@ def test_wiki(index: faiss.Index, src_map: IntervalToSource, text: str, expected
         f"Got expected URL in {expected_count / len(result_dists) * 100:.4f}% of cases, "
         f"average match distance: {dist_sum / len(result_dists):.4f}"
     )
+
+    build_page_template(text, links)
 
 
 def main() -> None:
@@ -107,10 +118,10 @@ def main() -> None:
     print("Test [Data] Searching quotes from the same page:")
     print('"Childhood w references"')
     test_wiki(index, mapping, childhood_w_refs, childhood_url)
-    print('"Childhood w/o references"')
-    test_wiki(index, mapping, childhood_wo_refs, childhood_url)
-    print('"Legacy"')
-    test_wiki(index, mapping, legacy, legacy_url)
+    # print('"Childhood w/o references"')
+    # test_wiki(index, mapping, childhood_wo_refs, childhood_url)
+    # print('"Legacy"')
+    # test_wiki(index, mapping, legacy, legacy_url)
 
 
 if __name__ == "__main__":

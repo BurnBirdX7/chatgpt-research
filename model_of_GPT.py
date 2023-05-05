@@ -26,6 +26,7 @@ page_template = """
 
 link_template = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a>"
 
+
 def model(message_from_user: str):
     """
     Creates a model based on Chat-GPT for the answering users questions.
@@ -51,24 +52,25 @@ def build_list_of_tokens_input(text: str) -> list[str]:
     return tokens
 
 
-def build_link_template(tokens: list[str]) -> str:
+def build_link_template(tokens: list[str], source_link: []) -> str:
     template = Template(link_template)
     tokens = map(lambda s: s.replace('Ġ', ' ').replace('Ċ', '<br/>'), tokens)
-    link = "link_1"
     color = "color4"
     output = ""
+    i = 0
 
     for key in tokens:
-        output += template.render(link=link, color=color, token=key)
+        output += template.render(link=source_link[i], color=color, token=key)
+        i += 1
 
     return output
 
 
-def build_page_template(completion: str) -> None:
+def build_page_template(completion: str, source_links: []) -> None:
     template = Template(page_template)
 
     tokens_from_output = build_list_of_tokens_input(completion)
-    result_of_color = build_link_template(tokens_from_output)
+    result_of_color = build_link_template(tokens_from_output, source_links)
     result_html = template.render(result=result_of_color, gpt_response=completion)
 
     with open("output/result.html", "w", encoding="utf-8") as f:
@@ -76,5 +78,6 @@ def build_page_template(completion: str) -> None:
 
 
 if __name__ == "__main__":
+    link = ["link_1", "link_2", "link_3", "link_4", "link_5"]
     # model("elvis childhood")  # gpt response
-    build_page_template("elvis childhood\nhhhh")  # test text input
+    build_page_template("elvis childhood\nhhhh", link)  # test text input
