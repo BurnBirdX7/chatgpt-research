@@ -59,7 +59,7 @@ def build_link_template(tokens: list[str]) -> str:
     output = ""
 
     for key in tokens:
-        output = output + template.render(link=link, color=color, token=key)
+        output += template.render(link=link, color=color, token=key)
 
     return output
 
