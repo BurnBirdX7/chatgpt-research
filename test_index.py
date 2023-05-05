@@ -82,7 +82,7 @@ def test_wiki(index: faiss.Index, text: str, expected_url: str) -> None:
 
 
 def main() -> None:
-    sanity_test: bool = True
+    sanity_test: bool = False
     read_from_disk: bool = False
 
     if read_from_disk:
@@ -93,7 +93,7 @@ def main() -> None:
         index = build_index_from_file(config.embeddings_file)
 
     if sanity_test:
-        print("Loading embeddings... ", end="")
+        print("Test [Sanity] Loading embeddings from file... ", end="")
         data = np.array(pd.read_csv(config.embeddings_file),
                         order="C", dtype=np.float32)
         faiss.normalize_L2(data)
@@ -105,7 +105,7 @@ def main() -> None:
         print("Searching last 5 embeddings...")
         test_request(index, data[-5:])
 
-    print("Searching quotes from the same page:")
+    print("Test [Data] Searching quotes from the same page:")
     print('"Childhood w references"')
     test_wiki(index, childhood_w_refs, childhood_url)
     print('"Childhood w/o references"')
