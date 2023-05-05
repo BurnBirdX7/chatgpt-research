@@ -12,6 +12,9 @@ template_string = """
 <head>
     <meta charset="UTF-8">
     <title>Result</title>
+    <style>
+        {{ color }}
+    </style>
 </head>
 <body>
 <h1>Result of research</h1>
@@ -42,11 +45,20 @@ def model(message_from_user):
 
 def build_template(completion):
     template = Template(template_string)
-    result_html = template.render(result=completion.choices[0].text)
+    result_html = template.render(result=completion.choices[0].text, )
+
+    with open("template.html", "w", encoding="utf-8") as f:
+        f.write(result_html)
+
+
+def build_template_simple(completion):
+    template = Template(template_string)
+    result_html = template.render(result=completion, color=".color1 {color: red;}")
 
     with open("template.html", "w", encoding="utf-8") as f:
         f.write(result_html)
 
 
 if __name__ == "__main__":
-    model("что такое python?")
+    # model("что такое python?")
+    build_template_simple('<a href="source-url" class="color1">token</a>')
