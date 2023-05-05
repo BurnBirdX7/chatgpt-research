@@ -57,9 +57,7 @@ def test_request(index: faiss.Index, q: np.ndarray) -> None:
     print(ind)
 
 
-def test_wiki(index: faiss.Index, text: str, expected_url: str) -> None:
-    i2s = IntervalToSource.read_csv(config.ranges_file)
-
+def test_wiki(index: faiss.Index, src_map: IntervalToSource, text: str, expected_url: str) -> None:
     embeddings = text_embedding(text, tokenizer, model)
     faiss.normalize_L2(embeddings)
     #
@@ -69,7 +67,7 @@ def test_wiki(index: faiss.Index, text: str, expected_url: str) -> None:
     for i, (token_dists, token_ids) in enumerate(zip(result_dists, result_ids)):
         dist = token_dists[0]
         idx = token_ids[0]
-        src = i2s.get_source(idx)
+        src = src_map.get_source(idx)
 
         if src == expected_url:
             expected_count += 1
@@ -82,15 +80,16 @@ def test_wiki(index: faiss.Index, text: str, expected_url: str) -> None:
 
 
 def main() -> None:
-    sanity_test: bool = False
-    read_from_disk: bool = False
+    sanity_test: bool = True
+    read_index: bool = False
 
-    if read_from_disk:
+    if read_index:
         print("Readings index... ", end='')
         index = faiss.read_index(config.index_file)
         print("Done")
     else:
         index = build_index_from_file(config.embeddings_file)
+    mapping = IntervalToSource.read_csv(config.ranges_file)
 
     if sanity_test:
         print("Test [Sanity] Loading embeddings from file... ", end="")
@@ -107,11 +106,11 @@ def main() -> None:
 
     print("Test [Data] Searching quotes from the same page:")
     print('"Childhood w references"')
-    test_wiki(index, childhood_w_refs, childhood_url)
+    test_wiki(index, mapping, childhood_w_refs, childhood_url)
     print('"Childhood w/o references"')
-    test_wiki(index, childhood_wo_refs, childhood_url)
+    test_wiki(index, mapping, childhood_wo_refs, childhood_url)
     print('"Legacy"')
-    test_wiki(index, legacy, legacy_url)
+    test_wiki(index, mapping, legacy, legacy_url)
 
 
 if __name__ == "__main__":

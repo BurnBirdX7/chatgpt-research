@@ -4,7 +4,7 @@ import torch  # type: ignore
 import wikipediaapi  # type: ignore
 
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import roberta
 from text_embedding import input_ids_embedding
@@ -26,6 +26,8 @@ page_names = [
     "Cultural_depictions_of_Elvis_Presley",
     "Elvis_has_left_the_building",
     "Elvis_Presley_on_film_and_television",
+    "Love_Me_Tender_(film)",
+    "Memphis,_Tennessee"
 ]
 
 
@@ -59,32 +61,41 @@ def parse_wiki(title: str = "Elvis_Presley") -> Dict[str, str]:
     return d
 
 
-def build_embeddings(tokenizer: RobertaTokenizer, model: RobertaModel) -> np.ndarray:
-    print("Collecting data from wiki... ", end="")
-    i2t = IntervalToSource()
-    input_ids: List[int] = []
-    for page in page_names:
-        sections_dict = parse_wiki(page)
+def build_embeddings(tokenizer: RobertaTokenizer, model: RobertaModel) -> Tuple[np.ndarray, IntervalToSource]:
+    """
+    Computes embeddings
+    :param tokenizer: Tokenizer instance
+    :param model: Model instance
+    :return: Tuple:
+                - Embeddings as 2d numpy.array
+                - and Interval to Source mapping
+    """
+    src_map = IntervalToSource()
+    embeddings = np.empty((0, model.config.hidden_size))
+    sources_dict: Dict[str, str] = dict()
 
+    for i, page in enumerate(page_names):
+        print(f"Page {i + 1}/{len(page_names)} in processing")
+        sections_dict = parse_wiki(page)
+        sources_dict |= sections_dict
+
+        input_ids: List[int] = []
         for title, text in sections_dict.items():
             tokens = tokenizer.tokenize(text)
             input_ids += tokenizer.convert_tokens_to_ids(tokens)
-            i2t.append_interval(len(input_ids), title)
+            src_map.append_interval(len(tokens), title)
 
-    i2t.to_csv(config.ranges_file)
-    print("Done")
+        page_embeddings = input_ids_embedding(input_ids, model)
+        embeddings = np.concatenate([embeddings, page_embeddings])
 
-    print("Computing embeddings... ", end="")
-    embeddings = input_ids_embedding(input_ids, model)
-    print("Done")
-    
-    return embeddings
+    return embeddings, src_map
 
 
 def main() -> None:
-    embeddings = build_embeddings(*roberta.get_default())
+    embeddings, mapping = build_embeddings(*roberta.get_default())
 
     print("Writing to disk... ")
+    mapping.to_csv(config.ranges_file)
     pd.DataFrame(embeddings).to_csv(config.embeddings_file, index=False)
     print("Done.")
 

@@ -11,3 +11,4 @@ dependencies:
   - wikipedia-api
   - transformers
   - faiss
+  - progress

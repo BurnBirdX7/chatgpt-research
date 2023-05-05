@@ -1,4 +1,5 @@
 import numpy as np
+from progress.bar import Bar
 import torch  # type: ignore
 
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
@@ -19,7 +20,7 @@ def input_ids_embedding(input_ids: List[int], model: RobertaModel) -> np.ndarray
     sequence_length: int = model.config.max_position_embeddings - 2
 
     embeddings: np.ndarray = np.empty((0, model.config.hidden_size))
-    for i in range(0, len(input_ids), sequence_length):
+    for i in Bar('Computing').iter(range(0, len(input_ids), sequence_length)):
         # Create tensor with acceptable dimensions:
         input_ids_tensor = torch.tensor(input_ids[i : i + sequence_length]).unsqueeze(0)
 
@@ -29,7 +30,6 @@ def input_ids_embedding(input_ids: List[int], model: RobertaModel) -> np.ndarray
         output = model(input_ids_tensor)
         seq_embeddings = output.last_hidden_state.detach().squeeze(0).cpu().numpy()
         embeddings = np.concatenate([embeddings, seq_embeddings], dtype=np.float32)
-
     assert embeddings.shape[0] == len(input_ids)
     return embeddings
 

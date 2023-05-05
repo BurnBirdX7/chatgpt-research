@@ -18,7 +18,7 @@ def build_index(embeddings: Union[np.ndarray, pd.DataFrame], use_gpu: bool = con
     """
     # C-contiguous order and np.float32 type are required
     if isinstance(embeddings, np.ndarray) and embeddings.flags['C_CONTIGUOUS']:
-        data = embeddings
+        data = embeddings.astype(np.float32)
     else:
         data = np.array(embeddings, order="C", dtype=np.float32)
 
@@ -37,7 +37,7 @@ def build_index(embeddings: Union[np.ndarray, pd.DataFrame], use_gpu: bool = con
 
 
 def build_index_from_file(file: str = config.embeddings_file) -> faiss.Index:
-    print("Loading embeddings... ", end='')
+    print(f"Loading embeddings from '{file}'... ", end='')
     embeddings = pd.read_csv(file)
     print("Done")
     return build_index(embeddings)
@@ -46,9 +46,9 @@ def build_index_from_file(file: str = config.embeddings_file) -> faiss.Index:
 def main() -> None:
     """
     Calculates embeddings, builds index and then saves it to file
-    :return:
     """
-    e = build_embeddings(*roberta.get_default())
+    e, r = build_embeddings(*roberta.get_default())
+    r.to_csv(config.ranges_file)
     index = build_index(e, False)
     faiss.write_index(index, config.index_file)
 

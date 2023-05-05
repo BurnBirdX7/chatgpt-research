@@ -19,20 +19,24 @@ class IntervalToSource:
         self.upper_limits: List[int] = []
         self.sources: List[str] = []
 
-    def append_interval(self, upper_limit: int, source: str) -> None:
+    @property
+    def highest_bound(self):
+        return self.upper_limits[-1] if len(self.upper_limits) > 0 else self.lowest_bound
+
+    def append_interval(self, length: int, source: str) -> None:
         """
-        Append new range
+        Appends new interval of length `length` associated with source `source`
 
           [0, 10) -> google.com
           [10, 16) -> ya.ru
 
-        append_interval(21, 'bing.com')
+        append_interval(5, 'bing.com')
 
           [0, 10) -> google.com
           [10, 16) -> ya.ru
           [16, 21) -> bing.com
         """
-        self.upper_limits.append(upper_limit)
+        self.upper_limits.append(self.highest_bound + length)
         self.sources.append(source)
 
     def get_source(self, index: int) -> str:
