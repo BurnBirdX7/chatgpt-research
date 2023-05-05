@@ -53,19 +53,13 @@ def build_list_of_tokens_input(text: str) -> list[str]:
 
 def build_link_template(tokens: list[str]) -> str:
     template = Template(link_template)
+    tokens = map(lambda s: s.replace('Ġ', ' ').replace('Ċ', '<br/>'), tokens)
+    link = "link_1"
+    color = "color4"
     output = ""
 
-    for i in range(len(tokens)):
-        link = "link_1"
-        link_empty = None
-        color = "color4"
-        if tokens[i].__contains__("Ġ"):
-            token_with_space = tokens[i].split("Ġ")
-            output = output + template.render(link=link, color=color, token=" " + token_with_space[1])
-        elif tokens[i].__contains__("Ċ"):
-            output = output + template.render(link=link_empty, color="color5", token="<br>")
-        else:
-            output = output + template.render(link=link, color=color, token=tokens[i])
+    for key in tokens:
+        output = output + template.render(link=link, color=color, token=key)
 
     return output
 
