@@ -1,7 +1,7 @@
 from typing import Tuple
 
-from transformers import RobertaTokenizer, RobertaModel
-import torch
+from transformers import RobertaTokenizer, RobertaModel  # type: ignore
+import torch  # type: ignore
 import config
 
 def get_default() -> Tuple[RobertaTokenizer, RobertaModel]:

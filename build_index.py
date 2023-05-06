@@ -1,15 +1,47 @@
-from typing import Union
-
-import pandas as pd
-
-from build_embeddings import build_embeddings
-import roberta
-import config
-import faiss
+from typing import Union, Tuple, List
+from transformers import RobertaTokenizer, RobertaModel  # type: ignore
+import pandas as pd  # type: ignore
+import faiss  # type: ignore
 import numpy as np
 
 
-def build_index(embeddings: Union[np.ndarray, pd.DataFrame], use_gpu: bool = config.faiss_use_gpu) -> faiss.Index:
+from IntervalToSource import IntervalToSource
+from text_embedding import input_ids_embedding, text_embedding
+from wiki import parse_wiki
+import roberta
+import config
+
+
+def build_embeddings_from_wiki(tokenizer: RobertaTokenizer, model: RobertaModel) -> Tuple[np.ndarray, IntervalToSource]:
+    """
+    Computes embeddings
+    :param tokenizer: Tokenizer instance
+    :param model: Model instance
+    :return: Tuple:
+                - Embeddings as 2d numpy.array
+                - and Interval to Source mapping
+    """
+    src_map = IntervalToSource()
+    embeddings = np.empty((0, model.config.hidden_size))
+    page_names = config.page_names
+
+    for i, page in enumerate(page_names):
+        print(f"Source {i + 1}/{len(page_names)} in processing")
+        sections_dict = parse_wiki(page)
+
+        input_ids: List[int] = []
+        for title, text in sections_dict.items():
+            tokens = tokenizer.tokenize(text)
+            input_ids += tokenizer.convert_tokens_to_ids(tokens)
+            src_map.append_interval(len(tokens), title)
+
+        page_embeddings = input_ids_embedding(input_ids, model)
+        embeddings = np.concatenate([embeddings, page_embeddings])
+
+    return embeddings, src_map
+
+
+def build_index_from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame], use_gpu: bool = config.faiss_use_gpu) -> faiss.Index:
     """
     Builds index from provided embeddings
     :param embeddings: data to build the index
@@ -36,23 +68,21 @@ def build_index(embeddings: Union[np.ndarray, pd.DataFrame], use_gpu: bool = con
     return index
 
 
-def build_index_from_file(file: str = config.embeddings_file) -> faiss.Index:
-    print(f"Loading embeddings from '{file}'... ", end='')
-    embeddings = pd.read_csv(file)
-    print("Done")
-    return build_index(embeddings)
+def build_index() -> Tuple[faiss.Index, IntervalToSource]:
+    """
+    :returns: faiss index and interval to source mapping
+    """
+    tokenizer, model = roberta.get_default()
+    e, r = build_embeddings_from_wiki(tokenizer, model)
+    index = build_index_from_embeddings(e, False)
+    return index, r
 
 
 def main() -> None:
-    """
-    Calculates embeddings, builds index and then saves it to file
-    """
-    e, r = build_embeddings(*roberta.get_default())
-    r.to_csv(config.ranges_file)
-    index = build_index(e, False)
+    index, mapping = build_index()
     faiss.write_index(index, config.index_file)
+    mapping.to_csv(config.ranges_file)
 
 
 if __name__ == '__main__':
     main()
-

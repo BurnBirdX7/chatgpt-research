@@ -1,5 +1,5 @@
 import numpy as np
-from progress.bar import Bar
+from progress.bar import Bar  # type: ignore
 import torch  # type: ignore
 
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
