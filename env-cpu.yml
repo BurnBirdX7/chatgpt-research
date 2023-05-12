@@ -12,3 +12,4 @@ dependencies:
   - transformers
   - faiss
   - progress
+  - matplotlib
