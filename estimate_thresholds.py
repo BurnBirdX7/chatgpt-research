@@ -27,7 +27,7 @@ def estimate_thresholds(index: faiss.Index,
 
     for src, text in pages:
         embeddings = text_embedding(text, tokenizer, model)
-        faiss.normalize_L2(embeddings)
+        # faiss.normalize_L2(embeddings)
         dists, ids = index.search(embeddings, 1)
         for dist, id in zip(dists, ids):
             found_src = mapping.get_source(id[0])
@@ -47,7 +47,7 @@ def estimate_thresholds(index: faiss.Index,
         plt.legend()
         plt.xlabel('Cos Distance')
         plt.ylabel('Count')
-        plt.xlim(0.85, 1.0)
+        # plt.xlim(-1, 1.0)
         plt.show()
 
     return pos_mean, neg_mean
@@ -57,7 +57,7 @@ def main():
     print('Reading index...', end='')
     index = faiss.read_index(config.index_file)
     if config.faiss_use_gpu:
-        index = faiss.index_cpu_to_gpu(index)
+        index = faiss.index_cpu_to_gpu(faiss.StandardGpuResources(), 0, index)
     print('Done')
 
     data = dict()

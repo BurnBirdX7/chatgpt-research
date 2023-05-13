@@ -47,7 +47,7 @@ def model(message_from_user: str):
 def build_list_of_tokens_input(text: str) -> list[str]:
     tokenizer = RobertaTokenizer.from_pretrained(config.model_name)
     tokens = tokenizer.tokenize(text)
-
+    print("tokens", tokens)
     return tokens
 
 
@@ -76,5 +76,4 @@ def build_page_template(completion: str) -> None:
 
 
 if __name__ == "__main__":
-    # model("elvis childhood")  # gpt response
-    build_page_template("elvis childhood\nhhhh")  # test text input
+    model("when was born Elvis?")

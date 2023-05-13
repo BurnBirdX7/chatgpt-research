@@ -38,7 +38,8 @@ def build_embeddings_from_wiki(tokenizer: RobertaTokenizer, model: RobertaModel)
         page_embeddings = input_ids_embedding(input_ids, model)
         embeddings = np.concatenate([embeddings, page_embeddings])
 
-    return embeddings, src_map
+    center = np.mean(embeddings, axis=0)
+    return embeddings - center, src_map
 
 
 def build_index_from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame], use_gpu: bool = config.faiss_use_gpu) -> faiss.Index:
@@ -56,9 +57,9 @@ def build_index_from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame], use
 
     sequence_len, embedding_len = data.shape
 
-    faiss.normalize_L2(data)
+    # faiss.normalize_L2(data)
     print("Building index... ", end="")
-    index = faiss.IndexFlatIP(embedding_len)
+    index = faiss.IndexFlatL2(embedding_len)
     if use_gpu:
         gpu_res = faiss.StandardGpuResources()
         index = faiss.index_cpu_to_gpu(gpu_res, 0, index)
