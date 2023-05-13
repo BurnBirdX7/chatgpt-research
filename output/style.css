@@ -1,7 +1,10 @@
 .color0 {color: black;}
-.color1 {color: red;}
-.color2 {color: green;}
-.color3 {color: blue;}
-.color4 {color: purple;}
-.color5{color: white}
+.color1 {color: #FF00FF;}
+.color2 {color: #9370DB;}
+.color3 {color: #9400D3;}
+.color4 {color: #8B008B;}
+.color5 {color: #4B0082;}
+.color6{color: white}
+.color7 {color: #CD5C5C}
+.color8{color: #DC143C}
 a{text-decoration-line: none}

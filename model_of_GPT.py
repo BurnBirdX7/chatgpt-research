@@ -52,25 +52,35 @@ def build_list_of_tokens_input(text: str) -> list[str]:
     return tokens
 
 
-def build_link_template(tokens: list[str], source_link: []) -> str:
+def build_link_template(tokens: list[str], source_link: list[str], dict_with_uniq_colors: dict) -> str:
     template = Template(link_template)
     tokens = map(lambda s: s.replace('Ġ', ' ').replace('Ċ', '<br/>'), tokens)
-    color = "color4"
-    output = ""
-    i = 0
 
-    for key in tokens:
-        output += template.render(link=source_link[i], color=color, token=key)
-        i += 1
+    output = ""
+    for i, (key, src) in enumerate(zip(tokens, source_link)):
+        flag = False
+        if src is not None:
+            for link_color, color in dict_with_uniq_colors.items():
+                if src == link_color:
+                    output += template.render(link=src, color=color, token=key)
+                    flag = True
+                    continue
+            if not flag:
+                if i % 2 != 0:
+                    output += template.render(link=src, color="color7", token=key)
+                else:
+                    output += template.render(link=src, color="color8", token=key)
+        else:
+            output += template.render(token=key, color="color0")
 
     return output
 
 
-def build_page_template(completion: str, source_links: []) -> None:
+def build_page_template(completion: str, source_links: list[str], dict_with_uniq_colors: dict) -> None:
     template = Template(page_template)
 
     tokens_from_output = build_list_of_tokens_input(completion)
-    result_of_color = build_link_template(tokens_from_output, source_links)
+    result_of_color = build_link_template(tokens_from_output, source_links, dict_with_uniq_colors)
     result_html = template.render(result=result_of_color, gpt_response=completion)
 
     with open("output/result.html", "w", encoding="utf-8") as f:
@@ -80,4 +90,4 @@ def build_page_template(completion: str, source_links: []) -> None:
 if __name__ == "__main__":
     link = ["link_1", "link_2", "link_3", "link_4", "link_5"]
     # model("elvis childhood")  # gpt response
-    build_page_template("elvis childhood\nhhhh", link)  # test text input
+    build_page_template("elvis childhood\nhhhh", link, 1)  # test text input
