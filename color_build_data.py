@@ -9,7 +9,7 @@ from build_index import build_index_from_file
 from model_of_GPT import build_page_template
 from text_embedding import text_embedding
 from IntervalToSource import IntervalToSource
-from typing import Dict
+from typing import Dict, List
 
 tokenizer, model = roberta.get_default()
 
@@ -56,7 +56,7 @@ def prob_test_wiki_with_colored(index: faiss.Index, src_map: IntervalToSource, t
 
     intervalToSource = IntervalToSource()
     ranges = intervalToSource.read_csv(config.ranges_file)
-    links = []
+    links: List[str] = []
 
     for i, (token_dists, token_ids) in enumerate(zip(result_dists, result_ids)):
 
