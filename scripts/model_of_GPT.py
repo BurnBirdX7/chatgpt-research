@@ -93,8 +93,8 @@ def build_link_template(tokens: Iterable[str], source_link: list[str], dict_with
     return output
 
 
-def build_page_template(completion: str, source_links: list[str], dict_with_uniq_colors: Dict[str, str]) -> tuple[
-    str, str, str]:
+def build_page_template(completion: str, source_links: list[str], dict_with_uniq_colors: Dict[str, str]) -> \
+        tuple[str, str, str]:
     template = Template(page_template)
     tokens_from_output = build_list_of_tokens_input(completion)  # can integrate chatgpt response
     result_of_color = build_link_template(tokens_from_output, source_links, dict_with_uniq_colors)
