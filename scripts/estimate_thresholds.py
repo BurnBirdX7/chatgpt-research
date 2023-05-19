@@ -7,15 +7,13 @@ from matplotlib import pyplot as plt  # type: ignore
 import faiss  # type: ignore
 from progress.bar import Bar  # type: ignore
 
-from IntervalToSource import IntervalToSource
-from text_embedding import text_embedding
-from wiki import parse_wiki
-import roberta
-import config
+from src import SourceMapping, Roberta, Config
+from src.embeddings import text_embedding
+from src.wiki import parse_wiki
 
 
 def estimate_thresholds(index: faiss.Index,
-                        mapping: IntervalToSource,
+                        mapping: SourceMapping,
                         data: Dict[str, str],
                         tokenizer: RobertaTokenizer,
                         model: RobertaModel) -> Tuple[float, float]:
@@ -39,7 +37,7 @@ def estimate_thresholds(index: faiss.Index,
     pos_mean = statistics.mean(positives)
     neg_mean = statistics.mean(negatives)
 
-    if config.show_plot:
+    if Config.show_plot:
         plt.hist(positives, bins=50, alpha=0.5, label='Positives')
         plt.hist(negatives, bins=50, alpha=0.5, label='Negatives')
         plt.axvline(pos_mean, color='blue', label=f'Positive Mean = {pos_mean:.4f}')
@@ -55,20 +53,20 @@ def estimate_thresholds(index: faiss.Index,
 
 def main():
     print('Reading index...', end='')
-    index = faiss.read_index(config.index_file)
-    if config.faiss_use_gpu:
+    index = faiss.read_index(Config.index_file)
+    if Config.faiss_use_gpu:
         index = faiss.index_cpu_to_gpu(index)
     print('Done')
 
     data = dict()
-    for page in Bar("Loading related articles").iter(config.page_names):
+    for page in Bar("Loading related articles").iter(Config.page_names):
         data |= parse_wiki(page)
 
-    for page in Bar("Loading unrelated articles").iter(config.unrelated_page_names):
+    for page in Bar("Loading unrelated articles").iter(Config.unrelated_page_names):
         data |= parse_wiki(page)
 
-    mapping = IntervalToSource.read_csv(config.ranges_file)
-    tm = roberta.get_default()
+    mapping = SourceMapping.read_csv(Config.ranges_file)
+    tm = Roberta.get_default()
 
     p, n = estimate_thresholds(index, mapping, data, *tm)
     print(f'Positive threshold: {p}')

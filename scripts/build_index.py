@@ -5,14 +5,12 @@ import faiss  # type: ignore
 import numpy as np
 
 
-from IntervalToSource import IntervalToSource
-from text_embedding import input_ids_embedding, text_embedding
-from wiki import parse_wiki
-import roberta
-import config
+from src import SourceMapping, Config, Roberta
+from src.wiki import parse_wiki
+from src.embeddings import input_ids_embedding
 
 
-def build_embeddings_from_wiki(tokenizer: RobertaTokenizer, model: RobertaModel) -> Tuple[np.ndarray, IntervalToSource]:
+def build_embeddings_from_wiki(tokenizer: RobertaTokenizer, model: RobertaModel) -> Tuple[np.ndarray, SourceMapping]:
     """
     Computes embeddings
     :param tokenizer: Tokenizer instance
@@ -21,9 +19,9 @@ def build_embeddings_from_wiki(tokenizer: RobertaTokenizer, model: RobertaModel)
                 - Embeddings as 2d numpy.array
                 - and Interval to Source mapping
     """
-    src_map = IntervalToSource()
+    src_map = SourceMapping()
     embeddings = np.empty((0, model.config.hidden_size))
-    page_names = config.page_names
+    page_names = Config.page_names
 
     for i, page in enumerate(page_names):
         print(f"Source {i + 1}/{len(page_names)} in processing")
@@ -41,7 +39,8 @@ def build_embeddings_from_wiki(tokenizer: RobertaTokenizer, model: RobertaModel)
     return embeddings, src_map
 
 
-def build_index_from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame], use_gpu: bool = config.faiss_use_gpu) -> faiss.Index:
+def build_index_from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame],
+                                use_gpu: bool = Config.faiss_use_gpu) -> faiss.Index:
     """
     Builds index from provided embeddings
     :param embeddings: data to build the index
@@ -68,11 +67,11 @@ def build_index_from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame], use
     return index
 
 
-def build_index() -> Tuple[faiss.Index, IntervalToSource]:
+def build_index() -> Tuple[faiss.Index, SourceMapping]:
     """
     :returns: faiss index and interval to source mapping
     """
-    tokenizer, model = roberta.get_default()
+    tokenizer, model = Roberta.get_default()
     e, r = build_embeddings_from_wiki(tokenizer, model)
     index = build_index_from_embeddings(e, False)
     return index, r
@@ -80,8 +79,8 @@ def build_index() -> Tuple[faiss.Index, IntervalToSource]:
 
 def main() -> None:
     index, mapping = build_index()
-    faiss.write_index(index, config.index_file)
-    mapping.to_csv(config.ranges_file)
+    faiss.write_index(index, Config.index_file)
+    mapping.to_csv(Config.ranges_file)
 
 
 if __name__ == '__main__':

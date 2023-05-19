@@ -1,14 +1,9 @@
 import numpy as np  # type: ignore
-import pandas as pd  # type: ignore
-import torch  # type: ignore
 import faiss  # type: ignore
-import roberta
 
-from text_embedding import text_embedding
-from build_index import build_index
-from IntervalToSource import IntervalToSource
-
-import config
+from src import Roberta, Config, SourceMapping
+from src.embeddings import text_embedding
+from .build_index import build_index
 
 """
 Script:
@@ -17,7 +12,7 @@ Loads pre-built embeddings to build faiss index and tries to search
 
 __all__ = ["main"]  # Export nothing but main
 
-tokenizer, model = roberta.get_default()
+tokenizer, model = Roberta.get_default()
 
 # from 'Childhood in Tupelo' section
 childhood_w_refs = (
@@ -57,7 +52,7 @@ def test_request(index: faiss.Index, q: np.ndarray) -> None:
     print(ind)
 
 
-def test_wiki(index: faiss.Index, src_map: IntervalToSource, text: str, expected_url: str) -> None:
+def test_wiki(index: faiss.Index, src_map: SourceMapping, text: str, expected_url: str) -> None:
     embeddings = text_embedding(text, tokenizer, model)
     faiss.normalize_L2(embeddings)
     #
@@ -84,8 +79,8 @@ def main() -> None:
 
     if read_index:
         print("Readings index... ", end='')
-        index = faiss.read_index(config.index_file)
-        mapping = IntervalToSource.read_csv(config.ranges_file)
+        index = faiss.read_index(Config.index_file)
+        mapping = SourceMapping.read_csv(Config.ranges_file)
         print("Done")
     else:
         print("Index is being built from wiki... ")

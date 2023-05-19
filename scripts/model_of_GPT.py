@@ -1,11 +1,11 @@
 import openai
-import api_key
+import api_key  # type: ignore
 
 from jinja2 import Template
-from transformers import RobertaTokenizer
-from typing import Dict
+from transformers import RobertaTokenizer  # type: ignore
+from typing import Dict, Iterable
 
-import config
+from src import Config
 
 openai.api_key = api_key.key
 max_tokens = 128
@@ -61,13 +61,13 @@ def list_of_colors(dict_with_uniq_colors: Dict[str, str]) -> str:
 
 
 def build_list_of_tokens_input(text: str) -> list[str]:
-    tokenizer = RobertaTokenizer.from_pretrained(config.model_name)
+    tokenizer = RobertaTokenizer.from_pretrained(Config.model_name)
     tokens = tokenizer.tokenize(text)
 
     return tokens
 
 
-def build_link_template(tokens: list[str], source_link: list[str], dict_with_uniq_colors: Dict[str, str]) -> str:
+def build_link_template(tokens: Iterable[str], source_link: list[str], dict_with_uniq_colors: Dict[str, str]) -> str:
     template = Template(link_template)
     tokens = map(lambda s: s.replace('Ġ', ' ').replace('Ċ', '</br>'), tokens)
     output = ''
