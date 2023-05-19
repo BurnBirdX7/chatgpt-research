@@ -33,19 +33,19 @@ def input_ids_embedding(input_ids: List[int], model: RobertaModel) -> np.ndarray
         input_ids_tensor = input_ids_tensor.to(model.device)
 
         output = model(input_ids_tensor)
-        seq_embeddings = output.last_hidden_state.detach().squeeze(0).cpu().numpy()
+        seq_embeddings = output.last_hidden_state.detach().squeeze(0).cpu().numpy().astype(np.float32)
 
         if previous_half is not None:
             # Get mean value of 2 halves (prev[:t] and curr[t:])
             current_half = (previous_half + seq_embeddings[:window_step]) / 2
-            embeddings = np.concatenate([embeddings, current_half], dtype=np.float32)
+            embeddings = np.concatenate([embeddings, current_half])
         else:
-            embeddings = seq_embeddings[window_step:].astype(np.float32)
+            embeddings = seq_embeddings[:window_step]
 
         previous_half = seq_embeddings[window_step:]
 
     if previous_half is not None:
-        embeddings = np.concatenate([embeddings, previous_half], dtype=np.float32)
+        embeddings = np.concatenate([embeddings, previous_half])
 
     count, length = embeddings.shape
     assert count == len(input_ids)
