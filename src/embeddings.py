@@ -3,7 +3,7 @@ from progress.bar import Bar  # type: ignore
 import torch  # type: ignore
 
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
-from typing import List, Optional
+from typing import List
 
 """
 Functions:

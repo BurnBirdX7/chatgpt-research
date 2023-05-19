@@ -5,7 +5,7 @@ from jinja2 import Template
 from transformers import RobertaTokenizer
 from typing import Dict
 
-import config
+from src import Config
 
 openai.api_key = api_key.key
 max_tokens = 128
@@ -61,7 +61,7 @@ def list_of_colors(dict_with_uniq_colors: Dict[str, str]) -> str:
 
 
 def build_list_of_tokens_input(text: str) -> list[str]:
-    tokenizer = RobertaTokenizer.from_pretrained(config.model_name)
+    tokenizer = RobertaTokenizer.from_pretrained(Config.model_name)
     tokens = tokenizer.tokenize(text)
 
     return tokens
