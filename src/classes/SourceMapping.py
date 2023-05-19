@@ -2,7 +2,7 @@ from typing import List
 import pandas as pd  # type: ignore
 
 
-class IntervalToSource:
+class SourceMapping:
     """
     Helps to create association between wide range of values and their source
 
@@ -72,9 +72,9 @@ class IntervalToSource:
         df.to_csv(file, index=False)
 
     @staticmethod
-    def read_csv(file: str) -> "IntervalToSource":
+    def read_csv(file: str) -> "SourceMapping":
         df = pd.read_csv(file)
-        i2s = IntervalToSource()
+        i2s = SourceMapping()
         i2s.upper_limits = df["Upper Bound"].to_list()
         i2s.sources = df["Source"].to_list()
         return i2s

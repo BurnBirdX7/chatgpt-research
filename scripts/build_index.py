@@ -5,14 +5,14 @@ import faiss  # type: ignore
 import numpy as np
 
 
-from IntervalToSource import IntervalToSource
-from text_embedding import input_ids_embedding, text_embedding
-from wiki import parse_wiki
-import roberta
-import config
+from src import *
+from src.wiki import parse_wiki
+from src.embeddings import input_ids_embedding
+import src.config as config
+import src.roberta as roberta
 
 
-def build_embeddings_from_wiki(tokenizer: RobertaTokenizer, model: RobertaModel) -> Tuple[np.ndarray, IntervalToSource]:
+def build_embeddings_from_wiki(tokenizer: RobertaTokenizer, model: RobertaModel) -> Tuple[np.ndarray, SourceMapping]:
     """
     Computes embeddings
     :param tokenizer: Tokenizer instance
@@ -21,7 +21,7 @@ def build_embeddings_from_wiki(tokenizer: RobertaTokenizer, model: RobertaModel)
                 - Embeddings as 2d numpy.array
                 - and Interval to Source mapping
     """
-    src_map = IntervalToSource()
+    src_map = SourceMapping()
     embeddings = np.empty((0, model.config.hidden_size))
     page_names = config.page_names
 
@@ -68,7 +68,7 @@ def build_index_from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame], use
     return index
 
 
-def build_index() -> Tuple[faiss.Index, IntervalToSource]:
+def build_index() -> Tuple[faiss.Index, SourceMapping]:
     """
     :returns: faiss index and interval to source mapping
     """

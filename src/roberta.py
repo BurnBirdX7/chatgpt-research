@@ -2,7 +2,9 @@ from typing import Tuple
 
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 import torch  # type: ignore
-import config
+
+import src.config as config
+
 
 def get_default() -> Tuple[RobertaTokenizer, RobertaModel]:
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

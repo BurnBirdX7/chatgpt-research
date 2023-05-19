@@ -8,7 +8,7 @@ import faiss  # type: ignore
 from progress.bar import Bar  # type: ignore
 
 from IntervalToSource import IntervalToSource
-from text_embedding import text_embedding
+from test.text_embedding import text_embedding
 from wiki import parse_wiki
 import roberta
 import config

@@ -1,13 +1,12 @@
-import config
-import roberta
 import faiss
 import numpy as np
 import pandas as pd
 import collections
 
-from build_index import build_index_from_file
-from model_of_GPT import build_page_template
-from text_embedding import text_embedding
+from scripts.build_index import build_index_from_file
+from scripts.model_of_GPT import build_page_template
+
+from src.embeddings import text_embedding
 from IntervalToSource import IntervalToSource
 from typing import Dict, List
 

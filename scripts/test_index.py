@@ -4,11 +4,11 @@ import torch  # type: ignore
 import faiss  # type: ignore
 import roberta
 
-from text_embedding import text_embedding
+from src.embeddings import text_embedding
 from build_index import build_index
 from IntervalToSource import IntervalToSource
 
-import config
+from src import config
 
 """
 Script:
