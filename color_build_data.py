@@ -63,7 +63,7 @@ def prob_test_wiki_with_colored(index: faiss.Index, src_map: IntervalToSource, t
         dist = token_dists[0]
         idx = token_ids[0]
 
-        if dist < 0.9942:
+        if dist < 0.8:
             links.append(None)
         else:
             link = ranges.get_source(index=token_ids[0])
