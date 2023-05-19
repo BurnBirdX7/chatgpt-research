@@ -3,7 +3,7 @@ import api_key  # type: ignore
 
 from jinja2 import Template
 from transformers import RobertaTokenizer  # type: ignore
-from typing import Dict, Iterable
+from typing import Dict, Iterable, Tuple
 
 from src import Config
 
@@ -17,12 +17,15 @@ page_template = """
 <head>
     <meta charset="UTF-8">
     <title>Result</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="../static/style_result.css">
 </head>
 <body>
 <h1>Result of research</h1>
-<pre> {{ gpt_response }} </pre>
+<pre><b>Input text:</b></pre>
+{{ gpt_response }}
+<pre><b>Top paragraphs:</b></pre>
 {{ list_of_colors }}
+<pre><b>Result:</b></pre>
 {{ result }}
 </body>
 </html>
@@ -90,17 +93,18 @@ def build_link_template(tokens: Iterable[str], source_link: list[str], dict_with
     return output
 
 
-def build_page_template(completion: str, source_links: list[str], dict_with_uniq_colors: Dict[str, str]) -> None:
+def build_page_template(completion: str, source_links: list[str], dict_with_uniq_colors: Dict[str, str]) -> tuple[
+    str, str, str]:
     template = Template(page_template)
-
     tokens_from_output = build_list_of_tokens_input(completion)  # can integrate chatgpt response
     result_of_color = build_link_template(tokens_from_output, source_links, dict_with_uniq_colors)
     result_of_list_of_colors = list_of_colors(dict_with_uniq_colors)
     result_html = template.render(result=result_of_color, gpt_response=completion,
                                   list_of_colors=result_of_list_of_colors)
 
-    with open("output/result.html", "w", encoding="utf-8") as f:
+    with open("../server/templates/template_of_result_page.html", "w", encoding="utf-8") as f:
         f.write(result_html)
+    return result_of_color, completion, result_of_list_of_colors
 
 
 if __name__ == "__main__":
