@@ -1,7 +1,10 @@
 import openai
 import api_key
+
 from jinja2 import Template
 from transformers import RobertaTokenizer
+from typing import Dict
+
 import config
 
 openai.api_key = api_key.key
@@ -19,12 +22,15 @@ page_template = """
 <body>
 <h1>Result of research</h1>
 <pre> {{ gpt_response }} </pre>
+{{ list_of_colors }}
 {{ result }}
 </body>
 </html>
 """
 
 link_template = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a>"
+list_of_articles = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a></br>"
+
 
 def model(message_from_user: str):
     """
@@ -40,8 +46,18 @@ def model(message_from_user: str):
         presence_penalty=0,
     )
 
-    build_page_template(completion.choices[0].text)
-    return
+    print(completion.choices[0].text)
+    # build_page_template(completion.choices[0].text)
+
+
+def list_of_colors(dict_with_uniq_colors: Dict[str, str]) -> str:
+    template = Template(list_of_articles)
+    output = ''
+    for key, value in dict_with_uniq_colors.items():
+        output += template.render(link=key, color=value, token=key)
+
+    output += '</br>'
+    return output
 
 
 def build_list_of_tokens_input(text: str) -> list[str]:
@@ -51,30 +67,41 @@ def build_list_of_tokens_input(text: str) -> list[str]:
     return tokens
 
 
-def build_link_template(tokens: list[str]) -> str:
+def build_link_template(tokens: list[str], source_link: list[str], dict_with_uniq_colors: Dict[str, str]) -> str:
     template = Template(link_template)
-    tokens = map(lambda s: s.replace('Ġ', ' ').replace('Ċ', '<br/>'), tokens)
-    link = "link_1"
-    color = "color4"
-    output = ""
-
-    for key in tokens:
-        output += template.render(link=link, color=color, token=key)
+    tokens = map(lambda s: s.replace('Ġ', ' ').replace('Ċ', '</br>'), tokens)
+    output = ''
+    for i, (key, src) in enumerate(zip(tokens, source_link)):
+        flag = False
+        if src is not None:
+            for link_color, color in dict_with_uniq_colors.items():
+                if src == link_color:
+                    output += template.render(link=src, color=color, token=key)
+                    flag = True
+                    continue
+            if not flag:
+                if i % 2 != 0:
+                    output += template.render(link=src, color="color7", token=key)
+                else:
+                    output += template.render(link=src, color="color8", token=key)
+        else:
+            output += template.render(token=key, color="color0")
 
     return output
 
 
-def build_page_template(completion: str) -> None:
+def build_page_template(completion: str, source_links: list[str], dict_with_uniq_colors: Dict[str, str]) -> None:
     template = Template(page_template)
 
-    tokens_from_output = build_list_of_tokens_input(completion)
-    result_of_color = build_link_template(tokens_from_output)
-    result_html = template.render(result=result_of_color, gpt_response=completion)
+    tokens_from_output = build_list_of_tokens_input(completion)  # can integrate chatgpt response
+    result_of_color = build_link_template(tokens_from_output, source_links, dict_with_uniq_colors)
+    result_of_list_of_colors = list_of_colors(dict_with_uniq_colors)
+    result_html = template.render(result=result_of_color, gpt_response=completion,
+                                  list_of_colors=result_of_list_of_colors)
 
     with open("output/result.html", "w", encoding="utf-8") as f:
         f.write(result_html)
 
 
 if __name__ == "__main__":
-    # model("elvis childhood")  # gpt response
-    build_page_template("elvis childhood\nhhhh")  # test text input
+    model("when was born Elvis?")
