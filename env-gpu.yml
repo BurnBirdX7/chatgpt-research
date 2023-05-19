@@ -14,3 +14,4 @@ dependencies:
   - transformers
   - faiss-gpu
   - progress
+  - matplotlib
