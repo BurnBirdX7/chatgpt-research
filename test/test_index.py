@@ -1,9 +1,7 @@
 import numpy as np  # type: ignore
 import faiss  # type: ignore
 
-from src import Roberta, Config, SourceMapping
-from src.embeddings import text_embedding
-from .build_index import build_index
+from src import Roberta, Config, SourceMapping, Embeddings, Index
 
 """
 Script:
@@ -52,17 +50,17 @@ def test_request(index: faiss.Index, q: np.ndarray) -> None:
     print(ind)
 
 
-def test_wiki(index: faiss.Index, src_map: SourceMapping, text: str, expected_url: str) -> None:
-    embeddings = text_embedding(text, tokenizer, model)
+def test_wiki(index: Index, text: str, expected_url: str) -> None:
+    embeddings = Embeddings(tokenizer, model).from_text(text)
     faiss.normalize_L2(embeddings)
     #
-    result_dists, result_ids = index.search(embeddings, 1)
+    result_dists, result_ids = index.index.search(embeddings, 1)
     expected_count: int = 0
     dist_sum: float = 0.0
     for i, (token_dists, token_ids) in enumerate(zip(result_dists, result_ids)):
         dist = token_dists[0]
         idx = token_ids[0]
-        src = src_map.get_source(idx)
+        src = index.mapping.get_source(idx)
 
         if src == expected_url:
             expected_count += 1
@@ -79,20 +77,19 @@ def main() -> None:
 
     if read_index:
         print("Readings index... ", end='')
-        index = faiss.read_index(Config.index_file)
-        mapping = SourceMapping.read_csv(Config.ranges_file)
+        index = Index.load(Config.index_file, Config.mapping_file)
         print("Done")
     else:
         print("Index is being built from wiki... ")
-        index, mapping = build_index()
+        index = Index.from_wiki()
 
     print("Test [Data] Searching quotes from the same page:")
     print('"Childhood w references"')
-    test_wiki(index, mapping, childhood_w_refs, childhood_url)
+    test_wiki(index, childhood_w_refs, childhood_url)
     print('"Childhood w/o references"')
-    test_wiki(index, mapping, childhood_wo_refs, childhood_url)
+    test_wiki(index, childhood_wo_refs, childhood_url)
     print('"Legacy"')
-    test_wiki(index, mapping, legacy, legacy_url)
+    test_wiki(index, legacy, legacy_url)
 
 
 if __name__ == "__main__":

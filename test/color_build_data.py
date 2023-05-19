@@ -3,11 +3,9 @@ import numpy as np
 import pandas as pd
 import collections
 
-from scripts.build_index import build_index_from_file
 from scripts.model_of_GPT import build_page_template
 
-from src.embeddings import text_embedding
-from src import SourceMapping, Roberta, Config
+from src import SourceMapping, Roberta, Config, Embeddings
 from typing import Dict, List
 
 tokenizer, model = Roberta.get_default()
@@ -46,7 +44,7 @@ def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
 
 def prob_test_wiki_with_colored(index: faiss.Index, src_map: SourceMapping, text: str, expected_url: str,
                                 uniq_color: int) -> None:
-    embeddings = text_embedding(text, tokenizer, model)
+    embeddings = Embeddings(tokenizer, model).from_text(text)
     faiss.normalize_L2(embeddings)
 
     result_dists, result_ids = index.search(embeddings, 1)
@@ -54,7 +52,7 @@ def prob_test_wiki_with_colored(index: faiss.Index, src_map: SourceMapping, text
     dist_sum: float = 0.0
 
     intervalToSource = SourceMapping()
-    ranges = intervalToSource.read_csv(Config.ranges_file)
+    ranges = intervalToSource.read_csv(Config.mapping_file)
     links: List[str] = []
 
     for i, (token_dists, token_ids) in enumerate(zip(result_dists, result_ids)):
@@ -94,7 +92,7 @@ def main() -> None:
         print("Done")
     else:
         index = build_index_from_file(Config.embeddings_file)
-    mapping = SourceMapping.read_csv(Config.ranges_file)
+    mapping = SourceMapping.read_csv(Config.mapping_file)
 
     if sanity_test:
         print("Test [Sanity] Loading embeddings from file... ", end="")
