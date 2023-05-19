@@ -1,5 +1,5 @@
-import faiss
-from src.classes import SourceMapping
+import faiss  # type: ignore
+from src import SourceMapping
 
 __all__ = ['Index']
 

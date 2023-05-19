@@ -1,11 +1,11 @@
 import os.path
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 
 class ConfigLoader(type):
     def __new__(cls, clsname, bases, attrs, config_file: str):
         lc: Dict[str, Any] = {}
-        gl = {}
+        gl: Dict[str, Any] = {}
         with open(config_file, 'r') as f:
             exec(f.read(), gl, lc)
 
@@ -23,4 +23,17 @@ class ConfigLoader(type):
 
 
 class Config(metaclass=ConfigLoader, config_file='config.py'):
-    pass
+    # Misc
+    model_name: str
+    faiss_use_gpu: bool
+    show_plot: bool
+
+    # Files
+    artifacts_folder: str
+    embeddings_file: str
+    ranges_file: str
+    index_file: str
+
+    # Wiki Articles
+    page_names: List[str]
+    unrelated_page_names: List[str]
