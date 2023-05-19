@@ -7,8 +7,7 @@ from matplotlib import pyplot as plt  # type: ignore
 import faiss  # type: ignore
 from progress.bar import Bar  # type: ignore
 
-from src import SourceMapping, Roberta, Config
-from src.embeddings import text_embedding
+from src import SourceMapping, Roberta, Config, Embeddings
 from src.wiki import parse_wiki
 
 
@@ -19,12 +18,13 @@ def estimate_thresholds(index: faiss.Index,
                         model: RobertaModel) -> Tuple[float, float]:
     count = len(data) // 10
     pages = random.choices(list(data.items()), k=count)
+    embedding_builder = Embeddings(*Roberta.get_default())
 
     positives = []
     negatives = []
 
     for src, text in pages:
-        embeddings = text_embedding(text, tokenizer, model)
+        embeddings = embedding_builder.from_text(text)
         faiss.normalize_L2(embeddings)
         dists, ids = index.search(embeddings, 1)
         for dist, id in zip(dists, ids):
@@ -65,7 +65,7 @@ def main():
     for page in Bar("Loading unrelated articles").iter(Config.unrelated_page_names):
         data |= parse_wiki(page)
 
-    mapping = SourceMapping.read_csv(Config.ranges_file)
+    mapping = SourceMapping.read_csv(Config.mapping_file)
     tm = Roberta.get_default()
 
     p, n = estimate_thresholds(index, mapping, data, *tm)

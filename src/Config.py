@@ -27,11 +27,12 @@ class Config(metaclass=ConfigLoader, config_file='config.py'):
     model_name: str
     faiss_use_gpu: bool
     show_plot: bool
+    threshold: float
 
     # Files
     artifacts_folder: str
     embeddings_file: str
-    ranges_file: str
+    mapping_file: str
     index_file: str
 
     # Wiki Articles
