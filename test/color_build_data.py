@@ -7,10 +7,10 @@ from scripts.build_index import build_index_from_file
 from scripts.model_of_GPT import build_page_template
 
 from src.embeddings import text_embedding
-from IntervalToSource import IntervalToSource
+from src import SourceMapping, Roberta, Config
 from typing import Dict, List
 
-tokenizer, model = roberta.get_default()
+tokenizer, model = Roberta.get_default()
 
 # from 'Childhood in Tupelo' section
 childhood_w_refs = (
@@ -44,7 +44,7 @@ def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
     return links_with_uniq_colors
 
 
-def prob_test_wiki_with_colored(index: faiss.Index, src_map: IntervalToSource, text: str, expected_url: str,
+def prob_test_wiki_with_colored(index: faiss.Index, src_map: SourceMapping, text: str, expected_url: str,
                                 uniq_color: int) -> None:
     embeddings = text_embedding(text, tokenizer, model)
     faiss.normalize_L2(embeddings)
@@ -53,8 +53,8 @@ def prob_test_wiki_with_colored(index: faiss.Index, src_map: IntervalToSource, t
     expected_count: int = 0
     dist_sum: float = 0.0
 
-    intervalToSource = IntervalToSource()
-    ranges = intervalToSource.read_csv(config.ranges_file)
+    intervalToSource = SourceMapping()
+    ranges = intervalToSource.read_csv(Config.ranges_file)
     links: List[str] = []
 
     for i, (token_dists, token_ids) in enumerate(zip(result_dists, result_ids)):
@@ -90,15 +90,15 @@ def main() -> None:
 
     if read_index:
         print("Readings index... ", end='')
-        index = faiss.read_index(config.index_file)
+        index = faiss.read_index(Config.index_file)
         print("Done")
     else:
-        index = build_index_from_file(config.embeddings_file)
-    mapping = IntervalToSource.read_csv(config.ranges_file)
+        index = build_index_from_file(Config.embeddings_file)
+    mapping = SourceMapping.read_csv(Config.ranges_file)
 
     if sanity_test:
         print("Test [Sanity] Loading embeddings from file... ", end="")
-        data = np.array(pd.read_csv(config.embeddings_file),
+        data = np.array(pd.read_csv(Config.embeddings_file),
                         order="C", dtype=np.float32)
         faiss.normalize_L2(data)
         print("Done")

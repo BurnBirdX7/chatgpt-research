@@ -1,11 +1,9 @@
 import numpy as np  # type: ignore
-import pandas as pd  # type: ignore
-import torch  # type: ignore
 import faiss  # type: ignore
 
 from src import Roberta, Config, SourceMapping
 from src.embeddings import text_embedding
-from build_index import build_index
+from .build_index import build_index
 
 """
 Script:

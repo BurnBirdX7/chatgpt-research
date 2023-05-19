@@ -27,7 +27,7 @@ def input_ids_embedding(input_ids: List[int], model: RobertaModel) -> np.ndarray
     previous_half: np.ndarray | None = None
     for i in Bar('Computing').iter(range(0, len(input_ids), window_step)):
         # Create tensor with acceptable dimensions:
-        input_ids_tensor = torch.tensor(input_ids[i : i + sequence_length]).unsqueeze(0)
+        input_ids_tensor = torch.tensor(input_ids[i: i + sequence_length]).unsqueeze(0)
 
         # Moves tensor to model's device
         input_ids_tensor = input_ids_tensor.to(model.device)

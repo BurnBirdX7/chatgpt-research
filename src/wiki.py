@@ -1,4 +1,3 @@
-import pandas as pd  # type: ignore
 import wikipediaapi  # type: ignore
 
 from typing import Dict

@@ -5,7 +5,7 @@ import faiss  # type: ignore
 import numpy as np
 
 
-from src import *
+from src import SourceMapping, Config, Roberta
 from src.wiki import parse_wiki
 from src.embeddings import input_ids_embedding
 
@@ -39,7 +39,8 @@ def build_embeddings_from_wiki(tokenizer: RobertaTokenizer, model: RobertaModel)
     return embeddings, src_map
 
 
-def build_index_from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame], use_gpu: bool = Config.faiss_use_gpu) -> faiss.Index:
+def build_index_from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame],
+                                use_gpu: bool = Config.faiss_use_gpu) -> faiss.Index:
     """
     Builds index from provided embeddings
     :param embeddings: data to build the index
