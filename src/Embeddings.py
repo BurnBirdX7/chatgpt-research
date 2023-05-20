@@ -44,7 +44,7 @@ class Embeddings:
 
         embedding_len: int = self.embedding_length
         embeddings: np.ndarray = np.empty((0, embedding_len))
-        previous_half: np.ndarray | None = None
+        previous_half: Optional[np.ndarray] = None
 
         iterable = range(0, len(input_ids), window_step)
         if not self.suppress_progress:

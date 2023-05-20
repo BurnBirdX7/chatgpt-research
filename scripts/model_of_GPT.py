@@ -1,5 +1,5 @@
 import openai
-import api_key  # type: ignore
+# import api_key  # type: ignore
 
 from jinja2 import Template
 from transformers import RobertaTokenizer  # type: ignore
@@ -7,7 +7,7 @@ from typing import Dict, Iterable, Tuple
 
 from src import Config
 
-openai.api_key = api_key.key
+# openai.api_key = api_key.key
 max_tokens = 128
 model_engine = "text-davinci-003"
 
@@ -102,7 +102,7 @@ def build_page_template(completion: str, source_links: list[str], dict_with_uniq
     result_html = template.render(result=result_of_color, gpt_response=completion,
                                   list_of_colors=result_of_list_of_colors)
 
-    with open("../server/templates/template_of_result_page.html", "w", encoding="utf-8") as f:
+    with open("server/templates/template_of_result_page.html", "w", encoding="utf-8") as f:
         f.write(result_html)
     return result_of_color, completion, result_of_list_of_colors
 

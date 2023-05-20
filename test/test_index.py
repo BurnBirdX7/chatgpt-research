@@ -4,7 +4,7 @@ import numpy as np  # type: ignore
 import faiss  # type: ignore
 import matplotlib.pyplot as plt
 
-from src import Roberta, Config, SourceMapping, Embeddings, Index
+from src import Roberta, Config, Embeddings, Index
 
 """
 Script:
