@@ -1,5 +1,8 @@
+import statistics
+
 import numpy as np  # type: ignore
 import faiss  # type: ignore
+import matplotlib.pyplot as plt
 
 from src import Roberta, Config, SourceMapping, Embeddings, Index
 
@@ -51,24 +54,38 @@ def test_request(index: faiss.Index, q: np.ndarray) -> None:
 
 
 def test_wiki(index: Index, text: str, expected_url: str) -> None:
-    embeddings = Embeddings(tokenizer, model).from_text(text)
-    faiss.normalize_L2(embeddings)
-    #
-    result_dists, result_ids = index.index.search(embeddings, 1)
-    expected_count: int = 0
+    embeddings = Embeddings(tokenizer, model, normalize=True).from_text(text)
+    result_src, result_dists = index.get_embeddings_source(embeddings)
     dist_sum: float = 0.0
-    for i, (token_dists, token_ids) in enumerate(zip(result_dists, result_ids)):
-        dist = token_dists[0]
-        idx = token_ids[0]
-        src = index.mapping.get_source(idx)
+    tp = []
+    fn = []
 
-        if src == expected_url:
-            expected_count += 1
+    for i, (src, dist) in enumerate(zip(result_src, result_dists)):
+        if dist >= Config.threshold:
             dist_sum += dist
+            if src == expected_url:
+                tp.append(dist)
+        else:
+            if src == expected_url:
+                fn.append(dist)
+
+    if Config.show_plot:
+        tp_mean = statistics.mean(tp)
+        fn_mean = statistics.mean(fn)
+
+        if Config.show_plot:
+            plt.hist(tp, alpha=0.5, label='TP')
+            plt.hist(fn, alpha=0.5, label='FN')
+            plt.axvline(tp_mean, color='blue', label=f'TP Mean = {tp_mean:.4f}')
+            plt.axvline(fn_mean, color='red', label=f'FN Mean = {fn_mean:.4f}')
+            plt.legend()
+            plt.xlabel('Cos Distance')
+            plt.ylabel('Count')
+            plt.show()
 
     print(
-        f"Got expected URL in {expected_count / len(result_dists) * 100:.4f}% of cases, "
-        f"average match distance: {dist_sum / len(result_dists):.4f}"
+        f"Got expected URL in {len(tp) / len(result_src) * 100:.4f}% of cases, "
+        f"average match distance: {dist_sum / len(result_src):.4f}"
     )
 
 

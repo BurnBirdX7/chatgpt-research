@@ -39,3 +39,4 @@ class Config(metaclass=ConfigLoader, config_file='config.py'):
     # Wiki Articles
     page_names: List[str]
     unrelated_page_names: List[str]
+    unrelated_page_names_2: List[str]

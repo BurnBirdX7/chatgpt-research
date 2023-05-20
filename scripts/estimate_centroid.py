@@ -20,7 +20,7 @@ def estimate_centroid(data: Iterable[str], tokenizer: RobertaTokenizer, model: R
 
 def main() -> None:
     roberta = Roberta.get_default()
-    page_names = Config.page_names + Config.unrelated_page_names
+    page_names = Config.page_names + Config.unrelated_page_names + Config.unrelated_page_names_2
     texts: List[str] = []
     for name in ChargingBar('Loading articles').iter(page_names):
         texts += Wiki.parse(name).values()

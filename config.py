@@ -8,8 +8,8 @@ threshold = 0.8
 # Files:
 artifacts_folder = "artifacts"
 embeddings_file: str = "roberta-large.csv"
-mapping_file: str = "mapping-large.csv"
-index_file: str = "large.index"
+mapping_file: str = "mapping-large_2.csv"
+index_file: str = "large_2.index"
 centroid_file: str = "centroid.npy"
 
 # Wiki Articles
@@ -35,4 +35,34 @@ unrelated_page_names: list[str] = [
     "Computer_science",
     "3D_printing",
     "Thermoplastic"
+]
+
+unrelated_page_names_2: list[str] = [
+    "Knut_Storberget",
+    "One_of_Those_Nights_(Juicy_J_song)",
+    "Politically_exposed_person",
+    "Eulaema",
+    "Struell_Wells",
+    "Pollinator",
+    "Sir_Alexander_Fleming_College",
+    "Amy_Hughes_(artist)",
+    "Jing_Lusi",
+    "Recurring_Saturday_Night_Live_characters_and_sketches_introduced_2007-08",
+    "Trout_Creek_Hill",
+    "Shaynna_Blaze",
+    "Leckhampstead,_Buckinghamshire",
+    "Mu_Cassiopeiae",
+    "Dave_Karnes",
+    "Akron_Goodyear_Wingfoots",
+    "Australian_cricket_team_in_India_in_2000-01",
+    "Sergio_Hernandez_(basketball)",
+    "Phil_Joanou",
+    "Epiphany_Apostolic_College",
+    "WGN-TV",
+    "Jacob_Josefson",
+    "We_Connect",
+    "Tiare_Aguilera_Hey",
+    "Apna_Bombay_Talkies",
+    "Battle_of_Cravant",
+    "So_This_Is_Paris_(1926_film)"
 ]
