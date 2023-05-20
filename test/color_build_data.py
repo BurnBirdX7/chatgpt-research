@@ -1,12 +1,10 @@
 import faiss
-import numpy as np
-import pandas as pd
 import collections
 
 from scripts.model_of_GPT import build_page_template
 
-from src import SourceMapping, Roberta, Config, Embeddings
-from typing import Dict, List
+from src import SourceMapping, Roberta, Config, Embeddings, Index
+from typing import Dict, List, Optional
 
 tokenizer, model = Roberta.get_default()
 
@@ -42,7 +40,10 @@ def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
     return links_with_uniq_colors
 
 
-def prob_test_wiki_with_colored(index: faiss.Index, src_map: SourceMapping, text: str, expected_url: str,
+def prob_test_wiki_with_colored(index: faiss.Index,
+                                src_map: SourceMapping,
+                                text: str,
+                                expected_url: str,
                                 uniq_color: int) -> None:
     embeddings = Embeddings(tokenizer, model).from_text(text)
     faiss.normalize_L2(embeddings)
@@ -53,14 +54,14 @@ def prob_test_wiki_with_colored(index: faiss.Index, src_map: SourceMapping, text
 
     intervalToSource = SourceMapping()
     ranges = intervalToSource.read_csv(Config.mapping_file)
-    links: List[str] = []
+    links: List[Optional[str]] = []
 
     for i, (token_dists, token_ids) in enumerate(zip(result_dists, result_ids)):
 
         dist = token_dists[0]
         idx = token_ids[0]
 
-        if dist < 0.8:
+        if dist < Config.threshold:
             links.append(None)
         else:
             link = ranges.get_source(index=token_ids[0])
@@ -83,27 +84,18 @@ def prob_test_wiki_with_colored(index: faiss.Index, src_map: SourceMapping, text
 
 
 def main() -> None:
-    sanity_test: bool = True
     read_index: bool = False
 
     if read_index:
         print("Readings index... ", end='')
-        index = faiss.read_index(Config.index_file)
+        index = Index.load(Config.index_file, Config.mapping_file)
         print("Done")
     else:
-        index = build_index_from_file(Config.embeddings_file)
-    mapping = SourceMapping.read_csv(Config.mapping_file)
-
-    if sanity_test:
-        print("Test [Sanity] Loading embeddings from file... ", end="")
-        data = np.array(pd.read_csv(Config.embeddings_file),
-                        order="C", dtype=np.float32)
-        faiss.normalize_L2(data)
-        print("Done")
+        print("Index is being built from wiki... ")
+        index = Index.from_wiki()
 
     print("Test [Data] Searching quotes from the same page:")
-    print('"Childhood w references"')
-    prob_test_wiki_with_colored(index, mapping, childhood_w_refs, childhood_url, 5)
+    prob_test_wiki_with_colored(index.index, index.mapping, childhood_w_refs, childhood_url, 5)
 
 
 if __name__ == "__main__":

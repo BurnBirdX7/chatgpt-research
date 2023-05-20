@@ -3,8 +3,8 @@ from typing import List, Iterable, Set
 import numpy as np
 
 from src import Embeddings, Roberta, Config, Wiki
-from transformers import RobertaTokenizer, RobertaModel
-from progress.bar import ChargingBar
+from transformers import RobertaTokenizer, RobertaModel  # type: ignore
+from progress.bar import ChargingBar  # type: ignore
 
 
 def estimate_centroid(data: Iterable[str], tokenizer: RobertaTokenizer, model: RobertaModel) -> np.ndarray:
