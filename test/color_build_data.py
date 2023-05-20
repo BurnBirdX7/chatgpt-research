@@ -3,8 +3,10 @@ import collections
 
 from scripts.model_of_GPT import build_page_template
 
-from src import SourceMapping, Roberta, Config, Embeddings, Index
+from src import SourceMapping, Config, Embeddings, Index,Roberta
 from typing import Dict, List, Optional
+
+
 
 tokenizer, model = Roberta.get_default()
 
@@ -40,36 +42,25 @@ def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
     return links_with_uniq_colors
 
 
-def prob_test_wiki_with_colored(index: faiss.Index,
-                                src_map: SourceMapping,
-                                text: str,
-                                expected_url: str,
-                                uniq_color: int) -> None:
-    embeddings = Embeddings(tokenizer, model).from_text(text)
-    faiss.normalize_L2(embeddings)
 
-    result_dists, result_ids = index.search(embeddings, 1)
+def prob_test_wiki_with_colored(index: Index, text: str, expected_url: str,
+                                uniq_color: int) -> tuple[str, str, str]:
+    embeddings = Embeddings(tokenizer, model, normalize=True).from_text(text)
+
+    result_sources, result_dists = index.get_embeddings_source(embeddings)
     expected_count: int = 0
     dist_sum: float = 0.0
 
-    intervalToSource = SourceMapping()
-    ranges = intervalToSource.read_csv(Config.mapping_file)
     links: List[Optional[str]] = []
 
-    for i, (token_dists, token_ids) in enumerate(zip(result_dists, result_ids)):
-
-        dist = token_dists[0]
-        idx = token_ids[0]
+    for i, (dist, source) in enumerate(zip(result_dists, result_sources)):
 
         if dist < Config.threshold:
             links.append(None)
         else:
-            link = ranges.get_source(index=token_ids[0])
-            links.append(link)
+            links.append(source)
 
-        src = src_map.get_source(idx)
-
-        if src == expected_url:
+        if source == expected_url:
             expected_count += 1
             dist_sum += dist
 
@@ -80,11 +71,11 @@ def prob_test_wiki_with_colored(index: faiss.Index,
 
     dict_with_uniq_colors = build_dict_for_color(links, uniq_color)
 
-    build_page_template(text, links, dict_with_uniq_colors)
+    return build_page_template(text, links, dict_with_uniq_colors)
 
 
-def main() -> None:
-    read_index: bool = False
+def main(user_input: str) -> tuple[str, str, str]:
+    read_index: bool = True
 
     if read_index:
         print("Readings index... ", end='')
@@ -95,7 +86,8 @@ def main() -> None:
         index = Index.from_wiki()
 
     print("Test [Data] Searching quotes from the same page:")
-    prob_test_wiki_with_colored(index.index, index.mapping, childhood_w_refs, childhood_url, 5)
+    print('"Childhood w references"')
+    return prob_test_wiki_with_colored(index, user_input, childhood_url, 5)
 
 
 if __name__ == "__main__":
