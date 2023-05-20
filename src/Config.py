@@ -34,6 +34,7 @@ class Config(metaclass=ConfigLoader, config_file='config.py'):
     embeddings_file: str
     mapping_file: str
     index_file: str
+    centroid_file: str
 
     # Wiki Articles
     page_names: List[str]

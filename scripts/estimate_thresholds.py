@@ -1,38 +1,35 @@
 import statistics
 import random
 
+import faiss  # type: ignore
 from typing import Dict, Tuple
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from matplotlib import pyplot as plt  # type: ignore
-import faiss  # type: ignore
-from progress.bar import Bar  # type: ignore
+from progress.bar import ChargingBar  # type: ignore
 
-from src import SourceMapping, Roberta, Config, Embeddings
-from src.wiki import parse_wiki
+from src import Roberta, Config, Embeddings, Index, Wiki
 
 
-def estimate_thresholds(index: faiss.Index,
-                        mapping: SourceMapping,
+def estimate_thresholds(index: Index,
                         data: Dict[str, str],
                         tokenizer: RobertaTokenizer,
                         model: RobertaModel) -> Tuple[float, float]:
     count = len(data) // 10
     pages = random.choices(list(data.items()), k=count)
-    embedding_builder = Embeddings(*Roberta.get_default())
+    embedding_builder = Embeddings(tokenizer, model, normalize=True)
+    embedding_builder.suppress_progress = True
 
     positives = []
     negatives = []
 
-    for src, text in pages:
+    for real_src, text in ChargingBar("Processing pages").iter(pages):
         embeddings = embedding_builder.from_text(text)
-        faiss.normalize_L2(embeddings)
-        dists, ids = index.search(embeddings, 1)
-        for dist, id in zip(dists, ids):
-            found_src = mapping.get_source(id[0])
-            if src == found_src:
-                positives.append(dist[0])
+        sources, dists = index.get_embeddings_source(embeddings)
+        for dist, found_src in zip(dists, sources):
+            if real_src == found_src:
+                positives.append(dist)
             else:
-                negatives.append(dist[0])
+                negatives.append(dist)
 
     pos_mean = statistics.mean(positives)
     neg_mean = statistics.mean(negatives)
@@ -45,30 +42,26 @@ def estimate_thresholds(index: faiss.Index,
         plt.legend()
         plt.xlabel('Cos Distance')
         plt.ylabel('Count')
-        plt.xlim(0.85, 1.0)
         plt.show()
 
     return pos_mean, neg_mean
 
 
 def main():
+    tm = Roberta.get_default()
+
     print('Reading index...', end='')
-    index = faiss.read_index(Config.index_file)
-    if Config.faiss_use_gpu:
-        index = faiss.index_cpu_to_gpu(index)
+    index = Index.load(Config.index_file, Config.mapping_file, Config.threshold)
     print('Done')
 
     data = dict()
-    for page in Bar("Loading related articles").iter(Config.page_names):
-        data |= parse_wiki(page)
+    for page in ChargingBar("Loading related articles").iter(Config.page_names):
+        data |= Wiki.parse(page)
 
-    for page in Bar("Loading unrelated articles").iter(Config.unrelated_page_names):
-        data |= parse_wiki(page)
+    for page in ChargingBar("Loading unrelated articles").iter(Config.unrelated_page_names):
+        data |= Wiki.parse(page)
 
-    mapping = SourceMapping.read_csv(Config.mapping_file)
-    tm = Roberta.get_default()
-
-    p, n = estimate_thresholds(index, mapping, data, *tm)
+    p, n = estimate_thresholds(index, data, *tm)
     print(f'Positive threshold: {p}')
     print(f'Negative threshold: {n}')
 

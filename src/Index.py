@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple, List
 
 import faiss  # type: ignore
 import pandas as pd  # type: ignore
@@ -70,5 +70,29 @@ class Index:
 
     @staticmethod
     def from_wiki():
-        embeddings = Embeddings(*Roberta.get_default())
+        embeddings = Embeddings(*Roberta.get_default(), normalize=True)
         return Index.from_embeddings(*embeddings.from_wiki())
+
+    def dim(self):
+        return self.index.d
+
+    def search(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        :param x: 2D array with shape (N, dim)
+        :return: tuple(indexes, distances)
+        """
+        dists, ids = self.index.search(x, 1)
+        ids = np.squeeze(ids)
+        dists = np.squeeze(dists)
+        return ids, dists
+
+    def get_source(self, idx: int):
+        return self.mapping.get_source(idx)
+
+    def get_embeddings_source(self, x: np.ndarray) -> Tuple[List[str], np.ndarray]:
+        """
+        :param x: 2D array with shape (N, dim)
+        :return: tuple(source_strings, distances)
+        """
+        indexes, distances = self.search(x)
+        return list(map(lambda i: self.get_source(i), indexes)), distances
