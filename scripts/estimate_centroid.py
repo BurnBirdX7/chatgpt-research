@@ -18,7 +18,7 @@ def estimate_centroid(data: Iterable[str], tokenizer: RobertaTokenizer, model: R
     return embeddings.mean(0)
 
 
-def main():
+def main() -> None:
     roberta = Roberta.get_default()
     page_names = Config.page_names + Config.unrelated_page_names
     texts: List[str] = []

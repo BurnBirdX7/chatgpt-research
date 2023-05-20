@@ -15,3 +15,6 @@ dependencies:
   - faiss-gpu
   - progress
   - matplotlib
+  - flake8
+  - mypy
+  - openai

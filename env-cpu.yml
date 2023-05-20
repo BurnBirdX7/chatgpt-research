@@ -13,3 +13,6 @@ dependencies:
   - faiss
   - progress
   - matplotlib
+  - flake8
+  - mypy
+  - openai
