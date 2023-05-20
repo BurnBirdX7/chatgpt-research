@@ -1,13 +1,16 @@
 
-# Files:
-artifacts_folder = "artifacts"
-
+# Misc
 model_name: str = "roberta-large"
-embeddings_file: str = "roberta-large.csv"
-ranges_file: str = "ranges-large.csv"
-index_file: str = "large.index"
 faiss_use_gpu: bool = False
 show_plot: bool = True
+threshold = 0.8
+
+# Files:
+artifacts_folder = "artifacts"
+embeddings_file: str = "roberta-large.csv"
+mapping_file: str = "mapping-large.csv"
+index_file: str = "large.index"
+centroid_file: str = "centroid.npy"
 
 # Wiki Articles
 page_names: list[str] = [

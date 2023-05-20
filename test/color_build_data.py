@@ -1,14 +1,13 @@
 import faiss
-import numpy as np
-import pandas as pd
 import collections
 
-from scripts.build_index import build_index
 from scripts.model_of_GPT import build_page_template
 
 from src.embeddings import text_embedding
 from src import SourceMapping, Roberta, Config
 from typing import Dict, List, Tuple
+from src import SourceMapping, Roberta, Config, Embeddings, Index
+from typing import Dict, List, Optional
 
 tokenizer, model = Roberta.get_default()
 
@@ -44,6 +43,12 @@ def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
     return links_with_uniq_colors
 
 
+def prob_test_wiki_with_colored(index: faiss.Index,
+                                src_map: SourceMapping,
+                                text: str,
+                                expected_url: str,
+                                uniq_color: int) -> None:
+    embeddings = Embeddings(tokenizer, model).from_text(text)
 def prob_test_wiki_with_colored(index: faiss.Index, src_map: SourceMapping, text: str, expected_url: str,
                                 uniq_color: int) -> tuple[str, str, str]:
     embeddings = text_embedding(text, tokenizer, model)
@@ -54,15 +59,15 @@ def prob_test_wiki_with_colored(index: faiss.Index, src_map: SourceMapping, text
     dist_sum: float = 0.0
 
     intervalToSource = SourceMapping()
-    ranges = intervalToSource.read_csv(Config.ranges_file)
-    links: List[str] = []
+    ranges = intervalToSource.read_csv(Config.mapping_file)
+    links: List[Optional[str]] = []
 
     for i, (token_dists, token_ids) in enumerate(zip(result_dists, result_ids)):
 
         dist = token_dists[0]
         idx = token_ids[0]
 
-        if dist < 0.8:
+        if dist < Config.threshold:
             links.append(None)
         else:
             link = ranges.get_source(index=token_ids[0])
@@ -90,22 +95,15 @@ def main(user_input: str) -> tuple[str, str, str]:
 
     if read_index:
         print("Readings index... ", end='')
-        index = faiss.read_index(Config.index_file)
+        index = Index.load(Config.index_file, Config.mapping_file)
         print("Done")
     else:
-        index, _ = build_index()
-    mapping = SourceMapping.read_csv(Config.ranges_file)
-
-    if sanity_test:
-        print("Test [Sanity] Loading embeddings from file... ", end="")
-        data = np.array(pd.read_csv(Config.embeddings_file),
-                        order="C", dtype=np.float32)
-        faiss.normalize_L2(data)
-        print("Done")
+        print("Index is being built from wiki... ")
+        index = Index.from_wiki()
 
     print("Test [Data] Searching quotes from the same page:")
     print('"Childhood w references"')
-    return prob_test_wiki_with_colored(index, mapping, user_input, childhood_url, 5)
+    return prob_test_wiki_with_colored(index, index.mapping, user_input, childhood_url, 5)
 
 
 if __name__ == "__main__":

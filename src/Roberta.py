@@ -1,7 +1,7 @@
 from typing import Tuple
-
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 import torch  # type: ignore
+
 from .Config import Config
 
 
