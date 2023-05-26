@@ -12,6 +12,7 @@ class Dialogue:
         self.user_messages: int = 0
         self.start_prompt: str = ""
         self.history: list[dict[str, str]] = []
+        self.old_history: list[dict[str, str]] = []
 
     def add_msg(self, msg: dict[str, str]):
         self.history.append(msg)
@@ -31,11 +32,16 @@ class Dialogue:
         self.reset_dialog()
 
     def reset_dialog(self):
+        self.old_history += self.history
         self.history = []
         self.add_msg({
             "role": "user",
             "content": self.start_prompt
         })
+
+    def dump(self, filename: str):
+        all_history = self.old_history + self.history
+        json.dump(all_history, open(filename, 'w'), indent=2)
 
 
 class Chat:

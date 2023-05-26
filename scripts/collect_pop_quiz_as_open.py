@@ -9,7 +9,8 @@ from src import Chat, Dialogue, Question, Config
 gpt_model: str = "gpt-3.5-turbo-0301"
 
 prompt = "I want to ask you quiz questions. Provide simple short answer " \
-         "(one sentence, keep under 10 words. Must end with a dot)." \
+         "(one sentence, keep under 10 words.) " \
+         "Place symbol # after your answer. " \
          "Then provide explanation for the answer (no more than one short paragraph, 200 words max). " \
          "First question: "
 
@@ -45,8 +46,11 @@ def main():
         print(err, file=sys.stderr)
 
     print("Writing to disk...")
-    filename = Config.artifact(gpt_model + "_as_open_answers.json")
-    json.dump(answers, open(filename, "w"), indent=2)
+    answers_filename = Config.artifact(gpt_model + "_as_open_answers.json")
+    json.dump(answers, open(answers_filename, "w"), indent=2)
+
+    chat_filename = Config.artifact(gpt_model + "_pop_as_open_history.json")
+    dialogue.dump(chat_filename)
 
 
 if __name__ == '__main__':
