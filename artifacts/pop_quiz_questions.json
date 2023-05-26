@@ -8,7 +8,8 @@
       "Nero"
     ],
     "correct": "Nero",
-    "source": "https://www.factmonster.com/take-quiz/worldhist1"
+    "source": "https://www.factmonster.com/take-quiz/worldhist1",
+    "no-open": true
   },
   {
     "question": "Before independence, Bangladesh was called",
@@ -48,7 +49,8 @@
       "The division of the Sunnis and the Shiites",
       "Muhammads flight from Mecca to Medina"
     ],
-    "correct": "Muhammads flight from Mecca to Medina"
+    "correct": "Muhammads flight from Mecca to Medina",
+    "no-open": true
   },
   {
     "question": "The Incan Empire was located in what is now",
@@ -61,7 +63,7 @@
     "correct": "Peru"
   },
   {
-    "question": "The Battle of the Bulge took place in",
+    "question": "The Battle of the Bulge took place during what war?",
     "answers": [
       "World War I",
       "World War II",
@@ -82,6 +84,7 @@
   },
   {
     "question": "The departure of Soviet troops from Czechoslovakia in 1991 was the result of the",
+    "no-open": true,
     "answers": [
       "Velvet Revolution",
       "The October Revolution",
@@ -100,9 +103,6 @@
     ],
     "correct": "Julius Caesar"
   },
-
-
-
   {
     "question": "Who said \"Ask not what your country can do for you; ask what you can do for your country\"",
     "answers": [
@@ -250,9 +250,9 @@
       "Karl Marx",
       "David Lynch",
       "John Lennon",
-      "Salvador Dal\u00c3\u00ad"
+      "Salvador Dali"
     ],
-    "correct": "Salvador Dal\u00c3\u00ad"
+    "correct": "Salvador Dali"
   },
   {
     "question": "Who said \"When people show you who they are, believe them\"?",
@@ -264,9 +264,6 @@
     ],
     "correct": "Oprah Winfrey"
   },
-
-
-
   {
     "question": "Which of these French women was charged with the crime of wearing men\u00e2\u20ac\u2122s clothing?",
     "answers": [

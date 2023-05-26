@@ -69,6 +69,8 @@ class Question:
         self.question = question
         self.answers = answers
         self.correct_answer = correct_answer
+        self.source = None
+        self.no_open = False
 
     @staticmethod
     def load_json(filename: str) -> list["Question"]:
@@ -81,7 +83,12 @@ class Question:
             q_text = q['question']
             q_ans = q['answers']
             q_corr = q['correct']
-            l.append(Question(q_text, q_ans, q_corr))
+            question = Question(q_text, q_ans, q_corr)
+            if 'source' in q:
+                question.source = q['source']
+            if 'no-open' in q:
+                question.no_open = q['no-open']
+            l.append(question)
 
         return l
 
@@ -96,6 +103,13 @@ class Question:
         dic = {"question": self.question,
                "answers": self.answers,
                "correct": self.correct_answer}
+
+        if self.source is not None:
+            dic["source"] = self.source
+
+        if self.no_open:
+            dic['no-open'] = True
+
         return dic
 
     @staticmethod

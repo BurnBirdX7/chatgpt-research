@@ -4,7 +4,7 @@ import sys
 import openai
 import json
 
-from src import Chat, Dialogue, Question
+from src import Chat, Dialogue, Question, Config
 
 gpt_model: str = "gpt-3.5-turbo-0301"
 
@@ -23,14 +23,19 @@ def main():
     dialogue.set_prompt(prompt)
 
     chat = Chat(dialogue, gpt_model)
+    chat.seconds_to_wait = 30
 
     # Setup questions
-    questions = Question.load_json("pop_quiz_questions.json")
+    questions = Question.load_json(Config.artifact("pop_quiz_questions.json"))
     answers: list[str] = []
 
     try:
-        for i, q in enumerate(questions[:4]):
+        for i, q in enumerate(questions):
             print(f"{i + 1} / {len(questions)}")
+
+            if q.no_open:
+                print("Skipping question...")
+                continue
 
             answer = chat.submit(q.question)
             answers.append(answer)
@@ -40,7 +45,8 @@ def main():
         print(err, file=sys.stderr)
 
     print("Writing to disk...")
-    json.dump(answers, open(gpt_model + "_as_open_answers.json", "w"))
+    filename = Config.artifact(gpt_model + "_as_open_answers.json")
+    json.dump(answers, open(filename, "w"), indent=2)
 
 
 if __name__ == '__main__':

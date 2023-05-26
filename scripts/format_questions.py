@@ -22,7 +22,7 @@ def format_questions(filename: str):
         q.answers = list(map(format_answer, q.answers))
         q.correct_answer = format_answer(q.correct_answer)
 
-    json.dump(Question.get_dicts(questions), open(filename, 'w'))
+    json.dump(Question.get_dicts(questions), open(filename, 'w'), indent=2)
 
 
 def main():
