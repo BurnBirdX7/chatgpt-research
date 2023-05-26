@@ -50,12 +50,18 @@ def main():
     answers: list[dict[str, str]] = []
 
     questions = Question.load_json("pop_quiz_questions.json")
-    questions[0].question = prompt + questions[0].question
 
     i = 0
     try:
         while i < len(questions):
             print(f"{i + 1} / {len(questions)}...")
+
+            if i % 10 == 0:
+                dialog = [{
+                    "role": "user",
+                    "content": prompt
+                }]
+                print("Wiped the dialog out")
 
             q = questions[i]
             q_message = {
