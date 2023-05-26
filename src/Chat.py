@@ -7,7 +7,7 @@ from typing import Optional
 
 
 class Dialogue:
-    def __init__(self):
+    def __init__(self: "Dialogue"):
         self.limit_user_messages: Optional[int] = None
         self.user_messages: int = 0
         self.start_prompt: str = ""
@@ -18,7 +18,7 @@ class Dialogue:
         self.history.append(msg)
 
     def add_user_msg(self, text: str):
-        if self.user_messages >= self.limit_user_messages:
+        if self.limit_user_messages and self.user_messages >= self.limit_user_messages:
             self.reset_dialog()
 
         self.user_messages += 1
@@ -45,7 +45,7 @@ class Dialogue:
 
 
 class Chat:
-    def __init__(self, dialogue: Dialogue, model_name: str):
+    def __init__(self: "Chat", dialogue: Dialogue, model_name: str):
         self.dialogue: Dialogue = dialogue
         self.model_name: str = model_name
         self.seconds_to_wait: int = 20

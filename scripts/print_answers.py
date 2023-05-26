@@ -6,27 +6,25 @@ questions_file: str = "pop_quiz_questions.json"
 
 as_open = True
 
+answers_file: str
 if as_open:
-    answers_file: str = "gpt-3.5-turbo-0301_as_open_answers.json"
+    answers_file = "gpt-3.5-turbo-0301_as_open_answers.json"
 else:
-    answers_file: str = "gpt-3.5-turbo-0301_answers.json"
+    answers_file = "gpt-3.5-turbo-0301_answers.json"
 
 
-def main():
+def main() -> None:
     answers: list[str] = json.load(open(answers_file, 'r'))
     questions = Question.load_json(questions_file)
     if as_open:
         questions = list(filter(lambda q: not q.no_open, questions))
 
     for i, (q, a) in enumerate(zip(questions, answers)):
-        a: str
-        q: Question
-
         print(f"{i + 1} / {len(answers)}")
 
         short, long = a.split('.', 1)
-        short: str = short.strip()
-        long: str = long.strip()
+        short = short.strip()
+        long = long.strip()
         if q.correct_answer.strip().lower() in short.lower():
             continue
 
@@ -40,4 +38,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

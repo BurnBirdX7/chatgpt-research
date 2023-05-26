@@ -14,7 +14,7 @@ prompt = "I want to ask you quiz questions. Provide simple short answer " \
          "First question: "
 
 
-def main():
+def main() -> None:
     # Setup openAI chat
     openai.api_key = os.environ["OPENAI_API_KEY"]
 
