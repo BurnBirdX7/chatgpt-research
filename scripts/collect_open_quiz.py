@@ -24,9 +24,11 @@ def main():
     chat = Chat(dialogue, gpt_model)
 
     # Setup questions
-    questions = Question.load_json(Config.artifact("pop_quiz_questions.json"))
-    answers: list[str] = []
+    filename = Config.artifact("open_quiz_questions.json")
+    with open(filename, 'r') as f:
+        questions = json.load(f)
 
+    answers: list[str] = []
     try:
         for i, q in enumerate(questions):
             print(f"{i + 1} / {len(questions)}")
@@ -39,7 +41,7 @@ def main():
         print(err, file=sys.stderr)
 
     print("Writing to disk...")
-    filename = Config.artifact(gpt_model + "_answers.json")
+    filename = Config.artifact(gpt_model + "_open_answers.json")
     json.dump(answers, open(filename, "w"), indent=2)
 
 

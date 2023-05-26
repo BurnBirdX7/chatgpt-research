@@ -40,3 +40,7 @@ class Config(metaclass=ConfigLoader, config_file='config.py'):
     page_names: List[str]
     unrelated_page_names: List[str]
     unrelated_page_names_2: List[str]
+
+    @classmethod
+    def artifact(cls, filename: str) -> str:
+        return os.path.join(cls.artifacts_folder, filename)
