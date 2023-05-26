@@ -1,0 +1,289 @@
+[
+  {
+    "question": "Who built the first ever Gothic art?",
+    "answers": [
+      "Gregory Luis",
+      "Abbot Sugar",
+      "Bridgette Carlos",
+      "Lauren Carley"
+    ],
+    "correct": "Abbot Sugar",
+    "source": "https://www.proprofs.com/quiz-school/quizshow.php?title=3dq-only-a-genius-can-pass-this-hardest-history-quiz&q=1"
+  },
+  {
+    "question": "Who restored the Imperial rule to Japan Empire?",
+    "answers": [
+      "Emperor Shin",
+      "Emperor Meiji",
+      "Emperor Weijing",
+      "Emperes Qi"
+    ],
+    "correct": "Emperor Meiji"
+  },
+  {
+    "question": "During the precolombian era of the Americans, what is the primary work of the native Americans living in the Northwest?",
+    "answers": [
+      "Farming",
+      "Hunting",
+      "Fishing",
+      "Blacksmithing"
+    ],
+    "correct": "Fishing"
+  },
+  {
+    "question": "What was the \"euthanasia\" program about?",
+    "answers": [
+      "Jewish Killing",
+      "Tribal cleansing",
+      "Murder of the disabled and mentally ill",
+      "African Slavery"
+    ],
+    "correct": "Murder of the disabled and mentally ill"
+  },
+  {
+    "question": "What other name is the charter oath called?",
+    "answers": [
+      "Meiji's Oath",
+      "Oath of office",
+      "Oath of five articles",
+      "Oath of Government"
+    ],
+    "correct": "Oath of five articles"
+  },
+  {
+    "question": "Which of these cash crops was profitable during the first successful English colony?",
+    "answers": [
+      "Cocoa",
+      "Tobacco",
+      "Okra",
+      "Cotton "
+    ],
+    "correct": "Tobacco"
+  },
+  {
+    "question": "Where did the Aegean art begin?",
+    "answers": [
+      "China",
+      "France",
+      "Greece",
+      "Argentina "
+    ],
+    "correct": "Greece"
+  },
+  {
+    "question": "Which of these is the socio-economic effect of the \"great depression\" in United Kingdom?",
+    "answers": [
+      "Agricultural declination",
+      "Hunger",
+      "Debtedness",
+      "Political fall out "
+    ],
+    "correct": "Political fall out"
+  },
+  {
+    "question": "Where was the main port of entry for immigrants during the colonial frontier?",
+    "answers": [
+      "India",
+      "Chile",
+      "Philadelphia",
+      "Palestine"
+    ],
+    "correct": "Philadelphia"
+  },
+  {
+    "question": "What else is the Shoah known as?",
+    "answers": [
+      "1620 Drought",
+      "Great recession",
+      "Holocaust",
+      "Great depression"
+    ],
+    "correct": "Holocaust"
+  },
+
+
+  {
+    "question": "What is the function of a cell wall?",
+    "answers": [
+      "Structure and protection",
+      "Organizes DNA",
+      "Digests, recycles materials",
+      "Communication junction between adjoining cells",
+      "ATP formation"
+    ],
+    "correct": "Structure and protection",
+    "source": "https://www.proprofs.com/quiz-school/quizshow.php?title=cell-organelles-their-functions&q=1"
+  },
+  {
+    "question": "Chloroplasts plays an important role in: ",
+    "no-open": true,
+    "answers": [
+      "Organizes and moves internal parts of the cell.",
+      "Cell contraction, movements, and structural support.",
+      "Assembly of subunits of ribosomes.",
+      "Photosynthesis",
+      "Structurally supports and gives shape to a cell. Moves the cell and its components. "
+    ],
+    "correct": "Photosynthesis"
+  },
+  {
+    "question": "What is the function of the central vacuole?",
+    "answers": [
+      "ATP formation.",
+      "Protein synthesis.",
+      "Modifies, sorts, and ships lipids for export or for insertion into the cell membrane.",
+      "Organizes and moves internal parts of the cell.",
+      "Increases the cell surface area and stores metabolic waste."
+    ],
+    "correct": "Increases the cell surface area and stores metabolic waste."
+  },
+  {
+    "question": "Nucleus plays an important role in",
+    "no-open": true,
+    "answers": [
+      "Digests, recycles materials",
+      "Organizing DNA",
+      "Structurally supports and gives shape to a cell. Moves the cell and its components.",
+      "Organizes and moves internal parts of the cell.",
+      "Makes lipids, degrades fats and inactivates toxins."
+    ],
+    "correct": "Organizing DNA"
+  },
+  {
+    "question": "What is the role of nucleolus?",
+    "answers": [
+      "Modifies, sorts, and ships lipids for export of for insertion into the cell membrane.",
+      "Protein synthesis.",
+      "Controls the substances going inside and out of the cell.",
+      "Assembly of Subunits of Ribosomes.",
+      "Photosynthesis"
+    ],
+    "correct": "Assembly of Subunits of Ribosomes."
+  },
+  {
+    "question": "What is the role of ribosomes?",
+    "answers": [
+      "Protein synthesis",
+      "Modifies new polypeptide chains and synthesizes lipids",
+      "Structurally supports and gives shape to a cell. Moves the cell and its components.",
+      "Cell contraction, movements, and structural support",
+      "ATP formation"
+    ],
+    "correct": "Protein synthesis"
+  },
+  {
+    "question": "What is the function of rough ER?",
+    "answers": [
+      "Modifies, sorts, and ships lipids for export of for insertion into the cell membrane.",
+      "Digests, and recycles materials.",
+      "Assembly of subunits of ribosomes.",
+      "Communication junction between adjoining cells.",
+      "Modifies new polypeptide chains and synthesizes lipids."
+    ],
+    "correct": "Modifies new polypeptide chains and synthesizes lipids."
+  },
+  {
+    "question": "What is the function of smooth ER?",
+    "answers": [
+      "Communication junction between adjoining cells.",
+      "Organizes DNA.",
+      "Makes lipids, degrades fats, and inactivates toxins.",
+      "Organizes and moves internal parts of the cell.",
+      "Digests, and recycles materials."
+    ],
+    "correct": "Makes lipids, degrades fats, and inactivates toxins."
+  },
+  {
+    "question": "What is the importance of the Golgi Body?",
+    "answers": [
+      "It modifies, sorts, and ships lipids for export or for insertion into the cell membrane.",
+      "ATP formation.",
+      "Photosynthesis",
+      "Communication junction between adjoining cells.",
+      "Communication junction between adjoining cells."
+    ],
+    "correct": "It modifies, sorts, and ships lipids for export or for insertion into the cell membrane."
+  },
+  {
+    "question": "Lysosome-Like Vesicle helps in",
+    "no-open": true,
+    "answers": [
+      "Organizes and moves internal parts of the cell.",
+      "Photosynthesis",
+      "Makes lipids, degrades fats and inactivates toxins.",
+      "Digesting, and recycling the materials.",
+      "Structurally supports and gives shape to a cell. Moves the cell and its components."
+    ],
+    "correct": "Digesting, and recycling the materials."
+  },
+  {
+    "question": "What is the function of the plasma membrane?",
+    "answers": [
+      "Makes lipids, degrades fats and inactivates toxins.",
+      "Protein synthesis.",
+      "Digests, and recycles materials.",
+      "Organizes DNA.",
+      "Controls the substances going inside and out of the cell."
+    ],
+    "correct": "Controls the substances going inside and out of the cell."
+  },
+  {
+    "question": "Mitochondrion helps in",
+    "no-open": true,
+    "answers": [
+      "Digests, and recycles materials.",
+      "Organizes DNA.",
+      "Modifies, sorts, and ships lipids for export or for insertion into the cell membrane.",
+      "ATP formation.",
+      "Structurally supports and gives shape to a cell. Moves the cell and its components."
+    ],
+    "correct": "ATP formation."
+  },
+  {
+    "question": "What role does the cytoskeleton play? ",
+    "answers": [
+      "Structure and protection.",
+      "Organizes and moves internal parts of the cell.",
+      "Organizes DNA.",
+      "Makes lipids, degrades fats, and inactivates toxins",
+      "Structurally supports and gives shape to a cell. Moves the cell and its components."
+    ],
+    "correct": "Structurally supports and gives shape to a cell. Moves the cell and its components."
+  },
+  {
+    "question": "Microtubules helps in",
+    "no-open": true,
+    "answers": [
+      "Modifies, sorts, and ships lipids for export or for insertion into the cell membrane.",
+      "Organizes DNA.",
+      "Organizing and moving internal parts of the cell.",
+      "Makes lipids, degrades fats and inactivates toxins.",
+      "Assembly of subunits of ribosomes."
+    ],
+    "correct": "Organizing and moving internal parts of the cell."
+  },
+  {
+    "question": "Microfilaments help in",
+    "no-open": true,
+    "answers": [
+      "Assembly of subunits of ribosomes.",
+      "Cell contraction, movements, and structural support.",
+      "Controls the substances going inside and out of the cell.",
+      "Organizes DNA.",
+      "Protein synthesis"
+    ],
+    "correct": "Cell contraction, movements, and structural support."
+  },
+  {
+    "question": "Intermediate Filaments helps in",
+    "no-open": true,
+    "answers": [
+      "Strengthening the cell.",
+      "Forms of ATP.",
+      "Cell contraction, movements, and structural support.",
+      "Digests, and recycles materials.",
+      "Modifies new polypeptide chains, synthesizes lipids."
+    ],
+    "correct": "Strengthening the cell."
+  }
+]
