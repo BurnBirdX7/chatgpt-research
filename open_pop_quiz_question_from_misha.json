@@ -1,0 +1,239 @@
+[
+  {
+    "question": "World War II started when Germany invaded which country?",
+    "answers": [
+      "Belgium",
+      "Great Britain",
+      "France",
+      "Poland"
+    ],
+    "correct": "Poland",
+    "source": "https://www.britannica.com/quiz/world-war-ii-quiz"
+  },
+  {
+    "question": "Which of these best describes blitzkrieg, which was key to Germany’s early success in the war?",
+    "answers": [
+      "Quick coordinated attacks",
+      "Propaganda",
+      "Economic sanctions",
+      "High-level espionage"
+    ],
+    "correct": "Quick coordinated attacks"
+  },
+  {
+    "question": "Early in the war, in his first address to the British House of Commons, Prime Minister Winston Churchill said, \"I have nothing to offer but…\"",
+    "no-open": true,
+    "answers": [
+      "\"Blood, toil, tears and sweat.\"",
+      "\"A swift end to tyranny\"",
+      "\"Peace in our time\"",
+      "\"An appeal to human decency\""
+    ],
+    "correct": "\"Blood, toil, tears and sweat.\""
+  },
+  {
+    "question": "After World War I, France built the Maginot Line, a string of border fortifications considered impenetrable. How did the German army overcome the Maginot Line in World War II?",
+    "answers": [
+      "Bribed its way past it",
+      "Overwhelmed it with troops",
+      "Went around it",
+      "Bombed it"
+    ],
+    "correct": "Went around it"
+  },
+  {
+    "question": "Which technology helped the U.K. defeat Germany’s months long air offensive against it in the Battle of Britain?",
+    "answers": [
+      "Radar",
+      "Stealth airplanes",
+      "Rockets",
+      "Atomic energy"
+    ],
+    "correct": "Radar"
+  },
+  {
+    "question": "Which fortuitous circumstance helped reduce U.S. losses at Pearl Harbor?",
+    "answers": [
+      "No American aircraft carriers were in port.",
+      "Strong winds blew Japanese planes off course.",
+      "Heavy fog made targeting ships difficult.",
+      "Base personnel awoke earlier than usual."
+    ],
+    "correct": "No American aircraft carriers were in port."
+  },
+  {
+    "question": "Because Japan conquered the Dutch East Indies, which of these goods was first to be rationed in the United States?",
+    "answers": [
+      "Pineapples",
+      "Tires",
+      "Typewriters",
+      "Sugar"
+    ],
+    "correct": "Tires"
+  },
+  {
+    "question": "Japan launched an attack on the U.S. mainland by using which curious method?",
+    "answers": [
+      "Trained dolphins",
+      "Helium balloons",
+      "Amphibious tanks",
+      "Scuba divers"
+    ],
+    "correct": "Helium balloons"
+  },
+  {
+    "question": "Which of these was key to U.S. success at the Battle of Midway?",
+    "no-open": true,
+    "answers": [
+      "Having cracked the main Japanese naval communications code",
+      "Having better-trained pilots than the Japanese",
+      "Having better aircraft",
+      "Having a larger fleet"
+    ],
+    "correct": "Having cracked the main Japanese naval communications code"
+  },
+  {
+    "question": "Based on the year they were first produced, which name was given to one of Japan’s most highly effective fighter planes?",
+    "answers": [
+      "Zeroes",
+      "Deuces",
+      "Niners",
+      "Thirty-eights"
+    ],
+    "correct": "Zeroes"
+  },
+  {
+    "question": "Which city was the site of a 900-day siege during World War II?",
+    "answers": [
+      "Berlin",
+      "Leningrad",
+      "Stalingrad",
+      "London"
+    ],
+    "correct": "Leningrad"
+  },
+  {
+    "question": "Referring to a desperate maneuver used to sink Allied ships, kamikaze literally means what?",
+    "no-open": true,
+    "answers": [
+      "Floating mine",
+      "Divine wind",
+      "Iceberg",
+      "Hungry shark"
+    ],
+    "correct": "Divine wind"
+  },
+  {
+    "question": "Which language was used by the U.S. military to encode messages that were never deciphered by the enemy during World War II?",
+    "no-open": true,
+    "answers": [
+      "Welsh",
+      "Greek",
+      "Yiddish",
+      "Navajo"
+    ],
+    "correct": "Navajo"
+  },
+  {
+    "question": "The German military operation code-named Walküre (“Valkyrie”) hoped to assassinate which leader?",
+    "no-open": true,
+    "answers": [
+      "Benito Mussolini",
+      "Winston Churchill",
+      "Adolf Hitler",
+      "Franklin Roosevelt"
+    ],
+    "correct": "Adolf Hitler"
+  },
+  {
+    "question": "The Tuskegee Airmen constituted a U.S. Army unit drawn from which group?",
+    "answers": [
+      "Women",
+      "World War I veterans",
+      "Youths under age 18",
+      "African Americans"
+    ],
+    "correct": "African Americans"
+  },
+  {
+    "question": "Which U.S. president won the Navy and Marine Corps Medal for his heroism during World War II?",
+    "answers": [
+      "Ronald Reagan",
+      "Jimmy Carter",
+      "John F. Kennedy",
+      "Dwight D. Eisenhower"
+    ],
+    "correct": "John F. Kennedy"
+  },
+  {
+    "question": "Operation Bodyguard provided critical support to the Allies’ D-Day invasion in which way?",
+    "answers": [
+      "Using deception to distract German forces",
+      "Raising money by selling war bonds",
+      "Assassinating key German generals",
+      "Teaching American soldiers French phrases"
+    ],
+    "correct": "Using deception to distract German forces"
+  },
+  {
+    "question": "A precursor to Nazi extermination camps, the \"Holocaust by bullets\" happened during which of these events?",
+    "no-open": true,
+    "answers": [
+      "Germany’s occupation of France",
+      "Germany’s participation in the Spanish Civil War",
+      "Germany’s conclusion of an alliance with Italy",
+      "Germany’s invasion of the U.S.S.R."
+    ],
+    "correct": "Germany’s invasion of the U.S.S.R."
+  },
+  {
+    "question": "American General Anthony C. McAuliffe famously responded “NUTS!” when asked to surrender during which battle?",
+    "answers": [
+      "Battle of the Bulge",
+      "Operation Barbarossa",
+      "Siege of Warsaw",
+      "Battle of Tannenberg"
+    ],
+    "correct": "Battle of the Bulge"
+  },
+  {
+    "question": "\"Little Boy\" and \"Fat Man\" were nicknames for what?",
+    "answers": [
+      "Two invasion forces on D-Day",
+      "Stalin and Churchill",
+      "Italy and Germany",
+      "Atomic bombs"
+    ],
+    "correct": "Atomic bombs"
+  },
+  {
+    "question": "Still the home of a U.S. military base, which place was the site of the last major battle of World War II?",
+    "answers": [
+      "Guadalcanal",
+      "Stalingrad",
+      "Berlin",
+      "Okinawa"
+    ],
+    "correct": "Okinawa"
+  },
+  {
+    "question": "Which country suffered the most military deaths, by far, during World War II?",
+    "answers": [
+      "Germany",
+      "Soviet Union",
+      "France",
+      "United States"
+    ],
+    "correct": "Soviet Union"
+  },
+  {
+    "question": "Anticipating security needs after the war, the United States’ Operation Paperclip sought to do what?",
+    "answers": [
+      "Prevent the spread of communism",
+      "Rebuild Germany",
+      "Recruit Nazi scientists",
+      "Distribute aid to Jewish refugees"
+    ],
+    "correct": "Recruit Nazi scientists"
+  }
+]
