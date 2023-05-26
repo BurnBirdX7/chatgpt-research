@@ -1,7 +1,7 @@
 import json
 import sys
 
-from src import Question
+from src import Question, Config
 import re
 
 
@@ -26,7 +26,8 @@ def format_questions(filename: str):
 
 
 def main():
-    format_questions('pop_quiz_questions.json')
+    format_questions(Config.artifact('pop_quiz_questions.json'))
+    format_questions(Config.artifact('open_pop_quiz_question_from_misha.json'))
 
 
 if __name__ == '__main__':

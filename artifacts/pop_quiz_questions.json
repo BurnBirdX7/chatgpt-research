@@ -84,14 +84,14 @@
   },
   {
     "question": "The departure of Soviet troops from Czechoslovakia in 1991 was the result of the",
-    "no-open": true,
     "answers": [
       "Velvet Revolution",
       "The October Revolution",
       "The Prague Spring",
       "The Cultural Revolution"
     ],
-    "correct": "Velvet Revolution"
+    "correct": "Velvet Revolution",
+    "no-open": true
   },
   {
     "question": "Who crossed the Rubicon?",
@@ -245,7 +245,7 @@
     "correct": "John Wilkes Booth"
   },
   {
-    "question": "Who said \"I don\u00e2\u20ac\u2122t do drugs. I am drugs\"?",
+    "question": "Who said \"I don't do drugs. I am drugs\"?",
     "answers": [
       "Karl Marx",
       "David Lynch",
@@ -265,7 +265,7 @@
     "correct": "Oprah Winfrey"
   },
   {
-    "question": "Which of these French women was charged with the crime of wearing men\u00e2\u20ac\u2122s clothing?",
+    "question": "Which of these French women was charged with the crime of wearing men's clothing?",
     "answers": [
       "Joan of Arc",
       "Marie Curie",
@@ -276,7 +276,7 @@
     "source": "https://www.britannica.com/quiz/france-a-history-quiz"
   },
   {
-    "question": "Which of the following places is famous as Napoleon I\u00e2\u20ac\u2122s place of exile?",
+    "question": "Which of the following places is famous as Napoleon I's place of exile?",
     "answers": [
       "Wellington",
       "Tuscany",
@@ -316,7 +316,7 @@
     "correct": "guillotine"
   },
   {
-    "question": "Which battle was Napoleon I\u00e2\u20ac\u2122s final defeat?",
+    "question": "Which battle was Napoleon I's final defeat?",
     "answers": [
       "Battle of Agincourt",
       "Battle of Waterloo",
@@ -326,7 +326,7 @@
     "correct": "Battle of Waterloo"
   },
   {
-    "question": "Which queen\u00e2\u20ac\u2122s actions contributed to the unrest that led to the French Revolution?",
+    "question": "Which queen's actions contributed to the unrest that led to the French Revolution?",
     "answers": [
       "Marie-Antoinette",
       "Catherine the Great",
@@ -336,7 +336,7 @@
     "correct": "Marie-Antoinette"
   },
   {
-    "question": "What French innovator wrote of their work, \u00e2\u20ac\u0153The glowing tubes looked like faint, fairy lights\"?",
+    "question": "What French innovator wrote of their work, \"The glowing tubes looked like faint, fairy lights\"?",
     "answers": [
       "Louis Pastuer",
       "Marie Curie",
@@ -406,7 +406,7 @@
     "correct": "\"Liberty, equality, fraternity\""
   },
   {
-    "question": "What French author\u00e2\u20ac\u2122s father was a general for Napoleon and was nicknamed \"the Black Devil\"?",
+    "question": "What French author's father was a general for Napoleon and was nicknamed \"the Black Devil\"?",
     "answers": [
       "Victor Hugo",
       "Alexandre Dumas",
@@ -416,7 +416,7 @@
     "correct": "Alexandre Dumas"
   },
   {
-    "question": "What former colony\u00e2\u20ac\u2122s 1962 independence caused about a million European descendants to flee to France?",
+    "question": "What former colony's 1962 independence caused about a million European descendants to flee to France?",
     "answers": [
       "Syria",
       "Vietnam",
