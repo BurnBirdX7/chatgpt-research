@@ -5,3 +5,4 @@ from .Index import Index
 from .Roberta import Roberta
 from .SourceMapping import SourceMapping
 from .Wiki import Wiki
+from .Chat import Dialogue, Chat, Question

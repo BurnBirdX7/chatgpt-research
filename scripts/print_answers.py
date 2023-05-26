@@ -1,10 +1,14 @@
 import json
-from scripts.quiz_harvester import Question
+from scripts.collect_pop_quiz import Question
+
+
+questions_file: str = "pop_quiz_questions.json"
+answers_file: str = "gpt-3.5-turbo-0301_as_open_answers.json"
 
 
 def main():
-    questions = Question.load_json('pop_quiz_questions.json')
-    answers: list[str] = json.load(open('gpt-3.5-turbo_answers.json', 'r'))
+    questions = Question.load_json(questions_file)
+    answers: list[str] = json.load(open(answers_file, 'r'))
 
     for i, (q, a) in enumerate(zip(questions, answers)):
         a: str
