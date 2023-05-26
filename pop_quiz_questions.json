@@ -1,0 +1,221 @@
+[
+  {
+    "question": "Which of the following figures did not live in the 6th century B.C.?",
+    "answers": ["Confucius", "Buddha", "Pythagoras", "Nero"],
+    "correct": "Nero",
+    "source": "https://www.factmonster.com/take-quiz/worldhist1"
+  },
+  {
+    "question": "Before independence, Bangladesh was called",
+    "answers": ["Ceylon", "East Pakistan", "Bhutan", "Bangalore"],
+    "correct": "East Pakistan"
+  },
+  {
+    "question": "The invasion of the Goths in the 5th century led to the end of which empire?",
+    "answers": ["The Byzantine", "The Holy Roman", "The Roman", "The Ottoman"],
+    "correct": "The Roman"
+  },
+  {
+    "question": "Balboa was the first European to",
+    "answers": ["encounter the Pacific Ocean", "circumnavigate the globe", "sail around the Cape of Good Hope", "encounter the Horn of Africa"],
+    "correct": "sail around the Cape of Good Hope"
+  },
+  {
+    "question": "The first year of the Islamic calendar marks the following event",
+    "answers": ["The birth of Muhammad", "The Quran is assembled into a single sacred text", "The division of the Sunnis and the Shiites", "Muhammads flight from Mecca to Medina"],
+    "correct": "Muhammad's flight from Mecca to Medina"
+  },
+  {
+    "question": "The Incan Empire was located in what is now",
+    "answers": ["Mexico", "Central America", "Peru", "Brazil"],
+    "correct": "Peru"
+  },
+  {
+    "question": "The Battle of the Bulge took place in",
+    "answers": ["World War I", "World War II", "The Napoleonic Wars", "Vietnam"],
+    "correct": "World War II"
+  },
+  {
+    "question": "What was the Great Western Schism?",
+    "answers": ["The great theological debate over the Trinity", "Christianity split into Catholicism and Protestantism", " More than one pope claimed authority over the Roman Catholic church", "The Eastern Orthodox church and the Western Roman church divided"],
+    "correct": "More than one pope claimed authority over the Roman Catholic church"
+  },
+  {
+    "question": "The departure of Soviet troops from Czechoslovakia in 1991 was the result of the",
+    "answers": ["Velvet Revolution", "The October Revolution", "The Prague Spring", "The Cultural Revolution"],
+    "correct": "Velvet Revolution"
+  },
+  {
+    "question": "Who crossed the Rubicon?",
+    "answers": ["Alexander the Great", "Augustus Caesar", "Julius Caesar", "The Spartans"],
+    "correct": "Julius Caesar"
+  },
+
+
+
+  {
+    "question": "Who said \"Ask not what your country can do for you; ask what you can do for your country\"",
+    "answers": ["Marie-Antoinette", "Winston Churchill", "Joseph Stalin", "John F. Kennedy"],
+    "correct": "John F. Kennedy",
+    "source": "https://www.britannica.com/quiz/who-said-it-famous-quotes-quiz"
+  },
+  {
+    "question": "Who said \"We didn't land on Plymouth Rock; the rock was landed on us.\"",
+    "answers": ["Henry Ford", "Charles Cornwallis", "Malcolm X", "Brigham Young"],
+    "correct": "Malcolm X"
+  },
+  {
+    "question": "Who said \"Float like a butterfly, sting like a bee\"",
+    "answers": ["Sun Tzu", "Muhammad Ali", "Douglas MacArthur", "Jack the Ripper"],
+    "correct": "Muhammad Ali"
+  },
+  {
+    "question": "Who said \"God does not play dice\"?",
+    "answers": ["Frank Sinatra", "Pope John Paul II", "George Washington", "Albert Einstein"],
+    "correct": "Albert Einstein"
+  },
+  {
+    "question": "Who said \"The world will little note, nor long remember, what we say here, but it can never forget what they did here\"?",
+    "answers": ["Thomas Edison", "Abraham Lincoln", "Vince Lombardi", "Benjamin Franklin"],
+    "correct": "Abraham Lincoln"
+  },
+  {
+    "question": "Who said \"The report of my death was an exaggeration\"?",
+    "answers": ["Napoleon I", "Ronald Reagan", "Elvis Presley", "Mark Twain"],
+    "correct": "Mark Twain"
+  },
+  {
+    "question": "Who said \"The arc of the moral universe is long, but it bends toward justice\"?",
+    "answers": ["Oliver Wendell Holmes", "Martin Luther King, Jr.", "Socrates", "Confucius"],
+    "correct": "Martin Luther King, Jr."
+  },
+  {
+    "question": "Who said \"I am become Death, the destroyer of worlds\"?",
+    "answers": ["Napoleon I", "Julius Caesar", "George Foreman", "J. Robert Oppenheimer"],
+    "correct": "J. Robert Oppenheimer"
+  },
+  {
+    "question": "Who said \"I came, I saw, I conquered\"?",
+    "answers": ["Julius Caesar", "Dwight Eisenhower", "Alexander the Great", "Steve Jobs"],
+    "correct": "Julius Caesar"
+  },
+  {
+    "question": "Who said \"Hate the sin and not the sinner\"?",
+    "answers": ["Bill Clinton", "Dolly Parton", "Mahatma Gandhi", "Bernie Madoff"],
+    "correct": "Mahatma Gandhi"
+  },
+  {
+    "question": "Who said \"People who boast about their IQ are losers\"?",
+    "answers": ["Stephen Hawking", "Vince Lombardi", "Pablo Picasso", "Donald Trump"],
+    "correct": "Stephen Hawking"
+  },
+  {
+    "question": "Who said \"Give me liberty, or give me death!\"?",
+    "answers": ["Nelson Mandela", "Patrick Henry", "Galileo", "Al Capone"],
+    "correct": "Patrick Henry"
+  },
+  {
+    "question": "Who said \"What does not kill me makes me stronger.\"?",
+    "answers": ["Jonas Salk", "Theodore Roosevelt", "Joey Chestnut", "Friedrich Nietzsche"],
+    "correct": "Friedrich Nietzsche"
+  },
+  {
+    "question": "Who said \"Sic semper tyrannis!\"?",
+    "answers": ["George Washington", "Neil Armstrong", "Maximilien Robespierre", "John Wilkes Booth"],
+    "correct": "John Wilkes Booth\n"
+  },
+  {
+    "question": "Who said \"I don’t do drugs. I am drugs\"?",
+    "answers": ["Karl Marx", "David Lynch", "John Lennon", "Salvador Dalí"],
+    "correct": "Salvador Dalí"
+  },
+  {
+    "question": "Who said \"When people show you who they are, believe them\"?",
+    "answers": ["Benedict Arnold", "Andy Warhol", "Oprah Winfrey", "Sigmund Freud"],
+    "correct": "Oprah Winfrey"
+  },
+
+
+
+  {
+    "question": "Which of these French women was charged with the crime of wearing men’s clothing?",
+    "answers": ["Joan of Arc", "Marie Curie", "Marie-Antoinette", "Coco Chanel"],
+    "correct": "Joan of Arc",
+    "source": "https://www.britannica.com/quiz/france-a-history-quiz"
+  },
+  {
+    "question": "Which of the following places is famous as Napoleon I’s place of exile?",
+    "answers": ["Wellington", "Tuscany", "Elba", "Waterloo"],
+    "correct": "Elba"
+  },
+  {
+    "question": "By 50 BCE, which famous historical figure had conquered the area today known as France?",
+    "answers": ["Genghis Khan", "Attila the Hun", "Alexander the Great", "Julius Caesar"],
+    "correct": "Julius Caesar"
+  },
+  {
+    "question": "Which holiday commemorates the beginning of the French Revolution?",
+    "answers": ["Bastille Day", "Republic Day", "Christmas", "Independence Day"],
+    "correct": "Bastille Day"
+  },
+  {
+    "question": "What method of execution became popular during the French Revolution?",
+    "answers": ["firing squad", "electric chair", "guillotine", "gas chamber"],
+    "correct": "guillotine"
+  },
+  {
+    "question": "Which battle was Napoleon I’s final defeat?",
+    "answers": ["Battle of Agincourt", "Battle of Waterloo", "Battle of the Bulge", "Battle of Verdun"],
+    "correct": "Battle of Waterloo"
+  },
+  {
+    "question": "Which queen’s actions contributed to the unrest that led to the French Revolution?",
+    "answers": ["Marie-Antoinette", "Catherine the Great", "Victoria", "Catherine de' Medici"],
+    "correct": "Marie-Antoinette"
+  },
+  {
+    "question": "What French innovator wrote of their work, “The glowing tubes looked like faint, fairy lights\"?",
+    "answers": ["Louis Pastuer", "Marie Curie", "Louis Braille", "René Déscartes"],
+    "correct": "Marie Curie"
+  },
+  {
+    "question": "Which of these French landmarks was designed to be taken down after 20 years?",
+    "answers": ["Louvre Museum", "Arc de Triomphe", "Notre-Dame Cathedral", "Eiffel Tower"],
+    "correct": "Eiffel Tower"
+  },
+  {
+    "question": "Which of these was a result of France losing the Battle of Trafalgar?",
+    "answers": ["Nazi Germany took over France", "Napoleon failed to invade England", "The U.S. entered World War I", "France withdrew from Vietnam"],
+    "correct": "Napoleon failed to invade England"
+  },
+  {
+    "question": "Napoleon had which of the following nicknames?",
+    "answers": ["The Massive Marshal", "The Large Lieutenant", "The Little Corporal", "The Medium Captain"],
+    "correct": "The Little Corporal"
+  },
+  {
+    "question": "France is credited with developing what military innovation during World War I?",
+    "answers": ["jet fighter planes", "submarines", "radar", "camouflage"],
+    "correct": "camouflage"
+  },
+  {
+    "question": "Founded by Greek mariners in 600 BCE, what is the oldest city in France?",
+    "answers": ["Marseille", "Dunkirk", "Lyon", "Paris"],
+    "correct": "Marseille"
+  },
+  {
+    "question": "Dating back to the French Revolution, what is the national motto of France?",
+    "answers": ["\"God and my right\"", "\"Peace, love, hope\"", "\"Let them eat cake\"", "\"Liberty, equality, fraternity\""],
+    "correct": "\"Liberty, equality, fraternity\""
+  },
+  {
+    "question": "What French author’s father was a general for Napoleon and was nicknamed \"the Black Devil\"?",
+    "answers": ["Victor Hugo", "Alexandre Dumas", "Voltaire", "Albert Camus"],
+    "correct": "Alexandre Dumas"
+  },
+  {
+    "question": "What former colony’s 1962 independence caused about a million European descendants to flee to France?",
+    "answers": ["Syria", "Vietnam", "Haiti", "Algeria"],
+    "correct": "Algeria"
+  }
+]
