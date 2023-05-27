@@ -7,6 +7,7 @@ import json
 from src import Chat, Dialogue, Question, Config
 
 gpt_model: str = "gpt-3.5-turbo-0301"
+quiz_name: str = "pop_quiz_1"
 
 prompt = "I want to ask you quiz questions. Provide simple short answer " \
          "(one sentence, keep under 10 words.) " \
@@ -27,7 +28,7 @@ def main() -> None:
     chat.seconds_to_wait = 30
 
     # Setup questions
-    questions = Question.load_json(Config.artifact("pop_quiz_questions.json"))
+    questions = Question.load_json(Config.artifact(quiz_name + ".json"))
     answers: list[str] = []
 
     try:
@@ -46,10 +47,10 @@ def main() -> None:
         print(err, file=sys.stderr)
 
     print("Writing to disk...")
-    answers_filename = Config.artifact(gpt_model + "_as_open_answers.json")
+    answers_filename = Config.artifact("answers_" + quiz_name + "_as_open.json")
     json.dump(answers, open(answers_filename, "w"), indent=2)
 
-    chat_filename = Config.artifact(gpt_model + "_pop_as_open_history.json")
+    chat_filename = Config.artifact("chat_" + quiz_name + "_as_open.json")
     dialogue.dump(chat_filename)
 
 

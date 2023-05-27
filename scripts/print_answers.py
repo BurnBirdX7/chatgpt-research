@@ -2,15 +2,15 @@ import json
 from scripts.collect_pop_quiz import Question
 from src import Config
 
-questions_file: str = "open_pop_quiz_question_from_misha_second.json"
+questions_file: str = "pop_quiz_3.json"
 
 as_open = False
 
 answers_file: str
 if as_open:
-    answers_file = "gpt-3.5-turbo-0301_as_open_answers.json"
+    answers_file = "answers_open_quiz.json"
 else:
-    answers_file = "gpt-3.5-turbo-0301_pop_from_misha_2_answers.json"
+    answers_file = "answers_pop_quiz_3.json"
 
 
 def main() -> None:

@@ -4,9 +4,11 @@ import sys
 import openai
 import json
 
-from src import Chat, Dialogue, Question, Config
+from src import Chat, Dialogue, Config
 
 gpt_model: str = "gpt-3.5-turbo-0301"
+
+quiz_name = "open_quiz_1"
 
 prompt = "I want to ask you quiz questions. Provide simple short answer " \
          "(one sentence, keep under 10 words). Place symbol # after your answer." \
@@ -25,7 +27,7 @@ def main() -> None:
     chat = Chat(dialogue, gpt_model)
 
     # Setup questions
-    filename = Config.artifact("open_quiz_questions.json")
+    filename = Config.artifact(quiz_name + ".json")
     with open(filename, 'r') as f:
         questions = json.load(f)
 
@@ -42,10 +44,10 @@ def main() -> None:
         print(err, file=sys.stderr)
 
     print("Writing to disk...")
-    answers_filename = Config.artifact(gpt_model + "_open_answers.json")
+    answers_filename = Config.artifact("answers_" + quiz_name + "_answers.json")
     json.dump(answers, open(answers_filename, "w"), indent=2)
 
-    chat_filename = Config.artifact(gpt_model + "_open_history.json")
+    chat_filename = Config.artifact("chat_" + quiz_name + "_history.json")
     dialogue.dump(chat_filename)
 
 

@@ -8,6 +8,8 @@ from src import Chat, Dialogue, Question, Config
 
 gpt_model: str = "gpt-3.5-turbo-0301"
 
+quiz_name = "pop_quiz_1"
+
 prompt = "I want to ask you quiz questions. Chose one answer from a list (print exactly it)." \
          "Place symbol # after your answer. " \
          "Then provide explanation for the answer (no more than one short paragraph, 200 words max). " \
@@ -25,7 +27,7 @@ def main() -> None:
     chat = Chat(dialogue, gpt_model)
 
     # Setup questions
-    questions = Question.load_json(Config.artifact("pop_quiz_questions.json"))
+    questions = Question.load_json(Config.artifact(quiz_name + ".json"))
     answers: list[str] = []
 
     try:
@@ -40,10 +42,10 @@ def main() -> None:
         print(err, file=sys.stderr)
 
     print("Writing to disk...")
-    answers_filename = Config.artifact(gpt_model + "_answers.json")
+    answers_filename = Config.artifact("answers_" + quiz_name + ".json")
     json.dump(answers, open(answers_filename, "w"), indent=2)
 
-    chat_filename = Config.artifact(gpt_model + "_pop_history.json")
+    chat_filename = Config.artifact("chat_" + quiz_name + ".json")
     dialogue.dump(chat_filename)
 
 
