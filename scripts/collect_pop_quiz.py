@@ -1,14 +1,16 @@
+# This script collects data by asking ChatGPT questions to the quiz
+# Parameter: quiz_name, quiz should be supplied in {artifacts}/{quiz_name}.json
+# Call: python scripts/collect_pop_quiz.py pop_quiz_1
+# It will generate {artifacts}/answered_{quiz_name}.json file
+
 import os
 import sys
 
 import openai
-import json
 
 from src import Chat, Dialogue, Question, Config
 
 gpt_model: str = "gpt-3.5-turbo-0301"
-
-quiz_name = "pop_quiz_1"
 
 prompt = "I want to ask you quiz questions. Chose one answer from a list (print exactly it)." \
          "Place symbol # after your answer. " \
@@ -16,8 +18,8 @@ prompt = "I want to ask you quiz questions. Chose one answer from a list (print 
          "First question: "
 
 
-def main() -> None:
-    # Setup openAI chat
+def main(quiz_name: str) -> None:
+    # Setup OpenAI chat
     openai.api_key = os.environ["OPENAI_API_KEY"]
 
     dialogue = Dialogue()
@@ -25,29 +27,28 @@ def main() -> None:
     dialogue.set_prompt(prompt)
 
     chat = Chat(dialogue, gpt_model)
+    chat.seconds_to_wait = 30
 
     # Setup questions
     questions = Question.load_json(Config.artifact(quiz_name + ".json"))
-    answers: list[str] = []
 
     try:
         for i, q in enumerate(questions):
             print(f"{i + 1} / {len(questions)}")
 
-            answer = chat.submit(str(q))
-            answers.append(answer)
+            q.given_answers = chat.multisubmit(str(q), 8)
 
     except openai.error.OpenAIError as err:
         print("Unexpected error:", file=sys.stderr)
         print(err, file=sys.stderr)
 
     print("Writing to disk...")
-    answers_filename = Config.artifact("answers_" + quiz_name + ".json")
-    json.dump(answers, open(answers_filename, "w"), indent=2)
+    answers_filename = Config.artifact("answered_" + quiz_name + ".json")
+    Question.save_json(questions, answers_filename)
 
     chat_filename = Config.artifact("chat_" + quiz_name + ".json")
-    dialogue.dump(chat_filename)
+    chat.dialogue.dump(chat_filename)
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1])

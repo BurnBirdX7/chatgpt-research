@@ -1,9 +1,10 @@
+import copy
 import sys
 import time
 import openai
 import json
 import string
-from typing import Optional
+from typing import Optional, List, Dict
 
 
 class Dialogue:
@@ -56,7 +57,8 @@ class Chat:
         while True:
             try:
                 chat_completion = openai.ChatCompletion.create(model=self.model_name,
-                                                               messages=self.dialogue.history)
+                                                               messages=self.dialogue.history,
+                                                               temperature=1.5)
             except openai.error.RateLimitError as err:
                 print(err.error, file=sys.stderr)
                 print(f"Hit the time limit. Waiting {self.seconds_to_wait}s...")
@@ -64,19 +66,41 @@ class Chat:
                 print("Continuing")
                 continue
 
-            message = chat_completion.choices[0].message
+            message = dict(chat_completion.choices[0].message)
             self.dialogue.add_msg(message)
 
-            return message.content
+            return message["content"]
+
+    def multisubmit(self, text: str, resubmission_rate: int = 2):
+        dialogue: Dialogue
+        answers: List[str] = []
+
+        if resubmission_rate < 1:
+            raise ValueError("Invalid resubmission rate")
+
+        print(f"Multi-submitting [? / {resubmission_rate}]")
+
+        for i in range(resubmission_rate):
+            print(i + 1, end=' ')
+
+            dialogue = copy.deepcopy(self.dialogue)
+            chat = Chat(dialogue, self.model_name)
+            chat.seconds_to_wait = self.seconds_to_wait
+            answers.append(chat.submit(text))
+
+        print()
+        self.dialogue = dialogue
+        return answers
 
 
 class Question:
     def __init__(self, question: str, answers: list[str], correct_answer: str):
-        self.question = question
-        self.answers = answers
-        self.correct_answer = correct_answer
-        self.source = None
-        self.no_open = False
+        self.question: str = question
+        self.answers: list[str] = answers
+        self.correct_answer: str = correct_answer
+        self.source: Optional[str] = None
+        self.no_open: bool = False
+        self.given_answers: List[str] = []
 
     @staticmethod
     def load_json(filename: str) -> list["Question"]:
@@ -94,6 +118,8 @@ class Question:
                 question.source = q['source']
             if 'no-open' in q:
                 question.no_open = q['no-open']
+            if 'given-answers' in q:
+                question.given_answers = q['given-answers']
             l.append(question)
 
         return l
@@ -116,8 +142,15 @@ class Question:
         if self.no_open:
             dic['no-open'] = True
 
+        if len(self.given_answers) > 0:
+            dic['given-answers'] = self.given_answers
+
         return dic
 
     @staticmethod
-    def get_dicts(questions: list["Question"]) -> list[dict[str, str]]:
+    def get_dicts(questions: List["Question"]) -> List[Dict[str, str]]:
         return list(map(lambda q: q.get_dict(), questions))
+
+    @staticmethod
+    def save_json(question_list: List["Question"], filename: str) -> None:
+        json.dump(Question.get_dicts(question_list), open(filename, 'w'), indent=2)
