@@ -60,25 +60,29 @@ conda activate gpt-gpu
 All runnable scripts placed in `scripts` folder.
 
 When environment is activated you can run python scripts in this project.
-For example `python scriptbuild_embeddings.py`
+To run scripts use:
+```shell
+# in project root
+python -m scripts <script-name> [scipt-args...]
+```
 
 ### Scripts
 
 and their vague description...
 
- * `build_index.py` - builds embedding index from wiki articles
- * `collect_pop_quiz.py` - surveys ChatGPT for answers on quiz
-   * Quiz name should be supplied as first parameter `python scripts/collect_pop_quiz.py test_quiz`
+ * `build_index` - builds embedding index from wiki articles
+ * `collect_pop_quiz` - surveys ChatGPT for answers on quiz
+   * Quiz name should be supplied as first parameter `python -m scripts collect_pop_quiz test_quiz`
    * See details in top comment in the file
    * Requires environment variable `OPENAI_API_KEY` to be set
- * `estimate_centroid.py` - collects large amount of embeddings from wiki articles and computes centroid estimation
- * `estimate_thresholds.py` - collects data on related and unrelated topics and estimates threshold
- * `filter_answers.py` - filters correct answers provided by ChatGPT
+ * `estimate_centroid` - collects large amount of embeddings from wiki articles and computes centroid estimation
+ * `estimate_thresholds` - collects data on related and unrelated topics and estimates threshold
+ * `filter_answers` - filters correct answers provided by ChatGPT
    * See details in top comment in the file
- * `format_questions.py` - Formats quiz _\[ Deprecated \]_
- * `model_of_GPT.py` - ??? Ask Misha
- * `print_answers.py` - Prints incorrect answers given by ChatGPT _\[ Deprecated \]_
- * `survey.py`
+ * `format_questions` - Formats quiz _\[ Deprecated \]_
+ * `model_of_GPT` - ??? Ask Misha
+ * `print_answers` - Prints incorrect answers given by ChatGPT _\[ Deprecated \]_
+ * `survey`
    * See details in top comment in the file
 
 
