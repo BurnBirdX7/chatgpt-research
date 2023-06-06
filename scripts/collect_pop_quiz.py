@@ -1,5 +1,6 @@
 # This script collects data by asking ChatGPT questions to the quiz
 # Parameter: quiz_name, quiz should be supplied in {artifacts}/{quiz_name}.json
+# Env: OPENAI_API_KEY - OpenAI's API key
 # Call: python scripts/collect_pop_quiz.py pop_quiz_1
 # It will generate {artifacts}/answered_{quiz_name}.json file
 
