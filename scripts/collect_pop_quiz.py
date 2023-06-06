@@ -51,4 +51,6 @@ def main(quiz_name: str) -> None:
 
 
 if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        raise ValueError("Incorrect number of supplied parameters")
     main(sys.argv[1])

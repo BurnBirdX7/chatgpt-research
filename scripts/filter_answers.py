@@ -13,8 +13,7 @@ def is_incorrect(answer: str, correct_answer: str, delimiter: str = "#", thresho
     if "#" not in answer:
         short = answer
     else:
-        answers = answer.split(delimiter)
-        short = answers[0]
+        short, _ = answer.split(delimiter, 1)
 
     short.strip()
     pattern: str = r"['.,;?/\\\s]"
@@ -44,4 +43,6 @@ def main(quiz_name: str):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        raise ValueError("Incorrect number of supplied parameters")
     main(sys.argv[1])

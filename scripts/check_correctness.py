@@ -1,9 +1,12 @@
-import json
-from typing import List
+# This script prompts user to check correctness of given answers
+# Parameter: quiz_name; quiz with GPT's filtered answers should be supplied in {artifacts}/filtered_{quiz_name}.json
+# Call: python scripts/check_correctness.py pop_quiz_1
+# It will generate {artifacts}/surveyed_{quiz_name}.json file
 
-from src import Config
+import sys
+from typing import List, Dict
 
-file: str = "incorrect_answers.json"
+from src import Config, Question
 
 
 def yes(s: str) -> bool:
@@ -14,37 +17,54 @@ def no(s: str) -> bool:
     return s.strip().lower() == 'n'
 
 
-def main():
-    filename = Config.artifact(file)
-    answers: List[str] = json.load(open(filename, "r"))
+def survey(sentences: List[str]) -> Dict[str, bool]:
+    sentence_correctness: Dict[str, bool] = {}
+    sentences = list(
+        filter(lambda s: len(s) > 0,
+               map(lambda s: s.strip(), sentences)))
 
-    correct = []
-    incorrect = []
+    n = len(sentences)
+    for i in range(n):
+        if i > 0:
+            print("prev:", sentences[i - 1])
 
-    for ans in answers:
-        sentences = ans.split('.')
-        n = len(sentences)
+        print("CURR:", sentences[i].strip())
 
-        for i in range(n):
-            if i > 0:
-                print("prev:", sentences[i - 1])
-            print("CURR:", sentences[i])
+        if i < n - 1:
+            print("next:", sentences[i + 1])
 
-            if i < n - 1:
-                print("next:", sentences[i + 1])
+        inp = ''
+        while not yes(inp) and not no(inp):
+            inp = input("Is this sentence correct? [y/n]")
 
-            inp = ''
-            while not yes(inp) and not no(inp):
-                inp = input("Is this sentence correct? [y/n]")
+        sentence_correctness[sentences[i].strip()] = yes(inp)
 
-            if yes(inp):
-                correct.append(sentences[i])
+    return sentence_correctness
+
+
+def main(quiz_name: str, delimiter: str = "#"):
+    filename = Config.artifact(f"filtered_{quiz_name}.json")
+    questions = Question.load_json(filename)
+
+    for q in questions:
+        answer_correctness: List[Dict[str, bool]] = []
+
+        for answer in q.given_answers:
+            if '#' not in answer:
+                explanation = answer
             else:
-                incorrect.append(sentences[i])
+                _, explanation = answer.split(delimiter, 1)
 
-    json.dump(correct, open("correct.json", "w"), indent=2)
-    json.dump(incorrect, open("incorrect.json", "w"), indent=2)
+            sentences = explanation.split('.')
+            answer_correctness.append(survey(sentences))
+
+        q.given_answers = answer_correctness  # replace list with dictionary
+
+    out_filename = Config.artifact(f"surveyed_{quiz_name}.json")
+    Question.save_json(questions, out_filename)
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) != 2:
+        raise ValueError("Incorrect number of supplied parameters")
+    main(sys.argv[1])
