@@ -58,7 +58,7 @@ def main(quiz_name: str, delimiter: str = "#"):
             sentences = explanation.split('.')
             answer_correctness.append(survey(sentences))
 
-        q.given_answers = answer_correctness  # replace list with dictionary
+        q.given_answers = answer_correctness  # type: ignore
 
     out_filename = Config.artifact(f"surveyed_{quiz_name}.json")
     Question.save_json(questions, out_filename)
