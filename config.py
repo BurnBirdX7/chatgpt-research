@@ -8,8 +8,8 @@ threshold = 0.8
 # Files:
 artifacts_folder = "artifacts"
 embeddings_file: str = "roberta-large.csv"
-mapping_file: str = "mapping-large_2.csv"
-index_file: str = "large_2.index"
+mapping_file: str = "mapping-large.csv"
+index_file: str = "large.index"
 centroid_file: str = "centroid.npy"
 
 # Wiki Articles

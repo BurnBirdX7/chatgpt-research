@@ -6,6 +6,9 @@ import json
 import string
 from typing import Optional, List, Dict
 
+import progress.bar
+from progress.bar import Bar
+
 
 class Dialogue:
     def __init__(self: "Dialogue"):
@@ -50,8 +53,9 @@ class Chat:
         self.dialogue: Dialogue = dialogue
         self.model_name: str = model_name
         self.seconds_to_wait: int = 20
+        self.suppress_output: bool = False
 
-    def submit(self, text: str) -> str:
+    def submit(self, text: str, bar: Optional[progress.bar.Progress] = None) -> str:
 
         self.dialogue.add_user_msg(text)
         while True:
@@ -60,10 +64,22 @@ class Chat:
                                                                messages=self.dialogue.history,
                                                                temperature=1.5)
             except openai.error.RateLimitError as err:
-                print(err.error, file=sys.stderr)
-                print(f"Hit the time limit. Waiting {self.seconds_to_wait}s...")
+                if not self.suppress_output:
+                    print(err.error, file=sys.stderr)
+                    print(f"Hit the time limit. Waiting {self.seconds_to_wait}s...")
+
+                if bar is not None:
+                    bar.message = "Waiting"
+                    bar.next(0)
+
                 time.sleep(self.seconds_to_wait)
-                print("Continuing")
+
+                if bar is not None:
+                    bar.message = "Submitting"
+                    bar.next(0)
+
+                if not self.suppress_output:
+                    print("Continuing")
                 continue
 
             message = dict(chat_completion.choices[0].message)
@@ -78,15 +94,15 @@ class Chat:
         if resubmission_rate < 1:
             raise ValueError("Invalid resubmission rate")
 
-        print(f"Multi-submitting [? / {resubmission_rate}]")
-
+        bar = Bar("Submitting", max=resubmission_rate)
         for i in range(resubmission_rate):
-            print(i + 1, end=' ')
-
+            bar.next()
             dialogue = copy.deepcopy(self.dialogue)
             chat = Chat(dialogue, self.model_name)
+            chat.suppress_output = True
             chat.seconds_to_wait = self.seconds_to_wait
-            answers.append(chat.submit(text))
+            answers.append(chat.submit(text, bar=bar))
+        bar.finish()
 
         print()
         self.dialogue = dialogue
