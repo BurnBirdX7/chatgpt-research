@@ -2,7 +2,7 @@ import statistics
 
 import numpy as np  # type: ignore
 import faiss  # type: ignore
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # type: ignore
 
 from src import Roberta, Config, Embeddings, Index
 
