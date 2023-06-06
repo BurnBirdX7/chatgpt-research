@@ -1,6 +1,6 @@
 # This script prompts user to check correctness of given answers
 # Parameter: quiz_name; quiz with GPT's filtered answers should be supplied in {artifacts}/filtered_{quiz_name}.json
-# Call: python scripts/check_correctness.py pop_quiz_1
+# Call: python scripts/survey.py pop_quiz_1
 # It will generate {artifacts}/surveyed_{quiz_name}.json file
 
 import sys
