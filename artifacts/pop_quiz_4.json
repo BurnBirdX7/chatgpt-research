@@ -1,0 +1,235 @@
+[
+  {
+    "question": "What was the score in the Euro 2012 final?",
+    "no-open": true,
+    "answers": [
+      "2-0",
+      "3-0",
+      "4-0",
+      "5-0"
+    ],
+    "correct": "4-0",
+    "source": "https://ahaslides.com/blog/multiple-choice-football-quiz/"
+  },
+  {
+    "question": "Who won the Man of the Match award in the 2014 World Cup final?",
+    "answers": [
+      "Mario Goetze",
+      "Sergio Aguero",
+      "Lionel Messi",
+      "Bastian Schweinsteiger"
+    ],
+    "correct": "Emperor Meiji"
+  },
+  {
+    "question": "Against which country did Wayne Rooney break the England goalscoring record?",
+    "answers": [
+      "Switzerland",
+      "San Marino",
+      "Lithuania",
+      "Slovenia"
+    ],
+    "correct": "Switzerland"
+  },
+  {
+    "question": "After losing a key player in the first game, which team went onto the semi-finals of Euro 2020?",
+    "answers": [
+      "Denmark",
+      "Spain",
+      "Wales",
+      "England"
+    ],
+    "correct": "Denmark"
+  },
+  {
+    "question": "Which footballer holds the record for the highest number of assists in the Premier League?",
+    "answers": [
+      "Cesc Fabregas",
+      "Ryan Giggs",
+      "Frank Lampard",
+      "Paul Scholes"
+    ],
+    "correct": "Ryan Giggs"
+  },
+  {
+    "question": "Which former Belarus international played for Arsenal between 2005 and 2008?",
+    "answers": [
+      "Alexander Hleb",
+      "Maksim Romaschenko",
+      "Valyantsin Byalkevich",
+      "Yuri Zhenov"
+    ],
+    "correct": "Alexander Hleb"
+  },
+  {
+    "question": "Jamie Vardy was signed by Leicester from which non-league side?",
+    "answers": [
+      "Ketting Town",
+      "Alfreton Town",
+      "Grimsby Town",
+      "Fleetwood Town"
+    ],
+    "correct": "Fleetwood Town"
+  },
+  {
+    "question": "Chelsea beat which team 8-0 to secure the 2009-10 Premier League title on the final day of the season?",
+    "answers": [
+      "Blackburn",
+      "Hull",
+      "Wigan",
+      "Norwich"
+    ],
+    "correct": "Wigan"
+  },
+  {
+    "question": "Who is the current top scorer in the UEFA Champions League?",
+    "answers": [
+      "Alan Shearer",
+      "Thierry Henry",
+      "Cristiano Ronaldo",
+      "Robert Lewandowski"
+    ],
+    "correct": "Cristiano Ronaldo"
+  },
+  {
+    "question": "Manchester United beat which team in the 2017 Europa League final?",
+    "answers": [
+      "Villarreal",
+      "Chelsea",
+      "Ajax",
+      "Borussia Dortmund"
+    ],
+    "correct": "Ajax"
+  },
+  {
+    "question": "Gareth Bale’s breakthrough moment came in the 2010-11 season, when he scored a second half hat-trick against which team?",
+    "answers": [
+      "Inter Milan",
+      "AC Milan",
+      "Juventus",
+      "Napoli"
+    ],
+    "correct": "Inter Milan"
+  },
+  {
+    "question": "Which team did Porto beat in the 2004 Champions League final?",
+    "answers": [
+      "Bayern Munich",
+      "Deportivo La Coruña",
+      "Barcelona",
+      "Monaco"
+    ],
+    "correct": "Monaco"
+  },
+  {
+    "question": "Which Serbian team scored beat Marseille on penalties to secure the 1991 European Cup?",
+    "answers": [
+      "Slavia Prague",
+      "Red Star Belgrade",
+      "Galatasaray",
+      "Spartak Trnava"
+    ],
+    "correct": "Red Star Belgrade"
+  },
+  {
+    "question": "David Beckham became president of which newly founded club in 2018?",
+    "answers": [
+      "Bergamo Calcio",
+      "Inter Miami",
+      "West London Blue",
+      "The Potteries"
+    ],
+    "correct": "Inter Miami"
+  },
+  {
+    "question": "In 2011, a 5th tier match in Argentina saw a record number of red cards. How many were given out?",
+    "answers": [
+      "6",
+      "11",
+      "22",
+      "36"
+    ],
+    "correct": "36"
+  },
+  {
+    "question": "You can find the oldest footballer in the world playing in which country?",
+    "answers": [
+      "Malaysia",
+      "Ecudaor",
+      "Japan",
+      "South Africa"
+    ],
+    "correct": "Japan"
+  },
+  {
+    "question": "Which overseas British territory became an official Fifa member in 2016?",
+    "answers": [
+      "Pitcairn Islands",
+      "Bermuda",
+      "Cayman Islands",
+      "Gibraltar"
+    ],
+    "correct": "Gibraltar"
+  },
+  {
+    "question": "Which team has won the African Cup of Nations a record 7 times?",
+    "answers": [
+      "Cameroon",
+      "Egypt",
+      "Senegal",
+      "Ghana"
+    ],
+    "correct": "Egypt"
+  },
+  {
+    "question": "Choose the correct option instead of three dots: \"... итоги встречи, президент компании высказал свою удовлетворенность ее результатами.\"",
+    "no-open": true,
+    "answers": [
+      "Проведя",
+      "Заведя",
+      "Подводя"
+    ],
+    "correct": "Подводя",
+    "source": "https://mgu-russian.com/en/learn/test-online/28/"
+  },
+  {
+    "question": "Choose the correct option instead of three dots:\"Мы готовы предоставить дополнительную информацию ...\"",
+    "no-open": true,
+    "answers": [
+      "в случае необходимости",
+      "если надо",
+      "если необходимо"
+    ],
+    "correct": "в случае необходимости"
+  },
+  {
+    "question": "Choose the correct option instead of three dots:\"Нам следует пригласить специалиста, ... большой опыт в данной области.\"",
+    "no-open": true,
+    "answers": [
+      "имеющего",
+      "имеющегося",
+      "имеющий"
+    ],
+    "correct": "имеющего"
+  },
+  {
+    "question": "Choose the correct option instead of three dots:\"Компания гарантирует ... своих обязательств.\"",
+    "no-open": true,
+    "answers": [
+      "исполнение",
+      "исполнения",
+      "исполнении"
+    ],
+    "correct": "исполнение"
+  },
+  {
+    "question": "Choose the correct option instead of three dots:\"У нас нет претензий ...\"",
+    "no-open": true,
+    "answers": [
+      "о данный производитель",
+      "к данному производителю",
+      "данного производителя"
+    ],
+    "correct": "к данному производителю"
+  }
+]
