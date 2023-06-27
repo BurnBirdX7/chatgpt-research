@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 
+
 def main():
     if len(sys.argv) < 2:
         raise ValueError("Not enough parameters")
@@ -22,4 +23,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

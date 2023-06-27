@@ -1,4 +1,3 @@
-
 import os
 
 this_path = os.path.abspath(__file__)

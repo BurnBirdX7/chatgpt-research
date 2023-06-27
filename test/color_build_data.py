@@ -3,7 +3,7 @@ import collections
 
 from scripts.model_of_GPT import build_page_template
 
-from src import Config, EmbeddingsBuilder, Index,Roberta
+from src import Config, EmbeddingsBuilder, Index, Roberta
 from typing import Dict, List, Optional
 
 tokenizer, model = Roberta.get_default()
