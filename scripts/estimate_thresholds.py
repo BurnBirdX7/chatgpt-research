@@ -7,7 +7,7 @@ from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from matplotlib import pyplot as plt  # type: ignore
 from progress.bar import ChargingBar  # type: ignore
 
-from src import Roberta, Config, Embeddings, Index, Wiki
+from src import Roberta, Config, EmbeddingsBuilder, Index, Wiki
 
 
 def estimate_thresholds(index: Index,
@@ -16,7 +16,7 @@ def estimate_thresholds(index: Index,
                         model: RobertaModel) -> Tuple[float, float]:
     count = len(data) // 10
     pages = random.choices(list(data.items()), k=count)
-    embedding_builder = Embeddings(tokenizer, model, normalize=True)
+    embedding_builder = EmbeddingsBuilder(tokenizer, model, normalize=True)
     embedding_builder.suppress_progress = True
 
     positives = []

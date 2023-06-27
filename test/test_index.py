@@ -4,7 +4,7 @@ import numpy as np  # type: ignore
 import faiss  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 
-from src import Roberta, Config, Embeddings, Index
+from src import Roberta, Config, EmbeddingsBuilder, Index
 
 """
 Script:
@@ -54,7 +54,7 @@ def test_request(index: faiss.Index, q: np.ndarray) -> None:
 
 
 def test_wiki(index: Index, text: str, expected_url: str) -> None:
-    embeddings = Embeddings(tokenizer, model, normalize=True).from_text(text)
+    embeddings = EmbeddingsBuilder(tokenizer, model, normalize=True).from_text(text)
     result_src, result_dists = index.get_embeddings_source(embeddings)
     dist_sum: float = 0.0
     tp = []
@@ -98,7 +98,7 @@ def main() -> None:
         print("Done")
     else:
         print("Index is being built from wiki... ")
-        index = Index.from_wiki()
+        index = Index.from_config_wiki()
 
     print("Test [Data] Searching quotes from the same page:")
     print('"Childhood w references"')

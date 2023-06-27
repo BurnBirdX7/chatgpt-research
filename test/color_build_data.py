@@ -3,10 +3,8 @@ import collections
 
 from scripts.model_of_GPT import build_page_template
 
-from src import SourceMapping, Config, Embeddings, Index,Roberta
+from src import Config, EmbeddingsBuilder, Index,Roberta
 from typing import Dict, List, Optional
-
-
 
 tokenizer, model = Roberta.get_default()
 
@@ -42,10 +40,9 @@ def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
     return links_with_uniq_colors
 
 
-
 def prob_test_wiki_with_colored(index: Index, text: str, expected_url: str,
                                 uniq_color: int) -> tuple[str, str, str]:
-    embeddings = Embeddings(tokenizer, model, normalize=True).from_text(text)
+    embeddings = EmbeddingsBuilder(tokenizer, model, normalize=True).from_text(text)
 
     result_sources, result_dists = index.get_embeddings_source(embeddings)
     expected_count: int = 0
@@ -83,7 +80,7 @@ def main(user_input: str) -> tuple[str, str, str]:
         print("Done")
     else:
         print("Index is being built from wiki... ")
-        index = Index.from_wiki()
+        index = Index.from_config_wiki()
 
     print("Test [Data] Searching quotes from the same page:")
     print('"Childhood w references"')

@@ -6,7 +6,6 @@ Use [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.h
 or [mamba](https://mamba.readthedocs.io/en/latest/installation.html).
 (Environments were tested with **mamba**)
 
-## In Miniforge:
 CPU Environment:
 ```shell
 mamba env create --file env-cpu.yml
@@ -19,41 +18,77 @@ mamba env create --file env-gpu.yml
 mamba activate gpt-gpu
 ```
 
-## In Anaconda / Miniconda3 prompt
-CPU Environment:
-```shell
-conda env create --file env-cpu.yml
-conda activate gpt-cpu
-```
+Or the same commands using `conda`.
 
-GPU Environment:
-```shell
-conda env create --file env-gpu.yml
-conda activate gpt-gpu
-```
+## PyLucene
+To run `build_index_from_potential_sources` script you need [PyLucene](https://lucene.apache.org/pylucene/) installed in the environment.
+To do it you need to build PyLucene.
+
+### Linux / WSL
+
+Requirements:
+ * **setuptools**: `mamba install setuptools`
+ * (_optional, recommended_) **Temurin JDK 17**: [Instruction](https://adoptium.net/installation/linux/)
+
+Build:\
+_Instruction is close to [this one](https://lucene.apache.org/pylucene/install.html), but changed a little_
+* Download [PyLucene 9.6.0](https://dlcdn.apache.org/lucene/pylucene/pylucene-9.6.0-src.tar.gz)
+  * Unpack and `cd` into unpacked `pylucene-9.6.0` directory
+* Activate mamba/conda environment:
+  ```shell
+  mamba activate gpt-gpu
+  ```
+* Build JCC:
+  * If you didn't install **Temurin JDK 17**, set environment variable `JCC_JDK` to Java's home directory (one that contains `bin` dir)
+  * ```shell
+    pushd jcc
+    python setup.py build
+    python setup.py install  # without sudo
+    popd
+    ```
+* Edit `Makefile` to match your system. You'll need to uncomment one section and edit paths. More detailed instructions are inside the file.
+  * Specify path to python **of active environmen**t, not to system python
+  * You can get the path by calling `whereis python` when environment is active
+* Build: `make`
+* Run tests: `make test`, should be no errors
+* Install: `make install` (**without sudo**). 
 
 ## config.py
 
-### Misc
+### Used variables
+#### Misc
  * `model_name` : `roberta-base`|`roberta-large` - defines model
  * `faiss_use_gpu`: bool - use GPU when building FAISS index or not
  * `show_plot`: bool - show plot after estimation script run
  * `threshold`: float - Lowest acceptable cosine distance, when comparing embeddings
 
-### Files
+#### Files
  * `artifacts_folder`: string - folder that contains all the artifacts -
                          files that can be loaded by scripts, and files produced by the scripts
  * `embeddings_file`: string - where embeddings should be saved _\[Not Used\]_
  * `mapping_file`: string - where mapping of embedding index to source is saved (CSV)
  * `index_file`: string - where FAISS index is saved (faiss format)
  * `centroid_file`: sting - where embeddings centroid is saved (Numpy's NPY file)
+ * `temp_index_file`: string - where temporary index built from query text is written
+ * `source_index_path`: string - where Lucene source index is located 
 
-### Wiki Articles
+#### Wiki Articles
  * `page_names`: list\[string\] - list of Wikipedia articles on _target topic_
  * `unrelated_page_names`: list\[string\] - list of Wikipedia articles not on _target topic_,
    * used when estimating thresholds and centroid
  * `unrelated_page_names_2`: list\[string\] - large list of Wikipedia articles not on _target topic_,
    * used for centroid estimation
+
+### Loading from environment
+
+You can set variable as `None` and in this case Config will try to load it from environment.
+For example `source_index_path` is set to None and value will be acquired from `SOURCE_INDEX_PATH` environment variable.
+
+### Paths and files
+
+Variable that has `file` or `path` at the end of the name:
+ * Must contain path
+ * If it's not an absolute path, it must be a path relative to **artifacts folder**
 
 ## Run scripts
 

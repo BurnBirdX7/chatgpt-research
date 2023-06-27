@@ -11,6 +11,9 @@ embeddings_file: str = "roberta-large.csv"
 mapping_file: str = "mapping-large.csv"
 index_file: str = "large.index"
 centroid_file: str = "centroid.npy"
+temp_index_file: str = "temp.index"
+temp_mapping_file: str = "temp-mapping.csv"
+source_index_path = None  # None field will be loaded from environment
 
 # Wiki Articles
 page_names: list[str] = [

@@ -4,14 +4,14 @@ import torch  # type: ignore
 import numpy as np
 
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable, Dict
 
 from .SourceMapping import SourceMapping
 from .Config import Config
 from .Wiki import Wiki
 
 
-class Embeddings:
+class EmbeddingsBuilder:
     def __init__(self,
                  tokenizer: RobertaTokenizer,
                  model: RobertaModel,
@@ -31,6 +31,7 @@ class Embeddings:
             print('Centroid loaded!')
         else:
             self.centroid = np.zeros(self.embedding_length)
+            print('No centroid')
 
     def from_ids(self, input_ids: List[int]) -> np.ndarray:
         """
@@ -94,21 +95,36 @@ class Embeddings:
 
     def from_wiki(self) -> Tuple[np.ndarray, SourceMapping]:
         """
-        Computes embeddings
+        Computes embeddings for online Wikipedia
+        Target pages are specified via config variable `page_names`
+        :return: Tuple:
+                    - Embeddings as 2d numpy.array
+                    - and Interval to Source mapping
+        """
+        source_list = Config.page_names
+        return self.from_sources(source_list, Wiki.parse)
+
+    def from_sources(self, source_list: List[str], source_provider: Callable[[str], Dict[str, str]])\
+            -> Tuple[np.ndarray, SourceMapping]:
+        """
+        Computes embeddings for online Wikipedia
+        Target pages are specified via config variable `page_names`
+        :param source_list: Name of the source to be passed to source_provider
+        :param source_provider: Function that accepts source name and
+                                returns dictionary sub_source -> source_text
         :return: Tuple:
                     - Embeddings as 2d numpy.array
                     - and Interval to Source mapping
         """
         src_map = SourceMapping()
         embeddings = np.empty((0, self.model.config.hidden_size))
-        page_names = Config.page_names
 
-        for i, page in enumerate(page_names):
-            print(f"Source {i + 1}/{len(page_names)} in processing")
-            sections_dict = Wiki.parse(page)
+        for i, page in enumerate(source_list):
+            print(f"Source {i + 1}/{len(source_list)} in processing")
+            sources_dict = source_provider(page)
 
             input_ids: List[int] = []
-            for title, text in sections_dict.items():
+            for title, text in sources_dict.items():
                 tokens = self.tokenizer.tokenize(text)
                 input_ids += self.tokenizer.convert_tokens_to_ids(tokens)
                 src_map.append_interval(len(tokens), title)

@@ -2,13 +2,13 @@ from typing import List, Iterable, Set
 
 import numpy as np
 
-from src import Embeddings, Roberta, Config, Wiki
+from src import EmbeddingsBuilder, Roberta, Config, Wiki
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from progress.bar import ChargingBar  # type: ignore
 
 
 def estimate_centroid(data: Iterable[str], tokenizer: RobertaTokenizer, model: RobertaModel) -> np.ndarray:
-    embedding_builder = Embeddings(tokenizer, model, False, None)
+    embedding_builder = EmbeddingsBuilder(tokenizer, model, False, None)
     embedding_builder.suppress_progress = True
 
     embeddings = np.empty((0, embedding_builder.embedding_length))

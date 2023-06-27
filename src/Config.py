@@ -1,4 +1,5 @@
 import os.path
+import sys
 from typing import Dict, Any, List
 
 
@@ -9,14 +10,21 @@ class ConfigLoader(type):
         with open(config_file, 'r') as f:
             exec(f.read(), gl, lc)
 
-        artifacts: str = lc['artifacts_folder'] if 'artifacts_folder' in lc else 'artifacts'
+        artifact_folder: str = lc['artifacts_folder'] if 'artifacts_folder' in lc else 'artifacts'
 
-        if not os.path.exists(artifacts):
-            os.makedirs(artifacts)
+        if not os.path.exists(artifact_folder):
+            os.makedirs(artifact_folder)
 
         for name, val in lc.items():
-            if type(val) == str and ('path' in name or 'file' in name):
-                val = os.path.join(artifacts, val)
+            if val is None:
+                envname = name.upper()
+                if envname not in os.environ:
+                    print(f"Environment variable {envname} for config var {name} is not set", file=sys.stderr)
+                else:
+                    val = os.environ[envname]
+
+            if type(val) == str and (name.endswith('path') or name.endswith('file')) and not os.path.isabs(val):
+                val = os.path.join(artifact_folder, val)
             attrs[name] = val
 
         return super().__new__(cls, clsname, bases, attrs)
@@ -35,6 +43,9 @@ class Config(metaclass=ConfigLoader, config_file='config.py'):
     mapping_file: str
     index_file: str
     centroid_file: str
+    temp_index_file: str
+    temp_mapping_file: str
+    source_index_path: str  # Should be an absolute path
 
     # Wiki Articles
     page_names: List[str]
