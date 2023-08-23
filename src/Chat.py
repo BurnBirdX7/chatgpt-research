@@ -14,7 +14,7 @@ class Dialogue:
     def __init__(self: "Dialogue"):
         self.limit_user_messages: Optional[int] = None
         self.user_messages: int = 0
-        self.start_prompt: str = ""
+        self.system_prompt: str = ""
         self.history: list[dict[str, str]] = []
         self.old_history: list[dict[str, str]] = []
 
@@ -22,7 +22,7 @@ class Dialogue:
         self.history.append(msg)
 
     def add_user_msg(self, text: str):
-        if self.limit_user_messages and self.user_messages >= self.limit_user_messages:
+        if self.user_messages == 0 or (self.limit_user_messages and self.user_messages >= self.limit_user_messages):
             self.reset_dialog()
 
         self.user_messages += 1
@@ -31,16 +31,16 @@ class Dialogue:
             "content": text
         })
 
-    def set_prompt(self, text: str):
-        self.start_prompt = text
+    def set_system_prompt(self, text: str):
+        self.system_prompt = text
         self.reset_dialog()
 
     def reset_dialog(self):
         self.old_history += self.history
         self.history = []
         self.add_msg({
-            "role": "user",
-            "content": self.start_prompt
+            "role": "system",
+            "content": self.system_prompt
         })
 
     def dump(self, filename: str):

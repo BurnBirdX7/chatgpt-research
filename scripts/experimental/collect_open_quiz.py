@@ -22,7 +22,7 @@ def main() -> None:
 
     dialogue = Dialogue()
     dialogue.limit_user_messages = 10
-    dialogue.set_prompt(prompt)
+    dialogue.set_system_prompt(prompt)
 
     chat = Chat(dialogue, gpt_model)
 

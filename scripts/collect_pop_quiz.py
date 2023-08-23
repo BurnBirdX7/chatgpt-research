@@ -13,10 +13,12 @@ from src import Chat, Dialogue, Question, Config
 
 gpt_model: str = "gpt-3.5-turbo-0301"
 
-prompt = "I want to ask you quiz questions. Chose one answer from a list (print exactly it)." \
-         "Place symbol # after your answer. " \
-         "Then provide explanation for the answer (no more than one short paragraph, 200 words max). " \
-         "First question: "
+sys_prompt = ("You're answering pop quiz questions. "
+              "Give 2 answers to each questions: short and long. "
+              "Place two hash symbols between the answers, like this: `##`. "
+              "Short must only indicate which option you choose as correct answer. "
+              "Long answer must contain explanation on why you chose the option. "
+              "Explanation must be comprehensive and should be formed from short sentences.")
 
 
 def main(quiz_name: str) -> None:
@@ -25,7 +27,7 @@ def main(quiz_name: str) -> None:
 
     dialogue = Dialogue()
     dialogue.limit_user_messages = 10
-    dialogue.set_prompt(prompt)
+    dialogue.set_system_prompt(sys_prompt)
 
     chat = Chat(dialogue, gpt_model)
     chat.seconds_to_wait = 30
