@@ -8,7 +8,7 @@ import re
 from src import Question, Config
 
 
-def is_incorrect(answer: str, correct_answer: str, delimiter: str = "#", threshold: float = 0.15):
+def is_incorrect(answer: str, correct_answer: str, delimiter: str = "#", threshold: float = 0.30) -> bool:
     short: str
     if "#" not in answer:
         short = answer

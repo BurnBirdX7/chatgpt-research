@@ -11,14 +11,13 @@ import openai
 
 from src import Chat, Dialogue, Question, Config
 
-gpt_model: str = "gpt-3.5-turbo-0301"
+gpt_model: str = "gpt-3.5-turbo"
 
 sys_prompt = ("You're answering pop quiz questions. "
-              "Give 2 answers to each questions: short and long. "
-              "Place two hash symbols between the answers, like this: `##`. "
-              "Short must only indicate which option you choose as correct answer. "
-              "Long answer must contain explanation on why you chose the option. "
-              "Explanation must be comprehensive and should be formed from short sentences.")
+              "Select only one option from the list for each question. "
+              "Print chosen option. Then place the delimiter: `##` (who hash symbols). "
+              "After the delimiter provide a long and detailed explanation why given answer is correct. "
+              "Explanation must consist of short and coherent sentences. ")
 
 
 def main(quiz_name: str) -> None:
@@ -26,11 +25,11 @@ def main(quiz_name: str) -> None:
     openai.api_key = os.environ["OPENAI_API_KEY"]
 
     dialogue = Dialogue()
-    dialogue.limit_user_messages = 10
+    dialogue.limit_user_messages = 5
     dialogue.set_system_prompt(sys_prompt)
 
     chat = Chat(dialogue, gpt_model)
-    chat.seconds_to_wait = 30
+    chat.seconds_to_wait = 600
 
     # Setup questions
     questions = Question.load_json(Config.artifact(quiz_name + ".json"))
@@ -42,7 +41,7 @@ def main(quiz_name: str) -> None:
             q.given_answers = chat.multisubmit(str(q), 8)
 
     except openai.error.OpenAIError as err:
-        print("Unexpected error:", file=sys.stderr)
+        print(f"Unexpected error:  [type={type(err)}]", file=sys.stderr)
         print(err, file=sys.stderr)
 
     print("Writing to disk...")

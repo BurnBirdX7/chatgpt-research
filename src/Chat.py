@@ -56,16 +56,48 @@ class Chat:
         self.suppress_output: bool = False
 
     def submit(self, text: str, bar: Optional[progress.bar.Progress] = None) -> str:
-
+        reduced_length: bool = False
+        timed_out: int = 0
+        max_timeout: int = 5  # ------------------ configurable -------------
         self.dialogue.add_user_msg(text)
         while True:
             try:
                 chat_completion = openai.ChatCompletion.create(model=self.model_name,
                                                                messages=self.dialogue.history,
-                                                               temperature=1.5)
-            except openai.error.RateLimitError as err:
+                                                               temperature=0.7)
+
+            except openai.error.Timeout as err:
+                if timed_out < max_timeout:
+                    timed_out += 1
+                    if not self.suppress_output:
+                        print(err.error, file=sys.stderr)
+                        print(f"Connection timed out... Trying again ({timed_out}/{max_timeout})")
+                    continue
+
                 if not self.suppress_output:
                     print(err.error, file=sys.stderr)
+                    print("Connection timed out again")
+
+            except openai.error.InvalidRequestError as err:
+                # Assume that this is a "context is too long error"
+                if "context length" in str(err.error) and not reduced_length:
+                    self.dialogue.reset_dialog()
+                    self.dialogue.add_user_msg(text)
+                    reduced_length = True
+                elif reduced_length and not self.suppress_output:
+                    print(f"Error text: {err.error}", file=sys.stderr)
+                    print(f"Context reduction did not resolve the problem. Stopping...")
+                    break
+
+                if not self.suppress_output:
+                    print(f"Error text: {err.error}", file=sys.stderr)
+                    print(f"[assumed] Hit context length limit. Context was reduced. Retrying...")
+
+                continue
+
+            except openai.error.RateLimitError as err:
+                if not self.suppress_output:
+                    print(f"Error text: {err.error}", file=sys.stderr)
                     print(f"Hit the time limit. Waiting {self.seconds_to_wait}s...")
 
                 if bar is not None:
