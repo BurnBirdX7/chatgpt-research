@@ -201,35 +201,5 @@
       "если необходимо"
     ],
     "correct": "в случае необходимости"
-  },
-  {
-    "question": "Choose the correct option instead of three dots:\"Нам следует пригласить специалиста, ... большой опыт в данной области.\"",
-    "no-open": true,
-    "answers": [
-      "имеющего",
-      "имеющегося",
-      "имеющий"
-    ],
-    "correct": "имеющего"
-  },
-  {
-    "question": "Choose the correct option instead of three dots:\"Компания гарантирует ... своих обязательств.\"",
-    "no-open": true,
-    "answers": [
-      "исполнение",
-      "исполнения",
-      "исполнении"
-    ],
-    "correct": "исполнение"
-  },
-  {
-    "question": "Choose the correct option instead of three dots:\"У нас нет претензий ...\"",
-    "no-open": true,
-    "answers": [
-      "о данный производитель",
-      "к данному производителю",
-      "данного производителя"
-    ],
-    "correct": "к данному производителю"
   }
 ]
