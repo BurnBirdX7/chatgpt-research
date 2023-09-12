@@ -1,0 +1,169 @@
+[
+  {
+    "question": "In 1946 Winston Churchill popularized what term used to describe Soviet relations with Western powers?",
+    "answers": [
+      "quagmire",
+      "mutually assured destruction",
+      "special relationship",
+      "iron curtain"
+    ],
+    "correct": "iron curtain"
+  },
+  {
+    "question": "Frequently cited as the counterpart to the CIA, what was the name of the Soviet intelligence agency?",
+    "answers": [
+      "SALT",
+      "ICBM",
+      "KGB",
+      "DMZ"
+    ],
+    "correct": "KGB"
+  },
+  {
+    "question": "An early move by the U.S. during the Cold War, the Marshall Plan had what goal?",
+    "answers": [
+      "to develop the hydrogen bomb",
+      "to bring economic stability to postwar Europe",
+      "to infiltrate Soviet intelligence agencies",
+      "to flush communists out of US government"
+    ],
+    "correct": "to bring economic stability to postwar Europe"
+  },
+  {
+    "question": "Which theory stated one country’s \"fall\" into communism would precipitate neighboring countries to do the same?",
+    "answers": [
+      "domino theory",
+      "Chutes and Ladders theory",
+      "hopscotch theory",
+      "checkers theory"
+    ],
+    "correct": "domino theory"
+  },
+  {
+    "question": "In a famous 1950s filmstrip shown in classrooms across America, Bert the Turtle offered kids what advice for surviving an atomic blast?",
+    "answers": [
+      "Dig a hole",
+      "Climb a tree",
+      "Run for your life",
+      "Duck and cover"
+    ],
+    "correct": "Duck and cover"
+  },
+  {
+    "question": "Often cited as their first regime change, the CIA deposed the prime minister of what country in 1953 after he nationalized their oil industry?",
+    "answers": [
+      "Iran",
+      "Chile",
+      "Nicaragua",
+      "Congo"
+    ],
+    "correct": "Iran"
+  },
+  {
+    "question": "In a failed attempt to overthrow communist ruler Fidel Castro, U.S.-funded Cuban exiles used which site to start their invasion?",
+    "answers": [
+      "Tiananmen Square",
+      "Bay of Pigs",
+      "Checkpoint Charlie",
+      "Ho Chi Minh Trail"
+    ],
+    "correct": "Bay of Pigs"
+  },
+  {
+    "question": "A direct \"hotline\" from the White House to the Kremlin was established as a result of which of these events?",
+    "answers": [
+      "Berlin blockade",
+      "Gulf of Tonkin incident",
+      "Cuban missile crisis",
+      "kitchen debate"
+    ],
+    "correct": "Cuban missile crisis"
+  },
+  {
+    "question": "Devised in 1959, the DEFCON system has five stages of military readiness. Which DEFCON rating is used when a nuclear attack is imminent or already underway?",
+    "answers": [
+      "DEFCON 5",
+      "DEFCON 1"
+    ],
+    "correct": "DEFCON 1",
+    "failure": 1.0
+  },
+  {
+    "question": "American Francis Gary Powers gained notoriety during the Cold War because he...",
+    "answers": [
+      "fed sensitive documents to the Kremlin",
+      "conducted \"witch hunt\" trials in Congress",
+      "attempted to assassinate Ronald Reagan",
+      "was captured while taking aerial photos of the USSR"
+    ],
+    "correct": "was captured while taking aerial photos of the USSR"
+  },
+  {
+    "question": "Soviet Premier Nikita Khrushchev interrupted a United Nations meeting with which disruptive activity?",
+    "answers": [
+      "banging his shoe on a desk",
+      "singing the Soviet national anthem",
+      "eating a large, messy meal",
+      "snoring loudly"
+    ],
+    "correct": "banging his shoe on a desk"
+  },
+  {
+    "question": "True or false: The first woman in space was from the Soviet Union.",
+    "answers": [
+      "false",
+      "true"
+    ],
+    "correct": "true"
+  },
+  {
+    "question": "During one of the most famous Cold War speeches, who famously said the German phrase \"Ich bin ein Berliner?\"",
+    "answers": [
+      "Mikhail Gorbachev",
+      "Ronald Reagan",
+      "John F. Kennedy",
+      "Josef Stalin"
+    ],
+    "correct": "John F. Kennedy"
+  },
+  {
+    "question": "Although never fully leaving the organization, in 1966 what country withdrew its military from NATO and expelled NATO headquarters from its borders?",
+    "answers": [
+      "Poland",
+      "West Germany",
+      "United States",
+      "France"
+    ],
+    "correct": "France"
+  },
+  {
+    "question": "Often seen as the Soviet version of the United States’ Vietnam quagmire, the USSR’s 10-year-long invasion of what country began in 1979?",
+    "answers": [
+      "Poland",
+      "Czechoslovakia",
+      "Afghanistan",
+      "Ukraine"
+    ],
+    "correct": "Afghanistan"
+  },
+  {
+    "question": "Promising to defend against Soviet missiles using technology that had yet to be developed, Ronald Reagan’s 1983 Strategic Defense Initiative was often called by what nickname?",
+    "answers": [
+      "Star Wars",
+      "The Matrix",
+      "Back to the Future",
+      "20,000 Leagues Under the Sea"
+    ],
+    "correct": "Star Wars"
+  },
+  {
+    "question": "A Soviet policy instituted in the late 1980s, glasnost means what in English?",
+    "answers": [
+      "openness",
+      "sacrifice",
+      "submission",
+      "punishment"
+    ],
+    "correct": "openness"
+  }
+]
