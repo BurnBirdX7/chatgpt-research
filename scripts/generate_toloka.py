@@ -1,4 +1,13 @@
+"""
+Script takes answered questions and converts them into toloka tasks
+Usage: python scripts [directory]
+       directory must contain files with answered questions
+       directory must be a subdirectory of artifacts dir
+       if directory not specified, files will be taken from artifacts
+"""
+
 import csv
+import os
 from datetime import datetime
 import sys
 import re
@@ -58,13 +67,30 @@ def table_from_many_questions(questions: List[Question]) -> pd.DataFrame:
     return pd.concat(df_list)
 
 
-def main(files: List[str]):
+def get_files(dirname: str) -> List[str]:
+    dirname = Config.artifact(dirname)
+    return [
+        os.path.join(dirname, f)
+        for f in os.listdir(dirname)
+        if os.path.isfile(os.path.join(dirname, f)) and
+           f.startswith("filtered_") and
+           f.endswith(".json")
+    ]
+
+
+def main(dirname: str):
+    files = get_files(dirname)
+
+    print("Files:")
+    for file in files:
+        print(f"\t{file}")
+
     df_list = []
 
     for file in files:
         print(f'-- file: {file} --')
 
-        questions = Question.load_json(Config.artifact(file))
+        questions = Question.load_json(file)
         df = table_from_many_questions(questions)
         df['quiz_file'] = file
         df_list.append(df)
@@ -76,4 +102,7 @@ def main(files: List[str]):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    if len(sys.argv) < 2:
+        main("")
+    else:
+        main(sys.argv[1])
