@@ -121,3 +121,8 @@ and their vague description...
    * See details in top comment in the file
 
 
+ ## Architecture
+ ### Architecture in general
+![arch](https://github.com/BurnBirdX7/chatgpt-research/assets/55112338/068cca63-25e1-45f2-b0d0-0b3a87449ff3)
+ ### Sequence diagram
+![ARCH_GPT](https://github.com/BurnBirdX7/chatgpt-research/assets/55112338/a2f35b2e-b925-4837-9cf2-0c23c4b8aa11)
