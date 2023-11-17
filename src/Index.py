@@ -5,8 +5,6 @@ import pandas as pd  # type: ignore
 import numpy as np
 
 from .SourceMapping import SourceMapping
-from .Roberta import Roberta
-from .EmbeddingsBuilder import EmbeddingsBuilder
 from .Config import Config
 
 __all__ = ['Index']
@@ -67,16 +65,6 @@ class Index:
         print("Done")
 
         return Index(index, mapping, threshold)
-
-    @staticmethod
-    def from_config_wiki():
-        """
-        generates index from online Wikipedia
-        Refer to Embeddings.from_wiki()
-        :return:
-        """
-        embeddings = EmbeddingsBuilder(*Roberta.get_default(), normalize=True)
-        return Index.from_embeddings(*embeddings.from_wiki())
 
     def dim(self):
         return self.index.d

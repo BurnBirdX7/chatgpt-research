@@ -98,7 +98,7 @@ def main() -> None:
         print("Done")
     else:
         print("Index is being built from wiki... ")
-        index = Index.from_config_wiki()
+        index = Index.from_config_wiki()  # Obsolete
 
     print("Test [Data] Searching quotes from the same page:")
     print('"Childhood w references"')
