@@ -11,9 +11,8 @@ DEFAULT_INPUT_LOC = "collections/train.jsonl"
 def main(source: str, destination: str):
     source_json = pd.read_json(source, lines=True)
     destination_tsv = pd.DataFrame()
-    destination_tsv['pid'] = source_json['id']
     destination_tsv['text'] = source_json['claim']
-    destination_tsv.to_csv(destination, sep='\t', index=False)
+    destination_tsv.to_csv(destination, sep='\t', header=False)
 
 
 if __name__ == '__main__':
