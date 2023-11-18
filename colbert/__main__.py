@@ -7,8 +7,8 @@ def main():
     if len(sys.argv) < 2:
         raise ValueError("Not enough parameters")
 
-    script = f"colbert/{sys.argv[1]}.py"
-    project_root = os.path.dirname(os.path.dirname(__file__))
+    script = f"{sys.argv[1]}.py"
+    project_root = os.path.join(os.path.dirname(__file__), "colbert")
 
     args = [sys.executable, script, *sys.argv[2:]]
 
