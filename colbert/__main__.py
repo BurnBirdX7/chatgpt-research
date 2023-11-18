@@ -1,24 +1,23 @@
-import os
 import subprocess
 import sys
-
+import os
 
 def main():
     if len(sys.argv) < 2:
         raise ValueError("Not enough parameters")
 
-    script = f"{sys.argv[1]}.py"
-    project_root = os.path.join(os.path.dirname(__file__), "colbert")
+    project_root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+    colbert_root = f"{project_root}/colbert/colbert"
+    script = f"{project_root}/colbert/{sys.argv[1]}.py"
 
     args = [sys.executable, script, *sys.argv[2:]]
-
     env = os.environ.copy()
     if 'PYHTONPATH' in env:
-        env['PYTHONPATH'] += f";{project_root}"
+        env['PYTHONPATH'] += f";{colbert_root}"
     else:
-        env['PYTHONPATH'] = project_root
+        env['PYTHONPATH'] = colbert_root
 
-    subprocess.run(args, cwd=project_root, env=env)
+    subprocess.run(args, cwd=colbert_root, env=env)
 
 
 if __name__ == '__main__':
