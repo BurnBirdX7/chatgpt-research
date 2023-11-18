@@ -9,4 +9,4 @@ tar -xvzf checkpoint.tar.gz
 mv colbertv2.0 checkpoint
 
 # Download FEVER dataset
-wget https://fever.ai/download/fever/train.jsonl -P collections/
+wget https://fever.ai/download/fever/train.jsonl -O collections/fever.jsonl

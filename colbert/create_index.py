@@ -10,4 +10,4 @@ if __name__ == '__main__':
             root="../collections/experiments/",
         )
         indexer = Indexer(checkpoint="../checkpoint", config=config)
-        indexer.index(name="test2", collection="../collections/out.tsv", overwrite=True)
+        indexer.index(name="test2", collection="../collections/fever.tsv", overwrite=True)
