@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
 
-from test.color_build_data import main
+# from test.color_build_data import main
+from test.new import main
 
 app = Flask(__name__)
 

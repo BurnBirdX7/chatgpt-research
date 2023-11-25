@@ -4,6 +4,9 @@ import numpy as np  # type: ignore
 import faiss  # type: ignore
 import wikipediaapi  # type: ignore
 import torch
+from jinja2 import Template
+from typing import Dict, Iterable, Tuple
+import collections
 
 from src import Roberta, Config, SourceMapping, Embeddings, Index, Wiki
 from transformers import RobertaTokenizer, RobertaForMaskedLM
@@ -12,9 +15,30 @@ tokenizer, model = Roberta.get_default()
 modelMLM = RobertaForMaskedLM.from_pretrained('roberta-large')
 batched_token_ids = torch.empty((1, 512), dtype=torch.int)
 
-mask_token = 50264
-
 result_sequence = []
+
+page_template = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Result</title>
+    <link rel="stylesheet" type="text/css" href="../static/style_result.css">
+</head>
+<body>
+<h1>Result of research</h1>
+<pre><b>Input text:</b></pre>
+{{ gpt_response }}
+<pre><b>Top paragraphs:</b></pre>
+{{ list_of_colors }}
+<pre><b>Result:</b></pre>
+{{ result }}
+</body>
+</html>
+"""
+
+link_template = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a>"
+
 
 
 def get_page_section_from_wiki(source: str) -> str:
@@ -88,16 +112,64 @@ def iterate_on_sorted_sequence(iterator_sorting, filtered_elements):
 
 
     print("res_first", filtered_elements_new)
-    if iterator_sorting!=len(filtered_elements_new):
+    if iterator_sorting<len(filtered_elements_new)-1:
         iterator_sorting+=1
         iterate_on_sorted_sequence(iterator_sorting, filtered_elements_new)
 
     return
 
-def main() -> None:
-    index = Index.load(Config.index_file, Config.mapping_file)
 
-    gpt_response = " Elvis Presley's father"  # gpt output
+# def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
+#     filtered_links = [link for link in links if link is not None]
+#     dictionary_of_links = dict(collections.Counter(filtered_links))
+#     sorted_dict = dict(sorted(dictionary_of_links.items(), key=lambda x: x[1], reverse=True))
+#     links_with_uniq_colors = dict(list(sorted_dict.items())[:uniq_color])
+#     uniq_color_dict = {
+#         'Fuchsia': 'color1',
+#         'MediumPurple': 'color2',
+#         'DarkViolet': 'color3',
+#         'DarkMagenta': 'color4',
+#         'Indigo': 'color5'
+#     }
+#
+#     for link, (_, color_hex) in zip(links_with_uniq_colors, uniq_color_dict.items()):
+#         links_with_uniq_colors[link] = color_hex
+#
+#     return links_with_uniq_colors
+
+# def build_page_template(completion: str, source_links: list[str], dict_with_uniq_colors: Dict[str, str]) -> \
+#         tuple[str, str, str]:
+#     template = Template(page_template)
+#     tokens_from_output = build_list_of_tokens_input(completion)  # can integrate chatgpt response
+#     result_of_color = build_link_template(tokens_from_output, source_links, dict_with_uniq_colors)
+#     result_of_list_of_colors = list_of_colors(dict_with_uniq_colors)
+#     result_html = template.render(result=result_of_color, gpt_response=completion,
+#                                   list_of_colors=result_of_list_of_colors)
+#
+#     with open("./server/templates/template_of_result_page.html", "w", encoding="utf-8") as f:
+#         f.write(result_html)
+#     return result_of_color, completion, result_of_list_of_colors
+
+def cast_output(tokens, source_link):
+    for key, src in enumerate(tokens):
+        print(key, src)
+        print(source_link[key])
+
+    for i, key, src in enumerate(zip(tokens, source_link)):
+        print("::", i, "::", key, "::", src)
+
+    template = Template(link_template)
+    output = ''
+    for i, key in enumerate(tokens):
+        value_from_map1 = tokens[key]
+        value_from_map2 = source_link[key]
+        print(value_from_map1, value_from_map2)
+        # Check if the key is present in the second map
+
+
+
+def main(gpt_response) -> None:
+    index = Index.load(Config.index_file, Config.mapping_file)
 
     embeddings = Embeddings(tokenizer, model).from_text(gpt_response)
     print(embeddings)
@@ -181,12 +253,58 @@ def main() -> None:
                 filtered_elements.append(sorted_result_sequence[i])
 
     print("res_first", filtered_elements)
-    if iterator_sorting != len(filtered_elements):
+    if iterator_sorting < len(filtered_elements)-1:
         iterator_sorting+=1
         iterate_on_sorted_sequence(iterator_sorting, filtered_elements)
 
     print("whole time:", time.perf_counter() - start)
 
 
+    # prepare tokens for colored
+    tokens_for_colored = map(lambda s: s.replace('Ġ', ' ').replace('Ċ', '</br>'), tokens)
+
+    # prepare links for colored
+    result_map_sequence_links = {}
+
+    for i, item in enumerate(filtered_elements):
+        subsequence = item[2]
+        link = item[3]
+        print("link", link)
+
+        for number in subsequence:
+            result_map_sequence_links[number] = link
+
+    for key, value in result_map_sequence_links.items():
+        print("mapp:::", key, ":::", value)
+
+    template_res = Template(page_template)
+
+    template = Template(link_template)
+    output = ''
+    link_for_colored_per_token=''
+    for i, key in enumerate(zip(tokens_for_colored)):
+        if result_map_sequence_links[i] is not None:
+            print("colored", result_map_sequence_links[i],"::::", key[0].strip("'"))
+            if i==0:
+                link_for_colored_per_token = result_map_sequence_links[i]
+            if link_for_colored_per_token != result_map_sequence_links[i]:
+                link_for_colored_per_token = result_map_sequence_links[i]
+                output += template.render(link=result_map_sequence_links[i], color="color1", token=key[0].strip("'"))
+            else:
+                output += template.render(link=result_map_sequence_links[i], color="color8", token=key[0].strip("'"))
+        else:
+            output += template.render(token=key, color="color0")
+
+    result_html = template_res.render(result=output, gpt_response=gpt_response,  list_of_colors="dfdf")
+
+    with open("./server/templates/template_of_result_page.html", "w", encoding="utf-8") as f:
+        f.write(result_html)
+
+        # print(result_map_sequence_links[key])
+    # cast_output(tokens_for_colored, result_map_sequence_links)
+
+    # print(result_map_sequence)
+
+
 if __name__ == "__main__":
-    main()
+    main(" Elvis Presley's father") # gpt output
