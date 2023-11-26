@@ -44,12 +44,19 @@ link_template = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a>"
 def get_page_section_from_wiki(source: str) -> str:
     wikipedia = wikipediaapi.Wikipedia("en")
 
-    title = source.split("https://en.wikipedia.org/wiki/")[1].split("#")[0].replace("_", " ")
+    flag =False
+    if "#" not in source:
+        flag=True
+        title = source.split("https://en.wikipedia.org/wiki/")[1].replace("_", " ")
+    else:
+        title = source.split("https://en.wikipedia.org/wiki/")[1].split("#")[0].replace("_", " ")
 
     target_page = wikipedia.page(title)
-    section = target_page.section_by_title \
-        (source.split("https://en.wikipedia.org/wiki/")[1].split("#")[1].replace("_",
-                                                                                 " "))  # возврощает последнюю секцию
+    if flag:
+        section = target_page.summary
+    else:
+        section = target_page.section_by_title \
+        (source.split("https://en.wikipedia.org/wiki/")[1].split("#")[1].replace("_"," "))  # возврощает последнюю секцию
 
     return str(section)
 
@@ -281,19 +288,26 @@ def main(gpt_response) -> None:
 
     template = Template(link_template)
     output = ''
+    iter=False
     link_for_colored_per_token=''
     for i, key in enumerate(zip(tokens_for_colored)):
-        if result_map_sequence_links[i] is not None:
+        if i in result_map_sequence_links:
             print("colored", result_map_sequence_links[i],"::::", key[0].strip("'"))
             if i==0:
                 link_for_colored_per_token = result_map_sequence_links[i]
-            if link_for_colored_per_token != result_map_sequence_links[i]:
-                link_for_colored_per_token = result_map_sequence_links[i]
-                output += template.render(link=result_map_sequence_links[i], color="color1", token=key[0].strip("'"))
-            else:
+                # output += template.render(link=result_map_sequence_links[i], color="color8", token=key[0].strip("'"))
+                #
+                # continue
+
+            if link_for_colored_per_token == result_map_sequence_links[i]:
                 output += template.render(link=result_map_sequence_links[i], color="color8", token=key[0].strip("'"))
+            elif link_for_colored_per_token != result_map_sequence_links[i]:
+                output += template.render(link=result_map_sequence_links[i], color="color1", token=key[0].strip("'"))
+
+            # elif iter>1 and link_for_colored_per_token != result_map_sequence_links[i]:
+            #     output += template.render(link=result_map_sequence_links[i], color="color8", token=key[0].strip("'"))
         else:
-            output += template.render(token=key, color="color0")
+            output += template.render(token=key[0].strip("'"), color="color0")
 
     result_html = template_res.render(result=output, gpt_response=gpt_response,  list_of_colors="dfdf")
 
