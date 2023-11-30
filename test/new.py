@@ -5,8 +5,6 @@ import faiss  # type: ignore
 import wikipediaapi  # type: ignore
 import torch
 from jinja2 import Template
-from typing import Dict, Iterable, Tuple
-import collections
 
 from src import Roberta, Config, SourceMapping, Embeddings, Index, Wiki
 from transformers import RobertaTokenizer, RobertaForMaskedLM
@@ -38,6 +36,7 @@ page_template = """
 """
 
 link_template = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a>"
+list_of_articles = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a></br>"
 
 
 
@@ -125,38 +124,6 @@ def iterate_on_sorted_sequence(iterator_sorting, filtered_elements):
 
     return
 
-
-# def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
-#     filtered_links = [link for link in links if link is not None]
-#     dictionary_of_links = dict(collections.Counter(filtered_links))
-#     sorted_dict = dict(sorted(dictionary_of_links.items(), key=lambda x: x[1], reverse=True))
-#     links_with_uniq_colors = dict(list(sorted_dict.items())[:uniq_color])
-#     uniq_color_dict = {
-#         'Fuchsia': 'color1',
-#         'MediumPurple': 'color2',
-#         'DarkViolet': 'color3',
-#         'DarkMagenta': 'color4',
-#         'Indigo': 'color5'
-#     }
-#
-#     for link, (_, color_hex) in zip(links_with_uniq_colors, uniq_color_dict.items()):
-#         links_with_uniq_colors[link] = color_hex
-#
-#     return links_with_uniq_colors
-
-# def build_page_template(completion: str, source_links: list[str], dict_with_uniq_colors: Dict[str, str]) -> \
-#         tuple[str, str, str]:
-#     template = Template(page_template)
-#     tokens_from_output = build_list_of_tokens_input(completion)  # can integrate chatgpt response
-#     result_of_color = build_link_template(tokens_from_output, source_links, dict_with_uniq_colors)
-#     result_of_list_of_colors = list_of_colors(dict_with_uniq_colors)
-#     result_html = template.render(result=result_of_color, gpt_response=completion,
-#                                   list_of_colors=result_of_list_of_colors)
-#
-#     with open("./server/templates/template_of_result_page.html", "w", encoding="utf-8") as f:
-#         f.write(result_html)
-#     return result_of_color, completion, result_of_list_of_colors
-
 def cast_output(tokens, source_link):
     for key, src in enumerate(tokens):
         print(key, src)
@@ -230,7 +197,7 @@ def main(gpt_response) -> None:
                         local_sequence.append(token_pos_in_chain)
                         local_sequence.append(source)
 
-                        result_sequence.append(local_sequence)
+                        # result_sequence.append(local_sequence)
 
                         if hidden_state != len(last_hidden_state) - 1 and token_pos != len(tokens) - 1:
                             make_chain_colored_recursive_right(local_sequence, last_hidden_state, hidden_state + 1,
@@ -287,29 +254,27 @@ def main(gpt_response) -> None:
     template_res = Template(page_template)
 
     template = Template(link_template)
+    template_list_of_colors = Template(list_of_articles)
+
     output = ''
+    output_list_of_colors=''
+    color=7
     iter=False
     link_for_colored_per_token=''
     for i, key in enumerate(zip(tokens_for_colored)):
         if i in result_map_sequence_links:
-            print("colored", result_map_sequence_links[i],"::::", key[0].strip("'"))
-            if i==0:
-                link_for_colored_per_token = result_map_sequence_links[i]
-                # output += template.render(link=result_map_sequence_links[i], color="color8", token=key[0].strip("'"))
-                #
-                # continue
-
             if link_for_colored_per_token == result_map_sequence_links[i]:
-                output += template.render(link=result_map_sequence_links[i], color="color8", token=key[0].strip("'"))
-            elif link_for_colored_per_token != result_map_sequence_links[i]:
-                output += template.render(link=result_map_sequence_links[i], color="color1", token=key[0].strip("'"))
-
-            # elif iter>1 and link_for_colored_per_token != result_map_sequence_links[i]:
-            #     output += template.render(link=result_map_sequence_links[i], color="color8", token=key[0].strip("'"))
+                output += template.render(link=result_map_sequence_links[i], color="color"+str(color), token=key[0].strip("'"))
+            else:
+                color += 1
+                output_list_of_colors += template_list_of_colors.render(link=result_map_sequence_links[i], color="color"+str(color), token=result_map_sequence_links[i])
+                link_for_colored_per_token = result_map_sequence_links[i]
+                output += template.render(link=result_map_sequence_links[i], color="color"+str(color), token=key[0].strip("'"))
         else:
             output += template.render(token=key[0].strip("'"), color="color0")
 
-    result_html = template_res.render(result=output, gpt_response=gpt_response,  list_of_colors="dfdf")
+    output_list_of_colors += '</br>'
+    result_html = template_res.render(result=output, gpt_response=gpt_response,  list_of_colors=output_list_of_colors)
 
     with open("./server/templates/template_of_result_page.html", "w", encoding="utf-8") as f:
         f.write(result_html)
@@ -321,4 +286,8 @@ def main(gpt_response) -> None:
 
 
 if __name__ == "__main__":
-    main(" Elvis Presley's father") # gpt output
+    main("Presley's father Vernon was of German, Scottish, and English origins, and a descendant of the Harrison family "
+         "of Virginia through his mother, Minnie Mae Presley (née Hood). Presley's mother Gladys was Scots-Irish with "
+         "some French Norman ancestry. She and the rest of the family believed that her great-great-grandmother,"
+         " Morning Dove White, was Cherokee. This belief was restated by Elvis's granddaughter Riley Keough in 2017. "
+         "Elaine Dundy, in her biography, supports the belief.") # gpt output
