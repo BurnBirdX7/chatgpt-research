@@ -1,7 +1,7 @@
 import copy
 import math
 import time
-from typing import Tuple, List, Set, Optional
+from typing import Tuple, List, Set, Optional, Dict
 
 import numpy as np  # type: ignore
 import faiss  # type: ignore
@@ -36,40 +36,18 @@ page_template_str = """
 </html>
 """
 
-source_link_template_str = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a>\n"
+source_link_template_str = "<a href=\"{{ link }}\" class=\"{{ color }}\" title=\"score: {{score}}\">{{ token }}</a>\n"
 source_text_template_str = "<a class=\"{{ color }}\"><i>{{ token }}</i></a>\n"
-source_item_str = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a></br>\n"
-
-
-def get_page_section_from_wiki(source: str) -> str:
-    wikipedia = wikipediaapi.Wikipedia("en")
-    flag = False
-    if "#" not in source:
-        flag = True
-        title = source.split("https://en.wikipedia.org/wiki/")[1].replace("_", " ")
-    else:
-        title = source.split("https://en.wikipedia.org/wiki/")[1].split("#")[0].replace("_", " ")
-
-    target_page = wikipedia.page(title)
-    if flag:
-        section = target_page.summary
-    else:
-        section = target_page.section_by_title \
-            (source.split("https://en.wikipedia.org/wiki/")[1].split("#")[1].replace("_",
-                                                                                     " "))  # возврощает последнюю секцию
-
-    return str(section)
+source_item_str = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ link }}</a></br>\n"
 
 
 class Chain:
-    string: str
     likelihoods: List[float]
     positions: List[int]
     source: str
 
-    def __init__(self, string: str, likelihoods: List[float], positions: List[int], source: str):
+    def __init__(self, likelihoods: List[float], positions: List[int], source: str):
         assert (len(likelihoods) == len(positions))
-        self.string = string
         self.likelihoods = likelihoods
         self.positions = positions
         self.source = source
@@ -84,9 +62,8 @@ class Chain:
     def __repr__(self) -> str:
         return str(self)
 
-    def extend(self, string: str, likelihood: float, position: int) -> "Chain":
-        return Chain(self.string + string,
-                     self.likelihoods + [likelihood],
+    def extend(self, likelihood: float, position: int) -> "Chain":
+        return Chain(self.likelihoods + [likelihood],
                      self.positions + [position],
                      self.source)
 
@@ -104,38 +81,32 @@ class Chain:
 
 
 # GLOBAL result sequence:
-result_sequence: List[Chain] = []
+result_chains: List[Chain] = []
 
 
-def generate_sequences(chain: Chain, last_hidden_state: torch.Tensor, start_idx: int, tokens: List[str], token_pos):
+def generate_sequences(chain: Chain, last_hidden_state: torch.Tensor, probs: torch.Tensor, top20: torch.Tensor,
+                       start_idx: int, tokens: List[int], token_pos: int):
 
     if start_idx >= len(last_hidden_state) or token_pos >= len(tokens):
         if len(chain) > 1:
-            result_sequence.append(chain)
-
+            result_chains.append(chain)
         return
 
     for idx in range(start_idx, len(last_hidden_state)):
-        probs = torch.nn.functional.softmax(last_hidden_state[idx])
-        column_tokens = torch.topk(last_hidden_state[idx], k=20, dim=0)
-        top_twenty_tokens = column_tokens[1]
-        probability_top_twenty_tokens = [probs[i] for i in top_twenty_tokens]
-        words = [tokenizer.decode(i.item()).strip() for i in top_twenty_tokens]
+        token_curr = tokens[token_pos]
 
-        token = tokens[token_pos]
-        if "Ġ" in token:
-            token = token.split("Ġ")[1]
+        for token_id_t20 in top20[idx]:
+            if token_id_t20.item() != token_curr:
+                continue
 
-        for word_idx in range(len(words)):
-            if words[word_idx] == token:
-                prob = probability_top_twenty_tokens[word_idx].item()
-                current_chain = chain.extend(token, prob, token_pos)
-                if prob >= 0.1:
-                    generate_sequences(current_chain, last_hidden_state, idx + 1,
-                                       tokens, token_pos + 1)
-                else:
-                    if len(current_chain) > 1:
-                        result_sequence.append(current_chain)
+            prob = probs[idx][token_id_t20].item()
+            current_chain = chain.extend(prob, token_pos)
+            if prob >= 0.1:
+                generate_sequences(current_chain, last_hidden_state, probs, top20,
+                                   idx + 1, tokens, token_pos + 1)
+            else:
+                if len(current_chain) > 1:
+                    result_chains.append(current_chain)
 
 
 def cast_output(tokens, source_link):
@@ -162,93 +133,97 @@ def main(gpt_response) -> None:
     print(embeddings)
     faiss.normalize_L2(embeddings)
 
-    result_dists, result_ids = index.index.search(embeddings, 1)
-    print("indexes:", result_ids, "result_ids dists:", result_dists, "\n\n")
+    sources, result_dists = index.get_embeddings_source(embeddings)
+    print("soureces:", sources, "result_ids dists:", result_dists, "\n\n")
 
-    tokens = tokenizer.tokenize(gpt_response)  # разбиваем на токены входную строку с гпт
-    print("tokens:", tokens, "\n\n")  # все токены разбитые из input
+    gpt_tokens = tokenizer.tokenize(gpt_response)  # разбиваем на токены входную строку с гпт
+    print("tokens:", gpt_tokens, "\n\n")  # все токены разбитые из input
+
+    gpt_token_ids = tokenizer.convert_tokens_to_ids(gpt_tokens)
+
+    wiki_dict = dict()
+    for page in Config.page_names:
+        wiki_dict |= Wiki.parse(page)
 
     start = time.perf_counter()
-    for token_pos, token in enumerate(tokens):
-        source = index.get_source(int(result_ids[token_pos]))
-        print("source: ", source)
-        text_from_section = get_page_section_from_wiki(source)  # последняя секция из вики с документа
+    for token_pos, (token, token_id, source) in enumerate(zip(gpt_tokens, gpt_token_ids, sources)):
+        wiki_text = wiki_dict[source]
+        wiki_token_ids = tokenizer.encode(wiki_text, return_tensors='pt').squeeze()
 
-        if "Ġ" in token:
-            token = token.split("Ġ")[1]
-        print("token:", token)
-
-        token_ids = tokenizer.encode(text_from_section, return_tensors='pt')
-
-        for batch in range(0, token_ids.shape[1], 511):
-            batched_token_ids = token_ids[0, batch:batch + 512].unsqueeze(0)
+        print(f"> token: {token}, id: {token_id}, top source: {source}")
+        for batch in range(0, len(wiki_token_ids), 511):
+            print(f"\tbatch: [{batch} : {batch + 512})")
+            wiki_token_ids_batch = wiki_token_ids[batch:batch + 512].unsqueeze(0)
 
             with torch.no_grad():
-                output_page = modelMLM(batched_token_ids)
+                output_page = modelMLM(wiki_token_ids_batch)
 
             last_hidden_state = output_page[0].squeeze()
+            probs = torch.nn.functional.softmax(last_hidden_state, dim=1)
+            top20 = torch.topk(last_hidden_state, k=20, dim=1).indices
 
-            empty_chain = Chain("", [], [], source)
-            generate_sequences(empty_chain, last_hidden_state, 0, tokens, token_pos)
+            empty_chain = Chain([], [], source)
+            generate_sequences(empty_chain, last_hidden_state, probs, top20, 0, gpt_token_ids, token_pos)
 
-            print("probe res::", result_sequence)
-
-    print("whole res::", result_sequence)
-    print("shape_of_end_sequence:::", len(result_sequence))
-
-    sorted_result_chain = sorted(result_sequence, key=lambda x: x.get_score(), reverse=True)
-    print("sorting:::", sorted_result_chain)
+    print("All sequences: ")
+    for chain in result_chains:
+        print(chain)
 
     filtered_chains: List[Chain] = []
     marked_positions: Set[int] = set()
-    for chain in sorted_result_chain:
+    for chain in sorted(result_chains, key=lambda x: x.get_score(), reverse=True):
         marked_in_chain = marked_positions.intersection(chain.positions)
         if len(marked_in_chain) == 0:
             marked_positions |= set(chain.positions)
             filtered_chains.append(chain)
 
-    print("whole sequence:", filtered_chains)
-    print("whole time:", time.perf_counter() - start)
+    print("Filtered chains:")
+    for chain in filtered_chains:
+        print(chain)
+
+    print(f"Time: {time.perf_counter() - start} s.")
 
     # prepare tokens for coloring
-    tokens_for_coloring = map(lambda s: s.replace('Ġ', ' ').replace('Ċ', '</br>'), tokens)
+    tokens_for_coloring = map(lambda s: s.replace('Ġ', ' ').replace('Ċ', '</br>'), gpt_tokens)
 
     # prepare links for coloring
-    pos2source = {}
+    pos2chain: Dict[int, Chain] = {}
     for i, chain in enumerate(filtered_chains):
         for pos in chain.positions:
-            print(f"pos {pos}, source {chain.source}")
-            pos2source[pos] = chain.source
+            pos2chain[pos] = chain
 
     template_page = Template(page_template_str)
     template_link = Template(source_link_template_str)
     template_text = Template(source_text_template_str)
     template_source_item = Template(source_item_str)
 
-    color = 7
-    output_page = ''
-    output_source_list = ''
-    last_source: Optional[str] = None
+    color: int = 7
+    output_page: str = ''
+    output_source_list: str = ''
+    last_chain: Optional[Chain] = None
     for i, key in enumerate(tokens_for_coloring):
         key: str
 
-        if i in pos2source:
-            if last_source == pos2source[i]:
-                output_page += template_link.render(link=pos2source[i],
+        if i in pos2chain:
+            chain = pos2chain[i]
+            source = chain.source
+            score = chain.get_score()
+            if last_chain == chain:
+                output_page += template_link.render(link=source,
+                                                    score=score,
                                                     color="color" + str(color),
                                                     token=key)
             else:
-                # New sequence:
                 color += 1
-                output_source_list += template_source_item.render(link=pos2source[i],
-                                                                  color="color" + str(color),
-                                                                  token=pos2source[i])
-                last_source = pos2source[i]
-                output_page += template_link.render(link=pos2source[i],
+                last_chain = chain
+                output_source_list += template_source_item.render(link=source,
+                                                                  color="color" + str(color))
+                output_page += template_link.render(link=source,
+                                                    score=score,
                                                     color="color" + str(color),
                                                     token=key)
         else:
-            last_source = None
+            last_chain = None
             output_page += template_text.render(token=key, color="color0")
 
     output_source_list += '</br>'
