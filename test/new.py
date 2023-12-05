@@ -36,9 +36,9 @@ page_template_str = """
 </html>
 """
 
-source_link_template_str = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a>"
-source_text_template_str = "<a class=\"{{ color }}\"><i>{{ token }}</i></a>"
-source_item_str = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a></br>"
+source_link_template_str = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a>\n"
+source_text_template_str = "<a class=\"{{ color }}\"><i>{{ token }}</i></a>\n"
+source_item_str = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a></br>\n"
 
 
 def get_page_section_from_wiki(source: str) -> str:
@@ -76,6 +76,10 @@ class Chain:
 
     def __len__(self) -> int:
         return len(self.positions)
+
+    def __str__(self) -> str:
+        return (f"Chain {{ pos: {self.positions}, likelihoods: {self.likelihoods}, "
+                f"score: {self.get_score()}, source: {self.source} }}")
 
     def extend(self, string: str, likelihood: float, position: int) -> "Chain":
         return Chain(self.string + string,
@@ -229,7 +233,7 @@ def main(gpt_response) -> None:
             if last_source == pos2source[i]:
                 output_page += template_link.render(link=pos2source[i],
                                                     color="color" + str(color),
-                                                    token=key[1:-1])
+                                                    token=key)
             else:
                 # New sequence:
                 color += 1
@@ -239,10 +243,10 @@ def main(gpt_response) -> None:
                 last_source = pos2source[i]
                 output_page += template_link.render(link=pos2source[i],
                                                     color="color" + str(color),
-                                                    token=key[1:-1])
+                                                    token=key)
         else:
             last_source = None
-            output_page += template_text.render(token=key[1:-1], color="color0")
+            output_page += template_text.render(token=key, color="color0")
 
     output_source_list += '</br>'
     result_html = template_page.render(result=output_page, gpt_response=gpt_response, list_of_colors=output_source_list)
