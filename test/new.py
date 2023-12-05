@@ -36,16 +36,16 @@ page_template = """
 """
 
 link_template = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a>"
+link_template_empty = "<a href=\"{{ link }}\" class=\"{{ color }}\"><i>{{ token }}</i></a>"
 list_of_articles = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ token }}</a></br>"
 
 
 
 def get_page_section_from_wiki(source: str) -> str:
     wikipedia = wikipediaapi.Wikipedia("en")
-
-    flag =False
+    flag = False
     if "#" not in source:
-        flag=True
+        flag = True
         title = source.split("https://en.wikipedia.org/wiki/")[1].replace("_", " ")
     else:
         title = source.split("https://en.wikipedia.org/wiki/")[1].split("#")[0].replace("_", " ")
@@ -77,27 +77,49 @@ def make_chain_colored_recursive_right(new_chain, last_hidden_state, hidden_stat
 
         for word in range(len(words)):
             if words[word] == token and probability_top_twenty_tokens[word].item() >= 0.1:
-                chain_count+=1
-                # log2(2+len)((lik_h_0*...*lik_h_len)^1/len) - score
-                score = math.log2(chain_count)*math.pow(continue_chain[1]*probability_top_twenty_tokens[word].item(),
-                                                        1/chain_count)
-                continue_chain[0]=continue_chain[0]+token
-                continue_chain[1]=score
+                chain_count += 1
+
+                # log2(2+len)*((lik_h_0*...*lik_h_len)^1/len) - score
+                # score = math.log2(2 + chain_count)*math.pow(continue_chain[1]*probability_top_twenty_tokens[word].item(),
+                #                                         1/chain_count)
+                # len*((lik_h_0*...*lik_h_len)^1/len) - score
+                # score = chain_count*math.pow(continue_chain[1]*probability_top_twenty_tokens[word].item(),
+                #                                         1/chain_count)
+                continue_chain[0] = continue_chain[0]+token
+                probability_token_in_chain = continue_chain[1].copy()
+                probability_token_in_chain.append(probability_top_twenty_tokens[word].item())
+                continue_chain[1] = probability_token_in_chain
                 # continue_chain[2]=str(continue_chain[2])+"|"+str(result_ids[token_pos].item())
                 tokens_in_chain = continue_chain[2].copy()
                 tokens_in_chain.append(token_pos)
-                continue_chain[2]=tokens_in_chain
+                continue_chain[2] = tokens_in_chain
 
                 # continue_chain.append(token)
                 # continue_chain.append(probability_top_twenty_tokens[word].item())
                 # continue_chain.append(result_ids[token_pos].item())
 
-                result_sequence.append(continue_chain)
                 if hidden_state != len(last_hidden_state) - 1 and token_pos != len(tokens) - 1:
                     make_chain_colored_recursive_right(continue_chain, last_hidden_state, hidden_state + 1, tokens,
                                                    token_pos + 1, result_ids, chain_count)
+                else:
+                    if chain_count > 1:
+                        multy = 1
+                        for probability in range(len(continue_chain[1])):
+                            multy = multy * continue_chain[1][probability]
+                        score = math.log2(2 + chain_count) * math.pow(multy, 1 / chain_count)
+                        continue_chain[1]=score
+                        result_sequence.append(continue_chain)
             else:
-                return
+                if chain_count > 1:
+                    multy = 1
+                    for probability in range(len(continue_chain[1])):
+                        multy = multy * continue_chain[1][probability]
+                    score = math.log2(2 + chain_count) * math.pow(multy, 1 / chain_count)
+                    continue_chain[1] = score
+                    result_sequence.append(continue_chain)
+
+
+
 
 
 def iterate_on_sorted_sequence(iterator_sorting, filtered_elements):
@@ -182,20 +204,28 @@ def main(gpt_response) -> None:
                 probs = torch.nn.functional.softmax(last_hidden_state[hidden_state])
                 column_tokens = torch.topk(last_hidden_state[hidden_state], k=20, dim=0)
                 top_twenty_tokens = column_tokens[1]
+
                 probability_top_twenty_tokens = [probs[i] for i in top_twenty_tokens]
                 words = [tokenizer.decode(i.item()).strip() for i in top_twenty_tokens]
 
+                tokens_in_chains_prob = []
                 for word in range(len(words)):
                     token_pos_in_chain = []
                     if words[word] == token and probability_top_twenty_tokens[word].item() >= 0.1:
+                        print("first:first:::", top_twenty_tokens)
+                        print("ffff:", probability_top_twenty_tokens)
+                        print("ffffftt::", words)
                         chain_count = 1
                         local_sequence.append(token)
-                        local_sequence.append(probability_top_twenty_tokens[word].item())  # first score
+                        local_sequence.append(tokens_in_chains_prob)
+                        local_sequence[1].append(probability_top_twenty_tokens[word].item())
+                        # local_sequence.append(probability_top_twenty_tokens[word].item())  # first score
                         # local_sequence.append(result_ids[token_pos].item())
 
                         token_pos_in_chain.append(token_pos)
                         local_sequence.append(token_pos_in_chain)
                         local_sequence.append(source)
+                        print("first::", local_sequence, "::::", result_ids[token_pos].item())
 
                         # result_sequence.append(local_sequence)
 
@@ -231,6 +261,7 @@ def main(gpt_response) -> None:
         iterator_sorting+=1
         iterate_on_sorted_sequence(iterator_sorting, filtered_elements)
 
+    print("whole sequence:", filtered_elements)
     print("whole time:", time.perf_counter() - start)
 
 
@@ -254,6 +285,7 @@ def main(gpt_response) -> None:
     template_res = Template(page_template)
 
     template = Template(link_template)
+    template_empty = Template(link_template_empty)
     template_list_of_colors = Template(list_of_articles)
 
     output = ''
@@ -271,7 +303,7 @@ def main(gpt_response) -> None:
                 link_for_colored_per_token = result_map_sequence_links[i]
                 output += template.render(link=result_map_sequence_links[i], color="color"+str(color), token=key[0].strip("'"))
         else:
-            output += template.render(token=key[0].strip("'"), color="color0")
+            output += template_empty.render(token=key[0].strip("'"), color="color0")
 
     output_list_of_colors += '</br>'
     result_html = template_res.render(result=output, gpt_response=gpt_response,  list_of_colors=output_list_of_colors)
