@@ -84,7 +84,7 @@ class Chain:
 result_chains: List[Chain] = []
 
 
-def generate_sequences(chain: Chain, last_hidden_state: torch.Tensor, probs: torch.Tensor, top20: torch.Tensor,
+def generate_sequences(chain: Chain, last_hidden_state: torch.Tensor, probs: torch.Tensor,
                        start_idx: int, tokens: List[int], token_pos: int):
 
     if start_idx >= len(last_hidden_state) or token_pos >= len(tokens):
@@ -94,36 +94,14 @@ def generate_sequences(chain: Chain, last_hidden_state: torch.Tensor, probs: tor
 
     for idx in range(start_idx, len(last_hidden_state)):
         token_curr = tokens[token_pos]
-
-        for token_id_t20 in top20[idx]:
-            if token_id_t20.item() != token_curr:
-                continue
-
-            prob = probs[idx][token_id_t20].item()
+        prob = probs[idx][token_curr].item()
+        if prob >= 0.05:
             current_chain = chain.extend(prob, token_pos)
-            if prob >= 0.1:
-                generate_sequences(current_chain, last_hidden_state, probs, top20,
-                                   idx + 1, tokens, token_pos + 1)
-            else:
-                if len(current_chain) > 1:
-                    result_chains.append(current_chain)
-
-
-def cast_output(tokens, source_link):
-    for key, src in enumerate(tokens):
-        print(key, src)
-        print(source_link[key])
-
-    for i, key, src in enumerate(zip(tokens, source_link)):
-        print("::", i, "::", key, "::", src)
-
-    template = Template(source_link_template_str)
-    output = ''
-    for i, key in enumerate(tokens):
-        value_from_map1 = tokens[key]
-        value_from_map2 = source_link[key]
-        print(value_from_map1, value_from_map2)
-        # Check if the key is present in the second map
+            generate_sequences(current_chain, last_hidden_state, probs,
+                               idx + 1, tokens, token_pos + 1)
+        else:
+            if len(chain) > 1:
+                result_chains.append(chain)
 
 
 def main(gpt_response) -> None:
@@ -160,10 +138,9 @@ def main(gpt_response) -> None:
 
             last_hidden_state = output_page[0].squeeze()
             probs = torch.nn.functional.softmax(last_hidden_state, dim=1)
-            top20 = torch.topk(last_hidden_state, k=20, dim=1).indices
 
             empty_chain = Chain([], [], source)
-            generate_sequences(empty_chain, last_hidden_state, probs, top20, 0, gpt_token_ids, token_pos)
+            generate_sequences(empty_chain, last_hidden_state, probs, 0, gpt_token_ids, token_pos)
 
     print("All sequences: ")
     for chain in result_chains:
