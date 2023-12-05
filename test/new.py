@@ -81,6 +81,9 @@ class Chain:
         return (f"Chain {{ pos: {self.positions}, likelihoods: {self.likelihoods}, "
                 f"score: {self.get_score()}, source: {self.source} }}")
 
+    def __repr__(self) -> str:
+        return str(self)
+
     def extend(self, string: str, likelihood: float, position: int) -> "Chain":
         return Chain(self.string + string,
                      self.likelihoods + [likelihood],
