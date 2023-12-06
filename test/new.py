@@ -42,45 +42,72 @@ source_item_str = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ link }}</a></
 
 
 class Chain:
+    begin_pos: Optional[int]
+    end_pos: Optional[int]
     likelihoods: List[float]
-    positions: List[int]
+    skips: int = 0
     source: str
 
-    def __init__(self, likelihoods: List[float], positions: List[int], source: str):
-        assert (len(likelihoods) == len(positions))
-        self.likelihoods = likelihoods
-        self.positions = positions
+    def __init__(self, source: str,
+                 begin_pos: Optional[int] = None,
+                 end_pod: Optional[int] = None,
+                 likelihoods: Optional[List[float]] = None,
+                 skips: int = 0):
+        self.begin_pos = begin_pos
+        self.end_pos = end_pod
+        self.likelihoods = [] if (likelihoods is None) else likelihoods
         self.source = source
+        self.skips = skips
 
     def __len__(self) -> int:
-        return len(self.positions)
+        if self.begin_pos is None:
+            return 0
+
+        return self.end_pos - self.begin_pos + 1
 
     def __str__(self) -> str:
-        return (f"Chain {{ pos: {self.positions}, likelihoods: {self.likelihoods}, "
-                f"score: {self.get_score()}, source: {self.source} }}")
+        return (f"Chain {{\n"
+                f"\tseq = {self.begin_pos}..{self.end_pos}\n"
+                f"\tlikelihoods = {self.likelihoods}\n"
+                f"\tskips = {self.skips}\n"
+                f"\tscore = {self.get_score()}\n"
+                f"\tsource = {self.source}\n"
+                f"}}\n")
 
     def __repr__(self) -> str:
-        return str(self)
-
-    def extend(self, likelihood: float, position: int) -> "Chain":
-        return Chain(self.likelihoods + [likelihood],
-                     self.positions + [position],
-                     self.source)
+        return (f"Chain("
+                f"begin_pos={self.begin_pos}, "
+                f"end_pos={self.end_pos}, "
+                f"likelihoods={self.likelihoods!r}, "
+                f"source={self.source!r}, "
+                f"skips={self.skips}"
+                f")")
 
     def append(self, likelihood: float, position: int) -> None:
         self.likelihoods.append(likelihood)
-        self.positions.append(position)
+        if self.begin_pos is None:
+            self.begin_pos = position
+            self.end_pos = position
+        else:
+            if self.end_pos + self.skips + 1 != position:
+                raise ValueError(f"{self.end_pos=}, {position=}")
+            self.end_pos += self.skips + 1
+        self.skips = 0
+
+    def skip(self) -> None:
+        self.skips += 1
+
+    def get_token_positions(self) -> Set[int]:
+        return set(range(self.begin_pos, self.end_pos + 1))
 
     def get_score(self):
-        l = len(self)
-
-        # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len) - score
+        # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
         score = 1.0
         for lh in self.likelihoods:
             score *= lh
 
-        score **= 1 / l
-        score *= math.log2(2 + l)
+        score **= 1 / len(self.likelihoods)
+        score *= math.log2(2 + len(self))
         return score
 
 
@@ -89,8 +116,7 @@ def generate_sequences(source_len: int, likelihoods: torch.Tensor,
     result_chains: List[Chain] = []
 
     for source_start_pos in range(0, source_len):
-        chain = Chain([], [], source)
-        skips = 0
+        chain = Chain(source)
         shift_upper_bound = min(source_len - source_start_pos, len(token_ids) - token_start_pos)
         for shift in range(0, shift_upper_bound):
             token_pos = token_start_pos + shift
@@ -102,14 +128,14 @@ def generate_sequences(source_len: int, likelihoods: torch.Tensor,
             token_curr_id = token_ids[token_pos]
             token_curr_likelihood = likelihoods[source_pos][token_curr_id].item()
 
-            chain.append(token_curr_likelihood, token_pos)
-
-            if token_curr_likelihood < 0.00001:
-                skips += 1
-                if skips > 3:
+            if token_curr_likelihood < 1e-5:
+                chain.skip()
+                if chain.skips > 3:
                     break
-            elif len(chain) > 1:
-                result_chains.append(copy.deepcopy(chain))
+            else:
+                chain.append(token_curr_likelihood, token_pos)
+                if len(chain) > 1:
+                    result_chains.append(copy.deepcopy(chain))
 
     return result_chains
 
@@ -139,10 +165,14 @@ def main(gpt_response) -> None:
         wiki_text = wiki_dict[source]
         wiki_token_ids = tokenizer.encode(wiki_text, return_tensors='pt').squeeze()
 
-        print(f"> token: '{token}', id: {token_id}, top source: {source}")
-        for batch in range(0, len(wiki_token_ids), 511):
+        print(f"> token: '{token}', id: {token_id}, source token count: {len(wiki_token_ids)}, top source: {source}, ")
+        for batch in range(0, len(wiki_token_ids), 256):
             print(f"\tbatch: [{batch} : {batch + 512})")
-            wiki_token_ids_batch = wiki_token_ids[batch:batch + 512].unsqueeze(0)
+            wiki_token_ids_batch = wiki_token_ids[batch:batch + 512]
+            if len(wiki_token_ids_batch) < 2:
+                break
+
+            wiki_token_ids_batch = wiki_token_ids_batch.unsqueeze(0)
 
             with torch.no_grad():
                 output_page = modelMLM(wiki_token_ids_batch)
@@ -158,9 +188,10 @@ def main(gpt_response) -> None:
     filtered_chains: List[Chain] = []
     marked_positions: Set[int] = set()
     for chain in sorted(result_chains, key=lambda x: x.get_score(), reverse=True):
-        marked_in_chain = marked_positions.intersection(chain.positions)
-        if len(marked_in_chain) == 0:
-            marked_positions |= set(chain.positions)
+        positions = chain.get_token_positions()
+        marked_positions_inside_chain = marked_positions.intersection(positions)
+        if len(marked_positions_inside_chain) == 0:
+            marked_positions |= positions
             filtered_chains.append(chain)
 
     print("Filtered chains:")
@@ -170,12 +201,12 @@ def main(gpt_response) -> None:
     print(f"Time: {time.perf_counter() - start} s.")
 
     # prepare tokens for coloring
-    tokens_for_coloring = map(lambda s: s.replace('Ġ', ' ').replace('Ċ', '</br>'), gpt_tokens)
+    tokens_for_coloring = map(lambda s: tokenizer.convert_tokens_to_string([s]), gpt_tokens)
 
     # prepare links for coloring
     pos2chain: Dict[int, Chain] = {}
     for i, chain in enumerate(filtered_chains):
-        for pos in chain.positions:
+        for pos in chain.get_token_positions():
             pos2chain[pos] = chain
 
     template_page = Template(page_template_str)
