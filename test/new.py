@@ -67,6 +67,10 @@ class Chain:
                      self.positions + [position],
                      self.source)
 
+    def append(self, likelihood: float, position: int) -> None:
+        self.likelihoods.append(likelihood)
+        self.positions.append(position)
+
     def get_score(self):
         l = len(self)
 
@@ -80,28 +84,34 @@ class Chain:
         return score
 
 
-# GLOBAL result sequence:
-result_chains: List[Chain] = []
+def generate_sequences(source_len: int, likelihoods: torch.Tensor,
+                       token_ids: List[int], token_start_pos: int, source: str) -> List[Chain]:
+    result_chains: List[Chain] = []
 
+    for source_start_pos in range(0, source_len):
+        chain = Chain([], [], source)
+        skips = 0
+        shift_upper_bound = min(source_len - source_start_pos, len(token_ids) - token_start_pos)
+        for shift in range(0, shift_upper_bound):
+            token_pos = token_start_pos + shift
+            source_pos = source_start_pos + shift
 
-def generate_sequences(chain: Chain, last_hidden_state: torch.Tensor, probs: torch.Tensor,
-                       start_idx: int, tokens: List[int], token_pos: int):
+            assert token_pos < len(token_ids)
+            assert source_pos < source_len
 
-    if start_idx >= len(last_hidden_state) or token_pos >= len(tokens):
-        if len(chain) > 1:
-            result_chains.append(chain)
-        return
+            token_curr_id = token_ids[token_pos]
+            token_curr_likelihood = likelihoods[source_pos][token_curr_id].item()
 
-    for idx in range(start_idx, len(last_hidden_state)):
-        token_curr = tokens[token_pos]
-        prob = probs[idx][token_curr].item()
-        if prob >= 0.05:
-            current_chain = chain.extend(prob, token_pos)
-            generate_sequences(current_chain, last_hidden_state, probs,
-                               idx + 1, tokens, token_pos + 1)
-        else:
-            if len(chain) > 1:
-                result_chains.append(chain)
+            chain.append(token_curr_likelihood, token_pos)
+
+            if token_curr_likelihood < 0.00001:
+                skips += 1
+                if skips > 3:
+                    break
+            elif len(chain) > 1:
+                result_chains.append(copy.deepcopy(chain))
+
+    return result_chains
 
 
 def main(gpt_response) -> None:
@@ -124,11 +134,12 @@ def main(gpt_response) -> None:
         wiki_dict |= Wiki.parse(page)
 
     start = time.perf_counter()
+    result_chains = []
     for token_pos, (token, token_id, source) in enumerate(zip(gpt_tokens, gpt_token_ids, sources)):
         wiki_text = wiki_dict[source]
         wiki_token_ids = tokenizer.encode(wiki_text, return_tensors='pt').squeeze()
 
-        print(f"> token: {token}, id: {token_id}, top source: {source}")
+        print(f"> token: '{token}', id: {token_id}, top source: {source}")
         for batch in range(0, len(wiki_token_ids), 511):
             print(f"\tbatch: [{batch} : {batch + 512})")
             wiki_token_ids_batch = wiki_token_ids[batch:batch + 512].unsqueeze(0)
@@ -136,11 +147,9 @@ def main(gpt_response) -> None:
             with torch.no_grad():
                 output_page = modelMLM(wiki_token_ids_batch)
 
-            last_hidden_state = output_page[0].squeeze()
-            probs = torch.nn.functional.softmax(last_hidden_state, dim=1)
-
-            empty_chain = Chain([], [], source)
-            generate_sequences(empty_chain, last_hidden_state, probs, 0, gpt_token_ids, token_pos)
+            wiki_logits = output_page[0].squeeze()
+            likelihoods = torch.nn.functional.softmax(wiki_logits, dim=1)
+            result_chains += generate_sequences(len(wiki_logits), likelihoods, gpt_token_ids, token_pos, source)
 
     print("All sequences: ")
     for chain in result_chains:
