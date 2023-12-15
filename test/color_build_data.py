@@ -1,5 +1,7 @@
-import faiss
+# import faiss
 import collections
+import argparse
+import json
 
 from scripts.model_of_GPT import build_page_template
 
@@ -44,7 +46,7 @@ def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
 
 
 def prob_test_wiki_with_colored(index: Index, text: str, expected_url: str,
-                                uniq_color: int) -> tuple[str, str, str]:
+                                uniq_color: int) -> tuple[list[int], list[int]]:
     embeddings = Embeddings(tokenizer, model, normalize=True).from_text(text)
 
     result_sources, result_dists = index.get_embeddings_source(embeddings)
@@ -64,31 +66,54 @@ def prob_test_wiki_with_colored(index: Index, text: str, expected_url: str,
             expected_count += 1
             dist_sum += dist
 
-    print(
-        f"Got expected URL in {expected_count / len(result_dists) * 100:.4f}% of cases, "
-        f"average match distance: {dist_sum / len(result_dists):.4f}"
-    )
+    # print(
+    #     f"Got expected URL in {expected_count / len(result_dists) * 100:.4f}% of cases, "
+    #     f"average match distance: {dist_sum / len(result_dists):.4f}"
+    # )
 
     dict_with_uniq_colors = build_dict_for_color(links, uniq_color)
 
     return build_page_template(text, links, dict_with_uniq_colors)
 
 
-def main(user_input: str) -> tuple[str, str, str]:
+def main(user_input: str) -> tuple[list[int], list[int]]:
     read_index: bool = True
 
     if read_index:
-        print("Readings index... ", end='')
+        # print("Readings index... ", end='')
         index = Index.load(Config.index_file, Config.mapping_file)
-        print("Done")
+        # print("Done")
     else:
         print("Index is being built from wiki... ")
         index = Index.from_wiki()
 
-    print("Test [Data] Searching quotes from the same page:")
-    print('"Childhood w references"')
+    # print("Test [Data] Searching quotes from the same page:")
+    # print('"Childhood w references"')
     return prob_test_wiki_with_colored(index, user_input, childhood_url, 5)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--userinput", help="User input value", type=str)
+    parser.add_argument("--file", help="Quiz file", type=str)
+    parser.add_argument("--question", help="Question from quiz", type=str)
+    parser.add_argument("--answer", help="Answer for question", type=str)
+    args = parser.parse_args()
+
+    userinput = args.userinput
+    file = args.file
+    question = args.question
+    answer = args.answer
+    sentence_length_array, count_colored_token_in_sentence_array = main(userinput)
+
+    dictionary = {
+        'file': file,
+        'question': question,
+        'answer': answer,
+        'length': sentence_length_array,
+        'colored': count_colored_token_in_sentence_array
+    }
+
+    json_output = json.dumps(dictionary, indent=4)
+    print(json_output)
+    # main()
