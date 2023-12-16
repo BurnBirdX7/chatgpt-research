@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Tuple
 
 from flask import Flask, render_template, request
 from functools import lru_cache
@@ -20,17 +20,20 @@ root = os.path.dirname(os.path.abspath(__file__))
 INDEX_NAME = "fever"
 INDEX_ROOT = os.path.join(root, "wiki/indexes")
 
-fever_map = pd.read_csv(os.path.join(root, "collections/fever_map.tsv"), delimiter='\t', header=None)
-fever_map.rename(inplace=True, columns={0: 'pid', 1: 'id', 2: "urls"})
+fever_map = pd.read_csv(os.path.join(root, "collections/fever_map.tsv"), delimiter='\t')
 
 
-def get_urls(pid: int) -> List[str] | None:
-    res = fever_map[fever_map["pid"] == pid]
-    if len(res) == 0:
-        return None
+def get_fever_data(pid: int) -> Tuple[bool, List[str]]:
+    """
+    Retrieve the fever data for the pid
+    :param pid: pid of the passage from FEVER dataset
+    :return: (bool, List[str]): Bool that indicates if the claim is supported or not, and a list of evidence URL
+    """
+    row = fever_map.iloc[pid]
+    urls = ast.literal_eval(row["urls"])
+    is_supported = row["is_supported"]
+    return is_supported, urls
 
-    lst = ast.literal_eval(res.iloc[0]["urls"])
-    return lst
 
 app = Flask(__name__)
 
@@ -54,7 +57,18 @@ def api_search_query(query, k):
     topk = []
     for pid, rank, score, prob in zip(pids, ranks, scores, probs):
         text = searcher.collection[pid]
-        d = {'text': text, 'pid': pid, 'rank': rank, 'score': score, 'prob': prob, 'urls': get_urls(pid)}
+        is_supported, urls = get_fever_data(pid)
+
+        d = {
+            'text': text,
+            'pid': pid,
+            'rank': rank,
+            'score': score,
+            'prob': prob,
+            'urls': urls,
+            'is_supported': str(is_supported).lower()
+        }
+
         topk.append(d)
     topk = list(sorted(topk, key=lambda p: (-1 * p['score'], p['pid'])))
     return {"query" : query, "topk": topk}

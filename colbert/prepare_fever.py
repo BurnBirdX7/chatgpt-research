@@ -29,8 +29,9 @@ def main(source: str, destination: str, destination_map: str):
     mapping_tsv = pd.DataFrame()
     mapping_tsv['fid'] = source_json['id']
     mapping_tsv['urls'] = source_json['evidence'].map(unpack_sources)
+    mapping_tsv['is_supported'] = source_json['label'] == 'SUPPORTS'
 
-    mapping_tsv.to_csv(destination_map, sep='\t', header=False)
+    mapping_tsv.to_csv(destination_map, sep='\t')
     print("Done")
 
 
