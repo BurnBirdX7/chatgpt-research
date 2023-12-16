@@ -22,13 +22,11 @@ class Embeddings:
         self.max_sequence_length = self.model.config.max_position_embeddings
         self.embedding_length = self.model.config.hidden_size
         self.normalize = normalize
-        print(f"Embedding normalization: {normalize}")
 
         self.suppress_progress = False
 
         if centroid_file is not None:
             self.centroid = np.load(Config.centroid_file)
-            print('Centroid loaded!')
         else:
             self.centroid = np.zeros(self.embedding_length)
 

@@ -22,11 +22,7 @@ class Wiki:
 
     @staticmethod
     def parse(title: str = "Elvis_Presley") -> Dict[str, str]:
-        wikipedia = wikipediaapi.Wikipedia(language="en",
-                                           user_agent="chatgpt-research-wiki-scrapper/1.0"
-                                                      "(https://github.com/BurnBirdX7/chatgpt-research; "
-                                                      "artemiy.lazarevx7@gmail.com)"
-                                                      "Wikipedia-API/0.6.0")
+        wikipedia = wikipediaapi.Wikipedia("en")
         target_page = wikipedia.page(title)
         url = target_page.canonicalurl
         d: Dict[str, str] = dict()
