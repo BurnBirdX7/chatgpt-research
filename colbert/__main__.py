@@ -7,7 +7,7 @@ def main():
         raise ValueError("Not enough parameters")
 
     project_root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-    colbert_root = f"{project_root}/colbert/colbert"
+    colbert_root = f"{project_root}/colbert"
     script = f"{project_root}/colbert/{sys.argv[1]}.py"
 
     args = [sys.executable, script, *sys.argv[2:]]
