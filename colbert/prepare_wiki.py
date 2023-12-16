@@ -26,13 +26,14 @@ class WikiContext:
             for paragraph in section.split('\n'):
                 stripped_paragraph = paragraph.strip()
                 if len(stripped_paragraph) > 0:
-                    self.passage_file.write(f"{self.pid}\t{paragraph}\n")
+                    stripped_paragraph = stripped_paragraph.replace('\t', ' ')
+                    self.passage_file.write(f"{self.pid}\t{stripped_paragraph}\n")
                     url = f"https://en.wikipedia.org/wiki/{self.current_title}#{heading.replace(' ', '_')}"
                     self.source_file.write(f"{self.pid}\t{url}\n")
                     self.pid += 1
 
     def new_page(self):
-        if self.should_parse and self.current_page and self.curent_title:
+        if self.should_parse and self.current_page and self.current_title:
             self.__flush_current_page()
 
         self.current_title = None
