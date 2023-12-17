@@ -6,11 +6,8 @@ from colbert.infra.run import Run
 from colbert import Indexer
 
 
-def change_root():
-    pass
-
-
 def create_index(collection_name: str):
+    print(f"Creating index for collection: {collection_name}", flush=True)
     root = os.path.dirname(os.path.realpath(__file__))
     collections_dir = os.path.join(root, "collections")
     checkpoint_dir = os.path.join(root, "checkpoint")
@@ -29,5 +26,4 @@ if __name__ == '__main__':
         print("          collection will be loaded from collections/fever.tsv")
         exit(1)
 
-    change_root()
     create_index(sys.argv[1])

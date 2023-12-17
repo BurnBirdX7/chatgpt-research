@@ -21,6 +21,12 @@ fi
 
 # Download FEVER dataset
 if [ ! -f "collections/fever.jsonl" ]; then
+  echo "Downloading FEVER"
+
+  if [ ! -d "collections" ]; then
+    mkdir "collections"
+  fi
+
   wget https://fever.ai/download/fever/train.jsonl -O collections/fever.jsonl
 else
   echo "Skipped FEVER download... File already exists..."
