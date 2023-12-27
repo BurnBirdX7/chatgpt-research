@@ -8,9 +8,11 @@ import faiss  # type: ignore
 import wikipediaapi  # type: ignore
 import torch
 from jinja2 import Template
+import work
 
 from src import Roberta, Config, SourceMapping, Embeddings, Index, Wiki
 from transformers import RobertaTokenizer, RobertaForMaskedLM
+# from test import work
 
 tokenizer, model = Roberta.get_default()
 modelMLM = RobertaForMaskedLM.from_pretrained('roberta-large')
@@ -84,24 +86,25 @@ class Chain:
 result_chains: List[Chain] = []
 
 
-def generate_sequences(chain: Chain, last_hidden_state: torch.Tensor, probs: torch.Tensor,
-                       start_idx: int, tokens: List[int], token_pos: int):
+# def generate_sequences(chain: Chain, last_hidden_state: torch.Tensor, probs: torch.Tensor,
+#                        start_idx: int, tokens: List[int], token_pos: int):
+#
+#     if start_idx >= len(last_hidden_state) or token_pos >= len(tokens):
+#         if len(chain) > 1:
+#             result_chains.append(chain)
+#         return
+#
+#     for idx in range(start_idx, len(last_hidden_state)):
+#         token_curr = tokens[token_pos]
+#         prob = probs[idx][token_curr].item()
+#         if prob >= 0.05:
+#             current_chain = chain.extend(prob, token_pos)
+#             generate_sequences(current_chain, last_hidden_state, probs,
+#                                idx + 1, tokens, token_pos + 1)
+#         else:
+#             if len(chain) > 1:
+#                 result_chains.append(chain)
 
-    if start_idx >= len(last_hidden_state) or token_pos >= len(tokens):
-        if len(chain) > 1:
-            result_chains.append(chain)
-        return
-
-    for idx in range(start_idx, len(last_hidden_state)):
-        token_curr = tokens[token_pos]
-        prob = probs[idx][token_curr].item()
-        if prob >= 0.05:
-            current_chain = chain.extend(prob, token_pos)
-            generate_sequences(current_chain, last_hidden_state, probs,
-                               idx + 1, tokens, token_pos + 1)
-        else:
-            if len(chain) > 1:
-                result_chains.append(chain)
 
 
 def main(gpt_response) -> None:
@@ -139,8 +142,8 @@ def main(gpt_response) -> None:
             last_hidden_state = output_page[0].squeeze()
             probs = torch.nn.functional.softmax(last_hidden_state, dim=1)
 
-            empty_chain = Chain([], [], source)
-            generate_sequences(empty_chain, last_hidden_state, probs, 0, gpt_token_ids, token_pos)
+            empty_chain = work.Chain([], [], source)
+            work.generate_sequences(empty_chain, last_hidden_state, probs, 0, gpt_token_ids, token_pos)
 
     print("All sequences: ")
     for chain in result_chains:
@@ -212,8 +215,4 @@ def main(gpt_response) -> None:
 
 if __name__ == "__main__":
     main(
-        "Presley's father Vernon was of German, Scottish, and English origins, and a descendant of the Harrison family "
-        "of Virginia through his mother, Minnie Mae Presley (née Hood). Presley's mother Gladys was Scots-Irish with "
-        "some French Norman ancestry. She and the rest of the family believed that her great-great-grandmother,"
-        " Morning Dove White, was Cherokee. This belief was restated by Elvis's granddaughter Riley Keough in 2017. "
-        "Elaine Dundy, in her biography, supports the belief.")  # gpt output
+        "In the annals of rock history, the story of Elvis Presley isn't just one of a musical phenomenon but also a narrative woven with the love, guidance, and sacrifices of two individuals – Vernon and Gladys Presley – who set the stage for their son to become a legend.")  # gpt output
