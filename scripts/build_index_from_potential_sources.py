@@ -1,8 +1,10 @@
 """
 Arg: Text
 Description
- * Find close sources in Source index (
+ * Uses PyLucene to find potential sources and builds Index from them
+ * Index is saved into `temp_index_file` and `temp_mapping_file` specified in the Config
 """
+
 import sys
 from typing import Dict
 

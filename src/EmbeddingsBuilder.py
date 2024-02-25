@@ -8,7 +8,6 @@ from typing import List, Tuple, Optional, Callable, Dict
 
 from .SourceMapping import SourceMapping
 from .Config import Config
-from .Wiki import Wiki
 
 
 class EmbeddingsBuilder:
@@ -92,17 +91,6 @@ class EmbeddingsBuilder:
 
         input_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
         return self.from_ids(input_ids)
-
-    def from_wiki(self) -> Tuple[np.ndarray, SourceMapping]:
-        """
-        Computes embeddings for online Wikipedia
-        Target pages are specified via config variable `page_names`
-        :return: Tuple:
-                    - Embeddings as 2d numpy.array
-                    - and Interval to Source mapping
-        """
-        source_list = Config.page_names
-        return self.from_sources(source_list, Wiki.parse)
 
     def from_sources(self, source_list: List[str], source_provider: Callable[[str], Dict[str, str]])\
             -> Tuple[np.ndarray, SourceMapping]:
