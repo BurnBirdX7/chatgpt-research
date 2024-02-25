@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 
 # from test.color_build_data import main
-from test.new import main
+from scripts.color_text_with_chaining import main
 
 app = Flask(__name__)
 
