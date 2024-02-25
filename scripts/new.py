@@ -9,7 +9,7 @@ import wikipediaapi  # type: ignore
 import torch
 from jinja2 import Template
 
-from src import Roberta, Config, SourceMapping, Embeddings, Index, Wiki
+from src import Roberta, Config, SourceMapping, EmbeddingsBuilder, Index, Wiki
 from transformers import RobertaTokenizer, RobertaForMaskedLM
 
 tokenizer, model = Roberta.get_default()
@@ -143,7 +143,7 @@ def generate_sequences(source_len: int, likelihoods: torch.Tensor,
 def main(gpt_response) -> None:
     index = Index.load(Config.index_file, Config.mapping_file)
 
-    embeddings = Embeddings(tokenizer, model).from_text(gpt_response)
+    embeddings = EmbeddingsBuilder(tokenizer, model).from_text(gpt_response)
     print(embeddings)
     faiss.normalize_L2(embeddings)
 

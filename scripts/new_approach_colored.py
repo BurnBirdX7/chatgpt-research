@@ -1,9 +1,11 @@
+# [ SUBJECT FOR REMOVAL ]
+
 import numpy as np  # type: ignore
 import faiss  # type: ignore
 import wikipediaapi  # type: ignore
 import torch
 
-from src import Roberta, Config, SourceMapping, Embeddings, Index, Wiki
+from src import Roberta, Config, SourceMapping, EmbeddingsBuilder, Index, Wiki
 from transformers import RobertaTokenizer, RobertaForMaskedLM
 
 tokenizer, model = Roberta.get_default()
@@ -62,7 +64,7 @@ def main() -> None:
 
     childhood_w_refs = " Presley's"  # gpt output
 
-    embeddings = Embeddings(tokenizer, model).from_text(childhood_w_refs)
+    embeddings = EmbeddingsBuilder(tokenizer, model).from_text(childhood_w_refs)
     print(embeddings)
     faiss.normalize_L2(embeddings)
 
