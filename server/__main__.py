@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
 
-from scripts.color_build_data import main
+# from test.color_build_data import main
+from test.new import main
 
 app = Flask(__name__)
 
@@ -15,4 +16,4 @@ def input_text():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=4567)
+    app.run(host='127.0.0.1', port=4567)
