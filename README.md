@@ -3,19 +3,17 @@
 ## Setup
 
 Use [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)
-or [mamba](https://mamba.readthedocs.io/en/latest/installation.html).
-(Environments were tested with **mamba**)
 
 CPU Environment:
 ```shell
-mamba env create --file env-cpu.yml
-mamba activate gpt-cpu
+conda env create --file env-cpu.yml
+conda activate gpt-cpu
 ```
 
 GPU Environment:
 ```shell
-mamba env create --file env-gpu.yml
-mamba activate gpt-gpu
+conda env create --file env-gpu.yml
+conda activate gpt-gpu
 ```
 
 Or the same commands using `conda`.
@@ -27,16 +25,16 @@ To do it you need to build PyLucene.
 ### Linux / WSL
 
 Requirements:
- * **setuptools**: `mamba install setuptools`
+ * **setuptools**: `conda install setuptools`
  * (_optional, recommended_) **Temurin JDK 17**: [Instruction](https://adoptium.net/installation/linux/)
 
 Build:\
 _Instruction is close to [this one](https://lucene.apache.org/pylucene/install.html), but changed a little_
 * Download [PyLucene 9.6.0](https://dlcdn.apache.org/lucene/pylucene/pylucene-9.6.0-src.tar.gz)
   * Unpack and `cd` into unpacked `pylucene-9.6.0` directory
-* Activate mamba/conda environment:
+* Activate conda environment:
   ```shell
-  mamba activate gpt-gpu
+  conda activate gpt-gpu
   ```
 * Build JCC:
   * If you didn't install **Temurin JDK 17**, set environment variable `JCC_JDK` to Java's home directory (one that contains `bin` dir)
