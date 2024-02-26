@@ -10,12 +10,15 @@ from typing import Dict
 
 import lucene
 from search import Searcher
-from src import Config, Roberta, EmbeddingsBuilder, Index
+from src import EmbeddingsBuilder, Index
+from src.config.EmbeddingsConfig import EmbeddingsConfig
+from src.config.IndexConfig import IndexConfig
+from src.config.LuceneConfig import LuceneConfig
 
 
-def build_index(text: str) -> Index:
+def build_index_from_potential_sources(text: str, index_config: IndexConfig) -> Index:
     lucene.getVMEnv().attachCurrentThread()
-    with Searcher(Config.source_index_path, 100) as searcher:
+    with Searcher(LuceneConfig().index_path, 100) as searcher:
         tokens = searcher.split_text(text)
 
         print("Creating query")
@@ -35,13 +38,23 @@ def build_index(text: str) -> Index:
         wikilink = f"https://en.wikipedia.org/wiki/{title}"
         return {wikilink: source_dict[title]}
 
-    builder = EmbeddingsBuilder(*Roberta.get_default(), normalize=True)
+    builder = EmbeddingsBuilder(EmbeddingsConfig(normalize=True))
     embeddings, mapping = builder.from_sources(titles, source_provider)
-    return Index.from_embeddings(embeddings, mapping)
+    return Index.from_embeddings(embeddings, mapping, index_config)
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         print("Supply text to analyze as first argument")
-    index = build_index(sys.argv[1])
-    index.save(Config.temp_index_file, Config.temp_mapping_file)
+
+    indexCfg = IndexConfig(
+        index_file="__temp.index.csv",
+        mapping_file="__temp.mapping.csv",
+    )
+
+    index = build_index_from_potential_sources(sys.argv[1], IndexConfig(
+        index_file="__temp.index.csv",
+        mapping_file="__temp.mapping.csv"
+    ))
+
+    index.save()

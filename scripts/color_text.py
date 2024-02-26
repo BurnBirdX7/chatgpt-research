@@ -1,12 +1,13 @@
 import collections
 
 from scripts.model_of_GPT import build_page_template
-from scripts.build_index_from_potential_sources import build_index
+from scripts.build_index_from_potential_sources import build_index_from_potential_sources
 
-from src import Config, EmbeddingsBuilder, Index, Roberta
+from src import EmbeddingsBuilder, Index, Roberta
 from typing import Dict, List, Optional
 
-tokenizer, model = Roberta.get_default()
+from src.config.EmbeddingsConfig import EmbeddingsConfig
+from src.config.IndexConfig import IndexConfig
 
 # from 'Childhood in Tupelo' section
 childhood_w_refs = (
@@ -42,7 +43,7 @@ def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
 
 def prob_test_wiki_with_colored(index: Index, text: str, expected_url: str,
                                 uniq_color: int) -> tuple[str, str, str]:
-    embeddings = EmbeddingsBuilder(tokenizer, model, normalize=True).from_text(text)
+    embeddings = EmbeddingsBuilder(EmbeddingsConfig(normalize=True)).from_text(text)
 
     result_sources, result_dists = index.get_embeddings_source(embeddings)
     expected_count: int = 0
@@ -52,7 +53,7 @@ def prob_test_wiki_with_colored(index: Index, text: str, expected_url: str,
 
     for i, (dist, source) in enumerate(zip(result_dists, result_sources)):
 
-        if dist < Config.threshold:
+        if dist < index.config.threshold:
             links.append(None)
         else:
             links.append(source)
@@ -71,17 +72,21 @@ def prob_test_wiki_with_colored(index: Index, text: str, expected_url: str,
     return build_page_template(text, links, dict_with_uniq_colors)
 
 
-def main(user_input: str) -> tuple[str, str, str]:
+def color_text(user_input: str) -> tuple[str, str, str]:
     read_index: bool = False
 
+    index: Index
     if read_index:
         print("Readings index... ", end='')
-        index = Index.load(Config.index_file, Config.mapping_file)
+        index = Index.load(IndexConfig())
         print("Done")
     else:
         print("Index is being built from sources ")
-        index = build_index(user_input)
+        index = build_index_from_potential_sources(user_input)
 
     print("Test [Data] Searching quotes from the same page:")
     print('"Childhood w references"')
     return prob_test_wiki_with_colored(index, user_input, childhood_url, 5)
+
+
+# [!] No MAIN

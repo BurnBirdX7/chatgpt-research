@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 
 # from test.color_build_data import main
-from scripts.color_text_with_chaining import main
+from scripts.color_text_with_chaining import color_main_with_chaining
 
 app = Flask(__name__)
 
@@ -10,7 +10,7 @@ app = Flask(__name__)
 def input_text():
     if request.method == 'POST':
         user_input = request.form['user_input']
-        main(user_input)
+        color_main_with_chaining(user_input)
         return render_template('template_of_result_page.html')
     return render_template('template_of_start_page.html')
 

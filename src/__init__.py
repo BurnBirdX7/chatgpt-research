@@ -11,10 +11,11 @@ if cwd != project_dir:
     os.chdir(project_dir)
 
 
-from .Config import Config
+# from .Config import Config
 from .EmbeddingsBuilder import EmbeddingsBuilder
 from .Index import Index
 from .Roberta import Roberta
 from .SourceMapping import SourceMapping
 from .Wiki import Wiki
 from .Chat import Dialogue, Chat, Question
+import config

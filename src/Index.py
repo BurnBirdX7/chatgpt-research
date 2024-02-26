@@ -5,45 +5,43 @@ import pandas as pd  # type: ignore
 import numpy as np
 
 from .SourceMapping import SourceMapping
-from .Config import Config
 
 __all__ = ['Index']
 
+from .config.IndexConfig import IndexConfig
+
 
 class Index:
-    def __init__(self, index: faiss.Index, mapping: SourceMapping, threshold: float = Config.threshold):
+    def __init__(self, index: faiss.Index, mapping: SourceMapping, config: IndexConfig):
         self.index: faiss.Index = index
         self.mapping: SourceMapping = mapping
-        self.threshold = threshold
+        self.config = config
 
     @staticmethod
-    def load(index_file: str,
-             mapping_file: str,
-             threshold: float = Config.threshold,
-             use_gpu: bool = Config.faiss_use_gpu) -> "Index":
-
-        faiss_index = faiss.read_index(index_file)
-        if use_gpu:
+    def load(config: IndexConfig) -> "Index":
+        """
+        Loads index from disk
+        """
+        faiss_index = faiss.read_index(config.index_file)
+        if config.faiss_use_gpu:
             faiss_index = faiss.index_cpu_to_gpu(faiss.StandardGpuResources(), 0, faiss_index)
 
-        mapping = SourceMapping.read_csv(mapping_file)
-        return Index(faiss_index, mapping, threshold)
+        mapping = SourceMapping.read_csv(config.mapping_file)
+        return Index(faiss_index, mapping, config)
 
-    def save(self, index_file: str, mapping_file: str) -> None:
-        faiss.write_index(faiss.index_gpu_to_cpu(self.index), index_file)
-        self.mapping.to_csv(mapping_file)
+    def save(self) -> None:
+        faiss.write_index(faiss.index_gpu_to_cpu(self.index), self.config.index_file)
+        self.mapping.to_csv(self.config.mapping_file)
 
     @staticmethod
     def from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame],
                         mapping: SourceMapping,
-                        threshold: float = Config.threshold,
-                        use_gpu: bool = Config.faiss_use_gpu) -> "Index":
+                        config: IndexConfig) -> "Index":
         """
         Builds index from provided embeddings
         :param embeddings: data to build the index
-        :param threshold: threshold to divide data
         :param mapping: index to source mapping
-        :param use_gpu: if set, GPU is used to build the index
+        :param config: index configuration
         :return: IndexFlatIP, or GpuIndexFlatIP id use_gpu is True
         """
         # C-contiguous order and np.float32 type are required
@@ -57,14 +55,14 @@ class Index:
         faiss.normalize_L2(data)
         print("Building index... ", end="")
         index = faiss.IndexFlatIP(embedding_len)
-        if use_gpu:
+        if config.faiss_use_gpu:
             gpu_res = faiss.StandardGpuResources()
             index = faiss.index_cpu_to_gpu(gpu_res, 0, index)
 
         index.add(data)
         print("Done")
 
-        return Index(index, mapping, threshold)
+        return Index(index, mapping, config)
 
     def dim(self):
         return self.index.d

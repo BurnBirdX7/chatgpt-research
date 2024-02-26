@@ -22,6 +22,10 @@ class Wiki:
 
     @staticmethod
     def parse(title: str = "Elvis_Presley") -> Dict[str, str]:
+        """
+        :param title: Title of the English Wikipedia article
+        :return: Dictionary <Section's URL> -> <Section's Text Content>
+        """
         wikipedia = wikipediaapi.Wikipedia(language="en",
                                            user_agent="chatgpt-research-wiki-scrapper/1.0"
                                                       "(https://github.com/BurnBirdX7/chatgpt-research; "

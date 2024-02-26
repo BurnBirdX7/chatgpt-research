@@ -7,26 +7,22 @@ from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from typing import List, Tuple, Optional, Callable, Dict
 
 from .SourceMapping import SourceMapping
-from .Config import Config
+from .config.EmbeddingsConfig import EmbeddingsConfig
 
 
 class EmbeddingsBuilder:
-    def __init__(self,
-                 tokenizer: RobertaTokenizer,
-                 model: RobertaModel,
-                 normalize: bool = False,
-                 centroid_file: Optional[str] = Config.centroid_file):
-        self.tokenizer = tokenizer
-        self.model = model
+    def __init__(self, config: EmbeddingsConfig):
+        self.tokenizer = config.tokenizer
+        self.model = config.model
         self.max_sequence_length = self.model.config.max_position_embeddings
         self.embedding_length = self.model.config.hidden_size
-        self.normalize = normalize
-        print(f"Embedding normalization: {normalize}")
+        self.normalize = config.normalize
+        print(f"Embedding normalization: {self.normalize}")
 
         self.suppress_progress = False
 
-        if centroid_file is not None:
-            self.centroid = np.load(Config.centroid_file)
+        if config.centroid_file is not None:
+            self.centroid = np.load(config.centroid_file)
             print('Centroid loaded!')
         else:
             self.centroid = np.zeros(self.embedding_length)

@@ -9,8 +9,13 @@ import wikipediaapi  # type: ignore
 import torch
 from jinja2 import Template
 
-from src import Roberta, Config, SourceMapping, EmbeddingsBuilder, Index, Wiki
+from scripts._elvis_data import elvis_related_articles
+from src import Roberta, SourceMapping, EmbeddingsBuilder, Index, Wiki
 from transformers import RobertaTokenizer, RobertaForMaskedLM
+
+from src.config.EmbeddingsConfig import EmbeddingsConfig
+from src.config.IndexConfig import IndexConfig
+from src.config.WikiConfig import WikiConfig
 
 tokenizer, model = Roberta.get_default()
 modelMLM = RobertaForMaskedLM.from_pretrained('roberta-large')
@@ -140,15 +145,15 @@ def generate_sequences(source_len: int, likelihoods: torch.Tensor,
     return result_chains
 
 
-def main(gpt_response) -> None:
-    index = Index.load(Config.index_file, Config.mapping_file)
+def color_main_with_chaining(gpt_response: str, wikiConfig: WikiConfig) -> None:
+    index = Index.load(IndexConfig())
 
-    embeddings = EmbeddingsBuilder(tokenizer, model).from_text(gpt_response)
+    embeddings = EmbeddingsBuilder(EmbeddingsConfig(tokenizer, model)).from_text(gpt_response)
     print(embeddings)
-    faiss.normalize_L2(embeddings)
+    faiss.normalize_L2(embeddings)  # TODO: Move normalization to the builder
 
     sources, result_dists = index.get_embeddings_source(embeddings)
-    print("soureces:", sources, "result_ids dists:", result_dists, "\n\n")
+    print("sources:", sources, "result_ids dists:", result_dists, "\n\n")
 
     gpt_tokens = tokenizer.tokenize(gpt_response)  # разбиваем на токены входную строку с гпт
     print("tokens:", gpt_tokens, "\n\n")  # все токены разбитые из input
@@ -156,7 +161,7 @@ def main(gpt_response) -> None:
     gpt_token_ids = tokenizer.convert_tokens_to_ids(gpt_tokens)
 
     wiki_dict = dict()
-    for page in Config.page_names:
+    for page in wikiConfig.target_pages:
         wiki_dict |= Wiki.parse(page)
 
     start = time.perf_counter()
@@ -251,9 +256,13 @@ def main(gpt_response) -> None:
 
 
 if __name__ == "__main__":
-    main(
+    # GPT-3.5 Output:
+    text = (
         "Presley's father Vernon was of German, Scottish, and English origins, and a descendant of the Harrison family "
         "of Virginia through his mother, Minnie Mae Presley (née Hood). Presley's mother Gladys was Scots-Irish with "
         "some French Norman ancestry. She and the rest of the family believed that her great-great-grandmother,"
         " Morning Dove White, was Cherokee. This belief was restated by Elvis's granddaughter Riley Keough in 2017. "
-        "Elaine Dundy, in her biography, supports the belief.")  # gpt output
+        "Elaine Dundy, in her biography, supports the belief."
+    )
+
+    color_main_with_chaining(text, WikiConfig(elvis_related_articles))

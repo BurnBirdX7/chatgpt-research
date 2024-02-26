@@ -2,15 +2,24 @@
 # Input: config.page_names, online wiki
 # Output: config.temp_index_file, config.temp_mapping_file
 
-from src import Index, Config, EmbeddingsBuilder, Roberta, Wiki
+from scripts._elvis_data import elvis_related_articles
+from src import Index, EmbeddingsBuilder, Wiki
+from src.config.EmbeddingsConfig import EmbeddingsConfig
+from src.config.IndexConfig import IndexConfig
+from src.config.WikiConfig import WikiConfig
 
 
-def main() -> None:
-    builder = EmbeddingsBuilder(*Roberta.get_default(), normalize=True)
-    sources = Config.page_names
+# TODO: Review
+def build_index_from_wiki(wikiConfig: WikiConfig, indexConfig: IndexConfig) -> None:
+    builder = EmbeddingsBuilder(EmbeddingsConfig(normalize=True))
+    sources = wikiConfig.target_pages
     embeddings, mapping = builder.from_sources(sources, Wiki.parse)
-    index = Index.from_embeddings(embeddings, mapping)
-    index.save(Config.temp_index_file, Config.temp_mapping_file)
+    Index.from_embeddings(embeddings, mapping, indexConfig).save()
+
+
+def build_index_from_elvis_articles():
+    wikiConfig = WikiConfig(elvis_related_articles)
+    build_index_from_wiki(wikiConfig, IndexConfig())
 
 if __name__ == '__main__':
-    main()
+    build_index_from_elvis_articles()

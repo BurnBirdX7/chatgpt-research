@@ -6,8 +6,7 @@ import json
 import string
 from typing import Optional, List, Dict
 
-import progress.bar
-from progress.bar import Bar
+from progress.bar import Bar, Progress  # type: ignore
 
 
 class Dialogue:
@@ -55,7 +54,7 @@ class Chat:
         self.seconds_to_wait: int = 20
         self.suppress_output: bool = False
 
-    def submit(self, text: str, bar: Optional[progress.bar.Progress] = None) -> str:
+    def submit(self, text: str, bar: Optional[Progress] = None) -> str:
         reduced_length: bool = False
         timed_out: int = 0
         max_timeout: int = 5  # ------------------ configurable -------------
