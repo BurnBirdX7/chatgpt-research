@@ -4,7 +4,7 @@ import torch  # type: ignore
 
 
 class Roberta:
-    static_storage: Dict[str, Tuple[RobertaTokenizer, RobertaModel]]
+    static_storage: Dict[str, Tuple[RobertaTokenizer, RobertaModel]] = dict()
 
     @classmethod
     def get_default(cls, model_name: str = "roberta-large") -> Tuple[RobertaTokenizer, RobertaModel]:

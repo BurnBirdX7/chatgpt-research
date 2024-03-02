@@ -10,16 +10,17 @@ from src.config.WikiConfig import WikiConfig
 
 
 # TODO: Review
-def build_index_from_wiki(wikiConfig: WikiConfig, indexConfig: IndexConfig) -> None:
+def build_index_from_wiki(wiki_config: WikiConfig, index_config: IndexConfig) -> None:
     builder = EmbeddingsBuilder(EmbeddingsConfig(normalize=True))
-    sources = wikiConfig.target_pages
+    sources = wiki_config.target_pages
     embeddings, mapping = builder.from_sources(sources, Wiki.parse)
-    Index.from_embeddings(embeddings, mapping, indexConfig).save()
+    Index.from_embeddings(embeddings, mapping, index_config).save()
 
 
 def build_index_from_elvis_articles():
-    wikiConfig = WikiConfig(elvis_related_articles)
-    build_index_from_wiki(wikiConfig, IndexConfig())
+    wiki_config = WikiConfig(elvis_related_articles)
+    build_index_from_wiki(wiki_config, IndexConfig())
+
 
 if __name__ == '__main__':
     build_index_from_elvis_articles()

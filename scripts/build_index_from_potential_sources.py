@@ -1,8 +1,11 @@
 """
-Arg: Text
-Description
- * Uses PyLucene to find potential sources and builds Index from them
- * Index is saved into `temp_index_file` and `temp_mapping_file` specified in the Config
+Script file provides useful functions to build index from potential sources
+
+Run the script:
+ Arg: Text
+ Description
+  * Uses PyLucene to find potential sources and builds Index from them
+  * Index is saved into `temp_index_file` and `temp_mapping_file` specified in the Config
 """
 
 import sys
@@ -16,9 +19,17 @@ from src.config.IndexConfig import IndexConfig
 from src.config.LuceneConfig import LuceneConfig
 
 
-def build_index_from_potential_sources(text: str, index_config: IndexConfig) -> Index:
+def build_index_from_potential_sources(text: str,
+                                       index_config: IndexConfig,
+                                       lucene_config: LuceneConfig,
+                                       ) -> Index:
+    """
+    Builds Index from potential sources, Lucene Index is used to search for potential sources
+    IndexConfig is used to generate new Index object, so only faiss_use_gpu parameter matters at the moment
+    """
+
     lucene.getVMEnv().attachCurrentThread()
-    with Searcher(LuceneConfig().index_path, 100) as searcher:
+    with Searcher(lucene_config.index_path, 100) as searcher:
         tokens = searcher.split_text(text)
 
         print("Creating query")
@@ -52,9 +63,12 @@ if __name__ == '__main__':
         mapping_file="__temp.mapping.csv",
     )
 
-    index = build_index_from_potential_sources(sys.argv[1], IndexConfig(
-        index_file="__temp.index.csv",
-        mapping_file="__temp.mapping.csv"
-    ))
+    luceneCfg = LuceneConfig()
+
+    index = build_index_from_potential_sources(
+        sys.argv[1],
+        indexCfg,
+        luceneCfg
+    )
 
     index.save()
