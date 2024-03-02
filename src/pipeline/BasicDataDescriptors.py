@@ -1,3 +1,4 @@
+import os.path
 from abc import ABC
 from typing import TypeVar
 
@@ -46,6 +47,7 @@ class StrDescriptor(InDictDescriptor[str]):
 class BytesDescriptor(BaseDataDescriptor[bytes]):
     def store(self, data: bytes) -> dict[str, str]:
         filename = f"bytes-{self.block_name}-{self.get_timestamp_str()}.dat"
+        filename = os.path.abspath(os.path.join(self.artifacts_folder, filename))
         with open(filename, "wb") as file:
             file.write(data)
             return {

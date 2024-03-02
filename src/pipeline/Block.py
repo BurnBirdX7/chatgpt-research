@@ -13,16 +13,23 @@ class Block(Generic[InT, OutT], ABC):
 
     def __init__(self,
                  block_name: str,
-                 in_descriptor_type: type[BaseDataDescriptor[InT]],
-                 out_descriptor_type: type[BaseDataDescriptor[OutT]],
-                 artifacts_path: str = "pipe-artifacts"):
+                 in_type: type[InT],
+                 out_descriptor: BaseDataDescriptor[OutT]):
 
-        self.block_name = block_name
-        self.out_descriptor = out_descriptor_type(block_name, artifacts_path)
-        self.in_descriptor_type = in_descriptor_type
-        self.out_descriptor_type = out_descriptor_type
+        self.name = block_name
+        self.in_type = in_type
+
+        out_descriptor.block_name = block_name
+        self.out_descriptor = out_descriptor
+        self.out_type = self.out_descriptor.get_data_type()
+
+    def set_artifacts_folder(self, artifacts_folder: str):
+        self.out_descriptor.artifacts_folder = artifacts_folder
 
     @abstractmethod
     def process(self, inp: InT) -> OutT:
+        """
+        Implement block logic in this method
+        """
         raise NotImplemented
 
