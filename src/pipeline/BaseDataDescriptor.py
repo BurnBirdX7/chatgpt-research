@@ -13,6 +13,11 @@ class BaseDataDescriptor(Generic[T], ABC):
         self.artifacts_folder = "pipe-artifacts"
         self.block_name = "unnamed"
 
+    def is_type_compatible(self, typ: type | None):
+        if typ is None:
+            return False
+        return issubclass(typ, self.get_data_type())
+
     @abstractmethod
     def store(self, data: T) -> dict[str, str]:
         """

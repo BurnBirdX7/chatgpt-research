@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os.path
 from abc import ABC
 from typing import TypeVar
@@ -5,6 +7,20 @@ from typing import TypeVar
 from .BaseDataDescriptor import BaseDataDescriptor
 
 T = TypeVar('T')
+
+class EmptyDataDescriptor(BaseDataDescriptor[None]):
+    @classmethod
+    def get_data_type(cls) -> type[None]:
+        return type(None)
+
+    def store(self, data: None) -> dict[str, str]:
+        return {}
+
+    def load(self, dic: dict[str, str]) -> None:
+        return None
+
+    def is_type_compatible(self, typ: type | None):
+        return typ is None or issubclass(typ, type(None))
 
 
 class InDictDescriptor(BaseDataDescriptor[T], ABC):
