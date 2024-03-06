@@ -21,8 +21,8 @@ def create_index(collection_name: str):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print("Usage: python -m colbert create_index <collection_name>")
-        print("Example: python -m colbert create_index fever")
+        print("Usage: python -m colbert-search create_index <collection_name>")
+        print("Example: python -m colbert-search create_index fever")
         print("          collection will be loaded from collections/fever.tsv")
         exit(1)
 

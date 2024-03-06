@@ -9,7 +9,7 @@ Use one of the environments provided by ColBERT to run code in this module
 
 ```shell
 # From project root
-cd colbert/colbert/
+cd colbert-search/colbert/
 conda env create --file conda_env.yml
 ```
 

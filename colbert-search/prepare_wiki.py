@@ -137,7 +137,7 @@ def prepare_wiki(args: List[str]):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print('Usage: python -m colbert prepare_wiki [wiki_file]')
+        print('Usage: python -m colbert-search prepare_wiki [wiki_file]')
         exit(1)
 
     prepare_wiki(sys.argv[1:])

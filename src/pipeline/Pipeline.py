@@ -161,6 +161,7 @@ class Pipeline:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
             pipeline_history_file = f"pipeline_{Pipeline.format_time(beginning_time)}.json"
+            pipeline_history_file = os.path.join(self.artifacts_folder, pipeline_history_file)
             print(f"Saving history [at {os.path.abspath(pipeline_history_file)}]")
             with open(pipeline_history_file, "w") as file:
                 file.write(json.dumps(history))
