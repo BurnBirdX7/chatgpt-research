@@ -31,7 +31,7 @@ class Pipeline:
         self.blocks: dict[str, Block] = {inp.name: inp}  # All Blocks in the pipeline
         self.execution_order = [inp]
 
-        self.__cache_output = set[str]()
+        self.__cache_output = set[str]()  # Set of blocks whose output should be cached
         self.__graph: dict[str, list[str]] = {inp.name: []}  # Data-flow graph
         self.__source_graph: dict[str, list[str]] = {inp.name: ["$input"]}  # Edges point towards data source
         self.__merge_funcs = dict[str, Callable]()  # Functions that fold multiple inputs into one
@@ -156,15 +156,68 @@ class Pipeline:
         print(f"Starting pipeline [at {beginning_time}]...")
 
         try:
-            return self.__run(inp, history), history
+            return self.__run(inp, history, {"$input": inp}), history
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
-            pipeline_history_file = f"pipeline_{Pipeline.format_time(beginning_time)}.json"
-            pipeline_history_file = os.path.join(self.artifacts_folder, pipeline_history_file)
-            print(f"Saving history [at {os.path.abspath(pipeline_history_file)}]")
-            with open(pipeline_history_file, "w") as file:
-                file.write(json.dumps(history))
+            self.__save_history(beginning_time, history)
+
+    def resume(self, history_file: str, block_name: str) -> Any:
+        """
+        Resume pipeline run from the block name, load all cachable data in memory
+        """
+        history_dir = os.path.dirname(history_file)
+        history_dir = os.path.abspath(history_dir)
+        with open(history_file, "r") as f:
+            history = json.loads(f.read())
+
+        # TODO: Add pipeline structure check
+        # TODO: Add reachability check
+        # TODO: Optimize excessive caching
+
+        if block_name not in history:
+            raise ValueError(f"f{block_name} isn't present in history file {history_file} [{history}]")
+
+        beginning_time = datetime.datetime.now()
+        print(f"Resuming pipeline [at {beginning_time}] [from {block_name}]...")
+
+        cached_data = dict[str, Any]()
+
+        # Load in cache all cachable outputs that are present in the history
+        # and entry block itself
+        for cached_block_name in self.__cache_output | {block_name}:
+            if cached_block_name not in history:
+                continue
+
+            dic_filename = history[cached_block_name]
+            dic_filename = os.path.join(history_dir, dic_filename)
+            cached_data[cached_block_name] = self.__load_data(cached_block_name, dic_filename)
+
+        if block_name in cached_data:
+            inp = cached_data[block_name]
+        else:
+            dic_filename = history[block_name]
+            dic_filename = os.path.join(history_dir, dic_filename)
+            inp = self.__load_data(block_name, dic_filename)
+
+        exec_order = self.execution_order
+        idx = self.execution_order.index(self.blocks[block_name])
+        self.execution_order = self.execution_order[idx+1:]
+
+        try:
+            return self.__run(inp, history, cached_data), history
+        except Exception as e:
+            raise PipelineError("Pipeline failed with an exception", history) from e
+        finally:
+            self.__save_history(beginning_time, history)
+            self.execution_order = exec_order  # restore execution order
+
+    def __save_history(self, time: datetime.datetime, history: PipelineHistory):
+        pipeline_history_file = f"pipeline_{Pipeline.format_time(time)}.json"
+        pipeline_history_file = os.path.join(self.artifacts_folder, pipeline_history_file)
+        print(f"Saving history [at {os.path.abspath(pipeline_history_file)}]")
+        with open(pipeline_history_file, "w") as file:
+            file.write(json.dumps(history))
 
     @staticmethod
     def get_timestamp_str() -> str:
@@ -174,7 +227,7 @@ class Pipeline:
     def format_time(time: datetime.datetime) -> str:
         return time.strftime("%Y-%m-%d.%H-%M-%S")
 
-    def __run(self, inp: Any, history: dict[str, str]) -> Any:
+    def __run(self, inp: Any, history: dict[str, str], cached_data: dict[str, Any]) -> Any:
         """
         Run the pipeline
         :param history: dictionary where key is the name of the block and the value is name of the file with essential information
@@ -183,7 +236,6 @@ class Pipeline:
         if not os.path.exists(self.artifacts_folder):
             os.mkdir(self.artifacts_folder)
 
-        cached_data: dict[str, Any] = {"$input": inp}
         last_data: Any = inp
         input_data: Any = inp
         last_block: str = "$input"
@@ -193,13 +245,13 @@ class Pipeline:
             if sources == [last_block]:  # Source list matches last block, use last data
                 input_data = last_data
             else:  # If it doesn't match - load from cache
-                cache = list()
+                cached_value = list()
                 for source in sources:
-                    cache.append(cached_data[source])
-                if len(cache) > 1:
-                    input_data = self.__merge_funcs[block.name](*cache)
+                    cached_value.append(cached_data[source])
+                if len(cached_value) > 1:
+                    input_data = self.__merge_funcs[block.name](*cached_value)
                 else:
-                    input_data = cache[0]
+                    input_data = cached_value[0]
 
             if not block.is_value_acceptable(input_data):
                 raise TypeError(f"Input type not acceptable for {block.name}\n"
@@ -212,13 +264,28 @@ class Pipeline:
                 cached_data[block.name] = last_data
 
             # Save data to disk before resuming
-            dic = block.out_descriptor.store(last_data)
-            dic_name = f"pipe_{block.name}_{self.get_timestamp_str()}.json"
-            filename = os.path.abspath(os.path.join(self.artifacts_folder, dic_name))
-            with open(filename, "w") as file:
-                dic_str = json.dumps(dic)
-                file.write(dic_str)
-
-            history[block.name] = dic_name
+            history[block.name] = self.__store_data(block, last_data)
 
         return last_data
+
+    def __store_data(self, block: Block, data: Any) -> str:
+        dic = block.out_descriptor.store(data)
+        dic_name = f"pipe_{block.name}_{self.get_timestamp_str()}.json"
+        filename = os.path.abspath(os.path.join(self.artifacts_folder, dic_name))
+        with open(filename, "w") as file:
+            dic_str = json.dumps(dic)
+            file.write(dic_str)
+
+        return dic_name
+
+    def __load_data(self, block_name: str, dic_filename: str) -> Any:
+        block = self.blocks[block_name]
+        with open(dic_filename, "r") as file:
+            dic_str = file.read()
+
+        dic = json.loads(dic_str)
+        return block.out_descriptor.load(dic)
+
+
+
+

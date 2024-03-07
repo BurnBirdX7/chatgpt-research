@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import os.path
 from abc import ABC
-from typing import TypeVar
+from typing import TypeVar, cast
 
-from .BaseDataDescriptor import BaseDataDescriptor
+from .BaseDataDescriptor import BaseDataDescriptor, Value
 
 T = TypeVar('T')
 
@@ -58,6 +58,19 @@ class StrDescriptor(InDictDescriptor[str]):
     @classmethod
     def get_data_type(cls) -> type[str]:
         return str
+
+class ListDescriptor(BaseDataDescriptor[list[T]]):
+    def store(self, data: list[T]) -> dict[str, Value]:
+        return {
+            "list": data
+        }
+
+    def load(self, dic: dict[str, Value]) -> list[T]:
+        return cast(T, dict["list"])
+
+    @classmethod
+    def get_data_type(cls) -> type[list]:
+        return list
 
 
 class BytesDescriptor(BaseDataDescriptor[bytes]):

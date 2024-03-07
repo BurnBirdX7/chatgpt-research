@@ -7,6 +7,8 @@ import xml.etree.ElementTree as ET
 import mwparserfromhell as mw
 from dataclasses import dataclass
 
+from colbert_search.WikiFile import WikiFile
+from src.pipeline import Block, ListDescriptor
 
 banned_title_prefixes: list[str] = [
     "Category:", "File:", "See also", "References", "External links"
@@ -60,8 +62,13 @@ class WikiParseContext:
         self.current_page = None
         self.should_parse = True
 
-    def new_files(self, num: int) -> None:
+    def new_files(self, num: int) -> tuple[str, str] | None:
         self.close_files()
+
+        if self.source_file and self.passage_file:
+            names = self.source_file.name, self.passage_file.name
+        else:
+            names = None
 
         source_file_path = os.path.join(self.output_dir, f"{self.collection_name}_sources_{num}.tsv")
         self.source_file = open(source_file_path, "w")
@@ -71,6 +78,8 @@ class WikiParseContext:
 
         self.pid = 0
         self.flushed = 0
+
+        return names
 
     def close_files(self) -> None:
         if self.source_file is not None:
@@ -133,7 +142,7 @@ def report_page(n: int) -> None:
     if n % 100 == 0:
         print(n, end='.')
 
-def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> None:
+def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[str]:
     print(f"Parsing wiki from file {wiki_path}")
 
     file_num = 1
@@ -142,6 +151,8 @@ def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> None:
     ctx.collection_name = collection_name
     ctx.output_dir = output_dir
     ctx.new_files(file_num)
+
+    passage_files = list[str]()
 
     for (event, elem) in ET.iterparse(wiki_path, events=("start", "start-ns", "end")):
         if event == "start-ns":
@@ -170,10 +181,31 @@ def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> None:
         if ctx.flushed > 10000:
             print(f"==== flushed {ctx.flushed} passages, creating new file ====", flush=True)
             file_num += 1
-            ctx.new_files(file_num)
+            files = ctx.new_files(file_num)
+            if files is not None:
+                passage_files.append(files[1])
 
     ctx.flush()
     ctx.close_files()
+    return passage_files
+
+class PrepareWiki(Block):
+
+    def __init__(self, name: str, output_dir: str):
+        super().__init__(name, list, ListDescriptor())
+        self.output_dir = output_dir
+
+    def process(self, inp: list[WikiFile]) -> list[str]:
+        passage_files = list[str]()
+        for file in inp:
+            pf = prepare_wiki(
+                f"wiki-{file.num}-{file.p_first}",
+                file.path,
+                self.output_dir
+            )
+            passage_files += pf
+
+        return passage_files
 
 
 if __name__ == '__main__':
