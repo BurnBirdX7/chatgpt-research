@@ -44,19 +44,6 @@ def map_block(
 
         param_sig = list(sig.parameters.values())[0]
         in_type = param_sig.annotation
-        out_type = sig.return_annotation
-
-        if in_type_hint is not None and not issubclass(in_type, in_type_hint):
-            raise TypeError(f"Provided type_hint does not match")
-
-        if param_sig.name not in func.__annotations__:
-            raise TypeError(f"Parameter {param_sig.name} is not type-annotated")
-
-        if 'return' not in func.__annotations__:
-            raise TypeError(f"Return type is not annotated")
-
-        if not descriptor.is_type_compatible(out_type):
-            raise TypeError(f"{out_type} cannot be used with descriptor {descriptor}")
 
         class WrapperBlock(Block[InT, OutT]):
             def __init__(self, name: str):
