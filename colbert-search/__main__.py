@@ -11,10 +11,10 @@ def main():
     script = sys.argv[1]
     project_root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
     if script in colbert_rooted_scripts:
-        module_root = f"{project_root}/colbert/colbert"
+        module_root = f"{project_root}/colbert-search/colbert"
     else:
-        module_root = f"{project_root}/colbert"
-    script_path = f"{project_root}/colbert/{sys.argv[1]}.py"
+        module_root = f"{project_root}/colbert-search"
+    script_path = f"{project_root}/colbert-search/{sys.argv[1]}.py"
 
     args = [sys.executable, script_path, *sys.argv[2:]]
     env = os.environ.copy()

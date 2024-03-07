@@ -1,6 +1,7 @@
 import copy
 import math
 import time
+from datetime import datetime
 from typing import Tuple, List, Set, Optional, Dict
 
 import numpy as np  # type: ignore
@@ -13,9 +14,7 @@ from scripts._elvis_data import elvis_related_articles
 from src import Roberta, SourceMapping, EmbeddingsBuilder, Index, Wiki
 from transformers import RobertaTokenizer, RobertaForMaskedLM
 
-from src.config.EmbeddingsConfig import EmbeddingsConfig
-from src.config.IndexConfig import IndexConfig
-from src.config.WikiConfig import WikiConfig
+from src.config import EmbeddingsConfig, WikiConfig, IndexConfig
 
 tokenizer, model = Roberta.get_default()
 modelMLM = RobertaForMaskedLM.from_pretrained('roberta-large')
@@ -145,23 +144,32 @@ def generate_sequences(source_len: int, likelihoods: torch.Tensor,
     return result_chains
 
 
-def color_main_with_chaining(gpt_response: str, wikiConfig: WikiConfig) -> None:
-    index = Index.load(IndexConfig())
+def color_main_with_chaining(input_text: str,
+                             wiki_config: WikiConfig,
+                             index: Index,
+                             embeddings_builder: EmbeddingsBuilder) -> str:
+    """
+    Colors text when probable sources already defined
+    :param input_text: text to color
+    :param wiki_config: wikipedia articles that could be sources for the text
+    :param index: index that contains all known sources
+    :param embeddings_builder: builder for the RoBERTa embeddings
+    """
 
-    embeddings = EmbeddingsBuilder(EmbeddingsConfig(tokenizer, model)).from_text(gpt_response)
+    embeddings = embeddings_builder.from_text(input_text)
     print(embeddings)
     faiss.normalize_L2(embeddings)  # TODO: Move normalization to the builder
 
     sources, result_dists = index.get_embeddings_source(embeddings)
     print("sources:", sources, "result_ids dists:", result_dists, "\n\n")
 
-    gpt_tokens = tokenizer.tokenize(gpt_response)  # разбиваем на токены входную строку с гпт
+    gpt_tokens = tokenizer.tokenize(input_text)  # разбиваем на токены входную строку с гпт
     print("tokens:", gpt_tokens, "\n\n")  # все токены разбитые из input
 
     gpt_token_ids = tokenizer.convert_tokens_to_ids(gpt_tokens)
 
     wiki_dict = dict()
-    for page in wikiConfig.target_pages:
+    for page in wiki_config.target_pages:
         wiki_dict |= Wiki.parse(page)
 
     start = time.perf_counter()
@@ -249,10 +257,14 @@ def color_main_with_chaining(gpt_response: str, wikiConfig: WikiConfig) -> None:
             output_page += template_text.render(token=key, color="color0")
 
     output_source_list += '</br>'
-    result_html = template_page.render(result=output_page, gpt_response=gpt_response, list_of_colors=output_source_list)
+    result_html = template_page.render(result=output_page, gpt_response=input_text, list_of_colors=output_source_list)
 
-    with open("./server/templates/template_of_result_page.html", "w", encoding="utf-8") as f:
+    file = datetime.now().strftime("./result-%Y%m%d-%H%M%S.html")
+
+    with open(file, "w", encoding="utf-8") as f:
         f.write(result_html)
+
+    return file
 
 
 if __name__ == "__main__":
@@ -265,4 +277,6 @@ if __name__ == "__main__":
         "Elaine Dundy, in her biography, supports the belief."
     )
 
+    index = Index.load(IndexConfig())  # Use default config, TODO: Maybe change
+    embeddings_builder = EmbeddingsBuilder(EmbeddingsConfig())
     color_main_with_chaining(text, WikiConfig(elvis_related_articles))

@@ -3,42 +3,74 @@ from __future__ import annotations
 import dataclasses
 import os
 import sys
-from typing import List, Dict
+import typing
+from typing import List, Dict, TextIO
 import xml.etree.ElementTree as ET
 import mwparserfromhell as mw
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+
+
+banned_title_prefixes: list[str] = [
+    "Category:", "File:", "See also", "References", "External links"
+]
+
+def is_banned(title: str) -> bool:
+    for banned in banned_title_prefixes:
+        if title.strip().startswith(banned):
+            return True
+
+    return False
 
 
 @dataclass
-class WikiContext:
+class WikiParseContext:
+    collection_name: str = "default"
     namespace: str | None = None
     current_title: str | None = None
     current_page: Dict[str, str] | None = None
     should_parse: bool = True
-    passage_file = None
-    source_file = None
+    passage_file: TextIO = None
+    source_file: TextIO = None
     pid: int = 0
     flushed: int = 0
 
     def __flush_current_page(self) -> None:
+        if not self.should_parse or self.current_page is None or self.current_title is None:
+            return
+
         self.flushed += 1
         for heading, section in self.current_page.items():
             for paragraph in section.split('\n'):
                 stripped_paragraph = paragraph.strip()
                 if len(stripped_paragraph) > 0:
-                    stripped_paragraph = stripped_paragraph.replace('\t', ' ')
-                    self.passage_file.write(f"{self.pid}\t{stripped_paragraph}\n")
+                    stripped_paragraph = stripped_paragraph.replace('\t', ' ')  # make tsv-safe
                     url = f"https://en.wikipedia.org/wiki/{self.current_title}#{heading.replace(' ', '_')}"
+                    self.passage_file.write(f"{self.pid}\t{stripped_paragraph}\n")
                     self.source_file.write(f"{self.pid}\t{url}\n")
                     self.pid += 1
 
-    def new_page(self):
-        if self.should_parse and self.current_page and self.current_title:
-            self.__flush_current_page()
+        self.current_title = None
+        self.current_page = None
 
+    def new_page(self):
+        self.__flush_current_page()
         self.current_title = None
         self.current_page = None
         self.should_parse = True
+
+    def new_files(self, num: int) -> None:
+        self.close_files()
+        self.source_file = open(f"{self.collection_name}_sources_{num}.tsv", "w")
+        self.passage_file = open(f"{self.collection_name}_passages_{num}.tsv", "w")
+        self.pid = 0
+        self.flushed = 0
+
+    def close_files(self) -> None:
+        self.__flush_current_page()
+        if self.source_file is not None:
+            self.source_file.close()
+        if self.passage_file is not None:
+            self.passage_file.close()
 
     def __tag(self, tag_name):
         return f"{{{self.namespace}}}{tag_name}" if self.namespace else tag_name
@@ -66,7 +98,7 @@ class WikiContext:
 
 def parse_wikitext(text: str) -> Dict[str, str]:
     """
-    :param text: WikiText
+    :param text: WikiText, encoding=""
     :return: Dictionary of sections, keys are section names and values are section texts
     """
     final_dict = {}
@@ -91,34 +123,35 @@ def parse_wikitext(text: str) -> Dict[str, str]:
     return final_dict
 
 
-def save_to_file(index_name: str, pages: Dict[str, Dict[str, str]]):
-    with open(f"{index_name}_passages.tsv", "w") as passage_file, \
-         open(f"{index_name}_sections.tsv", "w") as section_file:
-        print("Opened files", passage_file, section_file)
-        pid = 0
-
-        print(f"Finished with pid = {pid}, cwd = {os.getcwd()}")
-
+def report_page(n: int) -> None:
+    print('.', end='')
+    if n % 100 == 0:
+        print(n)
 
 def prepare_wiki(args: List[str]):
-    wiki_path = args.pop(0)
+    collection_name = args[0]
+    wiki_path = args[1]
 
     print("Parsing Wikipedia")
 
-    ctx = WikiContext()
-    ctx.passage_file = open("test_passages.tsv", "w")
-    ctx.source_file = open("test_sections.tsv", "w")
+    file_num = 1
+
+    ctx = WikiParseContext()
+    ctx.collection_name = collection_name
+    ctx.new_files(file_num)
 
     for (event, elem) in ET.iterparse(wiki_path, events=("start", "start-ns", "end")):
         if event == "start-ns":
+            print("new namespace", elem)
             if elem[0] == '':
+                print(f"set namespace from {ctx.namespace} to {elem[1]}")
                 ctx.namespace = elem[1]
             continue
 
         if elem.tag == ctx.page_tag:
             if event == 'start':
                 ctx.new_page()
-                print(ctx.flushed)
+                report_page(ctx.flushed)
         elif elem.tag == ctx.ns_tag:
             if event == 'end' and elem.text != '0':
                 ctx.should_parse = False
@@ -128,16 +161,20 @@ def prepare_wiki(args: List[str]):
             if event == 'end':
                 ctx.current_title = elem.text
         elif elem.tag == ctx.text_tag:
-            if event == 'end' and ctx.should_parse:
+            if event == 'end' and ctx.should_parse and not is_banned(ctx.current_title):
                 ctx.current_page = parse_wikitext(elem.text)
 
         if ctx.flushed > 10000:
-            break
+            print(f"==== flushed {ctx.flushed} passages, creating new file ====", flush=True)
+            file_num += 1
+            ctx.new_files(file_num)
+
+        ctx.close_files()
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('Usage: python -m colbert-search prepare_wiki [wiki_file]')
+    if len(sys.argv) != 3:
+        print('Usage: python -m colbert-search prepare_wiki [collection_name] [wiki_file]')
         exit(1)
 
     prepare_wiki(sys.argv[1:])

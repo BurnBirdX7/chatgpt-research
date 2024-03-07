@@ -82,6 +82,8 @@ class Index:
 
     def get_embeddings_source(self, x: np.ndarray) -> Tuple[List[str], np.ndarray]:
         """
+        Finds possible sources of embeddings
+
         :param x: 2D array with shape (N, dim)
         :return: tuple(source_strings, distances)
         """
