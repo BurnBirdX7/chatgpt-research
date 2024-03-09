@@ -16,6 +16,6 @@ from .EmbeddingsBuilder import EmbeddingsBuilder
 from .Index import Index
 from .Roberta import Roberta
 from .SourceMapping import SourceMapping
-from .Wiki import Wiki
+from .OnlineWiki import OnlineWiki
 from .Chat import Dialogue, Chat, Question
 import config

@@ -11,8 +11,8 @@ import torch
 from jinja2 import Template
 
 from scripts._elvis_data import elvis_related_articles
-from src import Roberta, SourceMapping, EmbeddingsBuilder, Index, Wiki
-from transformers import RobertaTokenizer, RobertaForMaskedLM
+from src import Roberta, EmbeddingsBuilder, Index, OnlineWiki
+from transformers import RobertaForMaskedLM
 
 from src.config import EmbeddingsConfig, WikiConfig, IndexConfig
 
@@ -117,6 +117,9 @@ class Chain:
 
 def generate_sequences(source_len: int, likelihoods: torch.Tensor,
                        token_ids: List[int], token_start_pos: int, source: str) -> List[Chain]:
+    """
+    Generates chains of tokens with the same source
+    """
     result_chains: List[Chain] = []
 
     for source_start_pos in range(0, source_len):
@@ -147,35 +150,33 @@ def generate_sequences(source_len: int, likelihoods: torch.Tensor,
 def color_main_with_chaining(input_text: str,
                              wiki_config: WikiConfig,
                              index: Index,
-                             embeddings_builder: EmbeddingsBuilder) -> str:
+                             embeddings_config: EmbeddingsConfig) -> str:
     """
     Colors text when probable sources already defined
     :param input_text: text to color
     :param wiki_config: wikipedia articles that could be sources for the text
     :param index: index that contains all known sources
-    :param embeddings_builder: builder for the RoBERTa embeddings
+    :param embeddings_config: config RoBERTa embeddings, `normalize`'s value is ignored
     """
+    embeddings_config.normalize = True
+    embeddings_builder = EmbeddingsBuilder(embeddings_config)
+    input_embeddings = embeddings_builder.from_text(input_text)
+    print(input_embeddings)
+    faiss.normalize_L2(input_embeddings)  # TODO: Move normalization to the builder
 
-    embeddings = embeddings_builder.from_text(input_text)
-    print(embeddings)
-    faiss.normalize_L2(embeddings)  # TODO: Move normalization to the builder
-
-    sources, result_dists = index.get_embeddings_source(embeddings)
+    sources, result_dists = index.get_embeddings_source(input_embeddings)
     print("sources:", sources, "result_ids dists:", result_dists, "\n\n")
 
-    gpt_tokens = tokenizer.tokenize(input_text)  # разбиваем на токены входную строку с гпт
-    print("tokens:", gpt_tokens, "\n\n")  # все токены разбитые из input
+    tokenized_input = tokenizer.tokenize(input_text)  # разбиваем на токены входную строку с гпт
+    print("tokens:", tokenized_input, "\n\n")  # все токены разбитые из input
 
-    gpt_token_ids = tokenizer.convert_tokens_to_ids(gpt_tokens)
+    gpt_token_ids = tokenizer.convert_tokens_to_ids(tokenized_input)
+    sourcetext_dict = OnlineWiki.get_sections(wiki_config.target_pages)
 
-    wiki_dict = dict()
-    for page in wiki_config.target_pages:
-        wiki_dict |= Wiki.parse(page)
-
-    start = time.perf_counter()
+    start_time = time.perf_counter()
     result_chains = []
-    for token_pos, (token, token_id, source) in enumerate(zip(gpt_tokens, gpt_token_ids, sources)):
-        wiki_text = wiki_dict[source]
+    for token_pos, (token, token_id, source) in enumerate(zip(tokenized_input, gpt_token_ids, sources)):
+        wiki_text = sourcetext_dict[source]
         wiki_token_ids = tokenizer.encode(wiki_text, return_tensors='pt').squeeze()
 
         print(f"> token: '{token}', id: {token_id}, source token count: {len(wiki_token_ids)}, top source: {source}, ")
@@ -211,10 +212,10 @@ def color_main_with_chaining(input_text: str,
     for chain in filtered_chains:
         print(chain)
 
-    print(f"Time: {time.perf_counter() - start} s.")
+    print(f"Time: {time.perf_counter() - start_time} s.")
 
     # prepare tokens for coloring
-    tokens_for_coloring = map(lambda s: tokenizer.convert_tokens_to_string([s]), gpt_tokens)
+    tokens_for_coloring = map(lambda s: tokenizer.convert_tokens_to_string([s]), tokenized_input)
 
     # prepare links for coloring
     pos2chain: Dict[int, Chain] = {}

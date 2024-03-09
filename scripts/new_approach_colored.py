@@ -5,8 +5,8 @@ import faiss  # type: ignore
 import wikipediaapi  # type: ignore
 import torch
 
-from src import Roberta, Config, SourceMapping, EmbeddingsBuilder, Index, Wiki
-from transformers import RobertaTokenizer, RobertaForMaskedLM
+from src import Roberta, EmbeddingsBuilder, Index
+from transformers import RobertaForMaskedLM
 
 tokenizer, model = Roberta.get_default()
 

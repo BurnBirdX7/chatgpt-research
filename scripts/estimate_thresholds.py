@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt  # type: ignore
 from progress.bar import ChargingBar  # type: ignore
 
 from scripts._elvis_data import elvis_related_articles, elvis_unrelated_articles
-from src import Roberta, EmbeddingsBuilder, Index, Wiki
+from src import Roberta, EmbeddingsBuilder, Index, OnlineWiki
 from src.config.EmbeddingsConfig import EmbeddingsConfig
 from src.config.ThresholdConfig import ThresholdConfig
 
@@ -65,18 +65,18 @@ def estimate_thresholds(config: ThresholdConfig):
     index = Index.load(config)
     print('Done')
 
-    p, n = estimate_thresholds_on_index(index, *tm, config)
+    p, n = estimate_thresholds_on_index(index, tm[0], tm[1], config)
     print(f'Positive threshold: {p}')
     print(f'Negative threshold: {n}')
 
 
 def estimate_thresholds_for_elvis():
-    data = dict()
+    data = dict[str, str]()
     for page in ChargingBar("Loading related articles").iter(elvis_related_articles):
-        data |= Wiki.parse(page)
+        data |= OnlineWiki.get_sections(page)
 
     for page in ChargingBar("Loading unrelated articles").iter(elvis_unrelated_articles):
-        data |= Wiki.parse(page)
+        data |= OnlineWiki.get_sections(page)
 
     estimate_thresholds(ThresholdConfig(data=data))
 

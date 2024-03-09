@@ -3,12 +3,11 @@ from typing import List, Iterable
 import numpy as np
 
 from scripts._elvis_data import elvis_unrelated_articles, elvis_unrelated_articles_large
-from src import EmbeddingsBuilder, Wiki, Roberta
+from src import EmbeddingsBuilder, OnlineWiki, Roberta
 from transformers import RobertaTokenizer, RobertaModel     # type: ignore
 from progress.bar import ChargingBar                        # type: ignore
 
 from src.config.EmbeddingsConfig import EmbeddingsConfig
-from src.config.WikiConfig import WikiConfig
 
 
 def estimate_centroid(data: Iterable[str], tokenizer: RobertaTokenizer, model: RobertaModel) -> np.ndarray:
@@ -31,7 +30,7 @@ def estimate_centroid_for_elvis_persona(centroid_file: str, tokenizer: RobertaTo
     page_names = elvis_unrelated_articles + elvis_unrelated_articles_large
     texts: List[str] = []
     for name in ChargingBar('Loading articles').iter(page_names):
-        texts += Wiki.parse(name).values()
+        texts += OnlineWiki.get_sections(name).values()
 
     centroid_data = estimate_centroid(texts, tokenizer, model)
     np.save(centroid_file, centroid_data)
