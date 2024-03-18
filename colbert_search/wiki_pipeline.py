@@ -8,7 +8,7 @@ from colbert_search.Bz2Unpack import Bz2Unpack
 from src.pipeline import Pipeline
 
 
-def wiki_pipeline(output_path: str) -> Pipeline:
+def get_wiki_pipeline(output_path: str) -> Pipeline:
     return (
         Pipeline(FindBz2Files("find-files"))
         .attach(Bz2Unpack("bz2-unpack", output_path))
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     in_path = sys.argv[1]
     out_path = sys.argv[2]
 
-    pipeline = wiki_pipeline(out_path)
+    pipeline = get_wiki_pipeline(out_path)
     pipeline.run(in_path)
 
 

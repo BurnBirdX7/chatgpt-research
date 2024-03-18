@@ -2,7 +2,10 @@ import subprocess
 import sys
 import os
 
-colbert_rooted_scripts = ['create_index', 'fever_server']
+colbert_rooted_scripts = ['create_index', 'fever_server', 'wiki_server']
+"""
+These scripts must be launched with 'colbert' conda environment active 
+"""
 
 def main():
     if len(sys.argv) < 2:

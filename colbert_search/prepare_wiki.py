@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import os.path
 import sys
-from typing import Dict, TextIO
+from typing import Dict, TextIO, List
 import xml.etree.ElementTree as ET
 import mwparserfromhell as mw
 from dataclasses import dataclass
 
 from colbert_search.WikiFile import WikiFile
 from src.pipeline import Block, ListDescriptor
+from src import SourceMapping
 
 banned_title_prefixes: list[str] = [
     "Category:", "File:", "See also", "References", "External links"
@@ -24,68 +25,87 @@ def is_banned(title: str) -> bool:
 
 @dataclass
 class WikiParseContext:
+    # General:
     collection_name: str = "default"
     output_dir: str = os.path.abspath("./")
     namespace: str | None = None
+
+    # Current "session"
+    passage_file: TextIO = None
+    passage_file_path: str = None
+    source_mapping: SourceMapping = None
+    source_mapping_path: str = None
+    pid: int = 0
+    pushed: int = 0
+
+    # Current source:
     current_title: str | None = None
     current_page: Dict[str, str] | None = None
     should_parse: bool = True
-    passage_file: TextIO = None
-    source_file: TextIO = None
-    pid: int = 0
-    flushed: int = 0
 
-    def flush(self) -> None:
+    def push(self) -> None:
+        """
+        Pushes data from text representation of wikipedia article into file and mapping structures
+        """
         if not self.should_parse or self.current_page is None or self.current_title is None:
             return
 
-        self.flushed += 1
+        self.pushed += 1
         for heading, section in self.current_page.items():
             if is_banned(heading):
                 continue
 
+            start_pid = self.pid
             for paragraph in section.split('\n'):
                 stripped_paragraph = paragraph.strip()
                 if len(stripped_paragraph) > 0:
                     stripped_paragraph = stripped_paragraph.replace('\t', ' ')  # make tsv-safe
-                    url = f"https://en.wikipedia.org/wiki/{self.current_title}#{heading.replace(' ', '_')}"
                     self.passage_file.write(f"{self.pid}\t{stripped_paragraph}\n")
-                    self.source_file.write(f"{self.pid}\t{url}\n")
                     self.pid += 1
+
+            url = f"https://en.wikipedia.org/wiki/{self.current_title}#{heading.replace(' ', '_')}"
+            self.source_mapping.append_interval(self.pid - start_pid, url)
 
         self.current_title = None
         self.current_page = None
 
     def new_page(self):
-        self.flush()
+        self.push()
         self.current_title = None
         self.current_page = None
         self.should_parse = True
 
-    def new_files(self, num: int) -> tuple[str, str] | None:
-        self.close_files()
+    def reset(self, num: int) -> str:
+        """
+        Creates new files to output passages and source mapping for the passages
 
-        if self.source_file and self.passage_file:
-            names = self.source_file.name, self.passage_file.name
-        else:
-            names = None
-
-        source_file_path = os.path.join(self.output_dir, f"{self.collection_name}_sources_{num}.tsv")
-        self.source_file = open(source_file_path, "w")
-
-        passage_file_path = os.path.join(self.output_dir, f"{self.collection_name}_passages_{num}.tsv")
-        self.passage_file = open(passage_file_path, "w")
-
-        self.pid = 0
-        self.flushed = 0
-
-        return names
-
-    def close_files(self) -> None:
-        if self.source_file is not None:
-            self.source_file.close()
+        :param num: arbitrary number to distinguish between iterations
+        :return: name of the new file
+        """
+        self.flush()
         if self.passage_file is not None:
             self.passage_file.close()
+
+        self.source_mapping_path = os.path.join(self.output_dir, f"{self.collection_name}_sources_{num}.tsv")
+        self.source_mapping = SourceMapping()
+
+        self.passage_file_path = os.path.join(self.output_dir, f"{self.collection_name}_passages_{num}.csv")
+        self.passage_file = open(self.passage_file_path, "w")
+
+        self.pid = 0
+        self.pushed = 0
+
+        return self.passage_file.name
+
+    def flush(self):
+        """
+        Flushes accumulated data to the disk
+        """
+        self.push()
+        if self.passage_file is not None:
+            self.passage_file.flush()
+        if self.source_mapping is not None:
+            self.source_mapping.to_csv(self.source_mapping_path)
 
     def __tag(self, tag_name):
         return f"{{{self.namespace}}}{tag_name}" if self.namespace else tag_name
@@ -138,9 +158,21 @@ def parse_wikitext(text: str) -> Dict[str, str]:
     return final_dict
 
 
-def report_page(n: int) -> None:
-    if n % 100 == 0:
-        print(n, end='.')
+class PageReporter:
+    last_page: int = 0
+
+    @classmethod
+    def report(cls, page: int) -> None:
+        if page == cls.last_page:
+            return
+
+        cls.last_page = page
+
+        if page % 2500 == 0:
+            print(f"{page:6d}")
+        elif page % 100 == 0:
+            print(f"{page:6d}", end='.')
+
 
 def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[str]:
     print(f"Parsing wiki from file {wiki_path}")
@@ -150,9 +182,7 @@ def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[
     ctx = WikiParseContext()
     ctx.collection_name = collection_name
     ctx.output_dir = output_dir
-    ctx.new_files(file_num)
-
-    passage_files = list[str]()
+    passage_files: List[str] = [ctx.reset(file_num)]
 
     for (event, elem) in ET.iterparse(wiki_path, events=("start", "start-ns", "end")):
         if event == "start-ns":
@@ -165,7 +195,7 @@ def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[
         if elem.tag == ctx.page_tag:
             if event == 'start':
                 ctx.new_page()
-                report_page(ctx.flushed)
+                PageReporter.report(ctx.pushed)
         elif elem.tag == ctx.ns_tag:
             if event == 'end' and elem.text != '0':
                 ctx.should_parse = False
@@ -178,15 +208,13 @@ def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[
             if event == 'end' and ctx.should_parse and not is_banned(ctx.current_title):
                 ctx.current_page = parse_wikitext(elem.text)
 
-        if ctx.flushed > 10000:
-            print(f"==== flushed {ctx.flushed} passages, creating new file ====", flush=True)
+        if ctx.pushed > 25000:
+            print(f"==== pushed {ctx.pushed} passages, creating new file ====", flush=True)
             file_num += 1
-            files = ctx.new_files(file_num)
-            if files is not None:
-                passage_files.append(files[1])
+            passage_files.append(ctx.reset(file_num))
 
+    ctx.push()
     ctx.flush()
-    ctx.close_files()
     return passage_files
 
 class PrepareWiki(Block):
@@ -196,10 +224,10 @@ class PrepareWiki(Block):
         self.output_dir = output_dir
 
     def process(self, inp: list[WikiFile]) -> list[str]:
-        passage_files = list[str]()
+        passage_files: List[str] = list()
         for file in inp:
             pf = prepare_wiki(
-                f"wiki-{file.num}-{file.p_first}",
+                f"wiki-{file.num}-p{file.p_first}-p{file.p_last}",
                 file.path,
                 self.output_dir
             )

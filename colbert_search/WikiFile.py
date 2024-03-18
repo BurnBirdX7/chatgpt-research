@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, List, Dict
 
 from src.pipeline import BaseDataDescriptor
 from src.pipeline.BaseDataDescriptor import Value
@@ -20,7 +20,7 @@ class WikiFile:
     p_last: int   # last page ID present in file
 
     @staticmethod
-    def from_dict(d: dict[str, Any]) -> "WikiFile":
+    def from_dict(d: Dict[str, Any]) -> "WikiFile":
         return WikiFile(
             d["path"],
             d["date"],
@@ -41,8 +41,8 @@ class WikiFile:
         return False
 
 
-class ListWikiFileDescriptor(BaseDataDescriptor[list[WikiFile]]):
-    def store(self, data: list[WikiFile]) -> dict[str, Value]:
+class ListWikiFileDescriptor(BaseDataDescriptor[List[WikiFile]]):
+    def store(self, data: List[WikiFile]) -> Dict[str, Value]:
         return {
             'list': [
                 asdict(bz2file)
@@ -50,7 +50,7 @@ class ListWikiFileDescriptor(BaseDataDescriptor[list[WikiFile]]):
             ]
         }
 
-    def load(self, dic: dict[str, Value]) -> list[WikiFile]:
+    def load(self, dic: Dict[str, Value]) -> List[WikiFile]:
         return [
             WikiFile.from_dict(bz2dict)
             for bz2dict in dic['list']
@@ -60,4 +60,4 @@ class ListWikiFileDescriptor(BaseDataDescriptor[list[WikiFile]]):
         return list
 
     def is_type_compatible(self, typ: type | None):
-        return issubclass(typ, list) or typ == list[WikiFile]
+        return issubclass(typ, list) or typ == List[WikiFile]

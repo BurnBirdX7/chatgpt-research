@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import pandas as pd  # type: ignore
 
 
@@ -14,8 +14,8 @@ class SourceMapping:
 
     """
 
-    def __init__(self, lowest_bound: int = 0):
-        self.lowest_bound: int = lowest_bound
+    def __init__(self):
+        self.lowest_bound: int = 0
         self.upper_limits: List[int] = []
         self.sources: List[str] = []
 
@@ -39,7 +39,7 @@ class SourceMapping:
         self.upper_limits.append(self.highest_bound + length)
         self.sources.append(source)
 
-    def get_source(self, index: int) -> str:
+    def __assert_index(self, index: int) -> None:
         if len(self.upper_limits) == 0:
             raise IndexError("No intervals were set")
 
@@ -49,11 +49,65 @@ class SourceMapping:
         if self.upper_limits[-1] <= index:
             raise IndexError("Index is greater then last range's upper bound")
 
+    def get_source_and_interval(self, index: int) -> Tuple[str, int, int]:
+        """
+        Returns interval and source associated with the index
+
+        Given mapping `m`:
+          [0, 10) -> google.com
+          [10, 16) -> ya.ru
+          [16, 21) -> bing.com
+
+        Call
+          m.get_source_and_interval(12)
+
+        will return
+          ("ya.ru", 10, 16)
+        """
+        self.__assert_index(index)
+
+        prev_bound = self.lowest_bound
         for ub, src in zip(self.upper_limits, self.sources):
             if index < ub:
-                return src
+                return src, prev_bound, ub
+            prev_bound = ub
 
         raise RuntimeError("Unexpected error: unreachable")
+
+    def get_source(self, index: int) -> str:
+        """
+        Returns source associated with the index
+
+        Given mapping `m`:
+          [0, 10) -> google.com
+          [10, 16) -> ya.ru
+          [16, 21) -> bing.com
+
+        Call
+          m.get_source(12)
+
+        will return
+          "ya.ru"
+        """
+        return self.get_source_and_interval(index)[0]
+
+    def get_interval(self, index: int) -> Tuple[int, int]:
+        """
+        Returns interval associated with the index
+
+        Given mapping `m`:
+          [0, 10) -> google.com
+          [10, 16) -> ya.ru
+          [16, 21) -> bing.com
+
+        Call
+          m.get_interval(12)
+
+        will return
+          (10, 16)
+        """
+        t = self.get_source_and_interval(index)
+        return t[1], t[2]
 
     def __str__(self) -> str:
         text = "{ "

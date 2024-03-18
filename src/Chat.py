@@ -14,10 +14,10 @@ class Dialogue:
         self.limit_user_messages: Optional[int] = None
         self.user_messages: int = 0
         self.system_prompt: str = ""
-        self.history: list[dict[str, str]] = []
-        self.old_history: list[dict[str, str]] = []
+        self.history: List[Dict[str, str]] = []
+        self.old_history: List[Dict[str, str]] = []
 
-    def add_msg(self, msg: dict[str, str]):
+    def add_msg(self, msg: Dict[str, str]):
         self.history.append(msg)
 
     def add_user_msg(self, text: str):
@@ -141,20 +141,20 @@ class Chat:
 
 
 class Question:
-    def __init__(self, question: str, answers: list[str], correct_answer: str):
+    def __init__(self, question: str, answers: List[str], correct_answer: str):
         self.question: str = question
-        self.answers: list[str] = answers
+        self.answers: List[str] = answers
         self.correct_answer: str = correct_answer
         self.source: Optional[str] = None
         self.no_open: bool = False
         self.given_answers: List[str] = []
 
     @staticmethod
-    def load_json(filename: str) -> list["Question"]:
+    def load_json(filename: str) -> List["Question"]:
         f = open(filename, "r")
         j = json.load(f)
 
-        l: list["Question"] = []
+        l: List["Question"] = []
 
         for q in j:
             q_text = q['question']

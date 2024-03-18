@@ -5,11 +5,11 @@ import json
 import os.path
 import types
 from inspect import signature
-from typing import Any, cast, Callable
+from typing import Any, cast, Callable, Dict, Set, List
 
 from src.pipeline.Block import Block
 
-PipelineHistory = dict[str, str]
+PipelineHistory = Dict[str, str]
 
 
 class PipelineError(RuntimeError):
@@ -28,13 +28,13 @@ class Pipeline:
         self.in_type = inp.in_type
         self.artifacts_folder = "pipe-artifacts"
         self.last_block = inp
-        self.blocks: dict[str, Block] = {inp.name: inp}  # All Blocks in the pipeline
+        self.blocks: Dict[str, Block] = {inp.name: inp}  # All Blocks in the pipeline
         self.execution_order = [inp]
 
-        self.__cache_output = set[str]()  # Set of blocks whose output should be cached
-        self.__graph: dict[str, list[str]] = {inp.name: []}  # Data-flow graph
-        self.__source_graph: dict[str, list[str]] = {inp.name: ["$input"]}  # Edges point towards data source
-        self.__merge_funcs = dict[str, Callable]()  # Functions that fold multiple inputs into one
+        self.__cache_output: Set[str] = set()  # Set of blocks whose output should be cached
+        self.__graph: Dict[str, List[str]] = {inp.name: []}  # Data-flow graph
+        self.__source_graph: Dict[str, List[str]] = {inp.name: ["$input"]}  # Edges point towards data source
+        self.__merge_funcs: Dict[str, Callable] = dict()  # Functions that fold multiple inputs into one
 
     def attach(self, block: Block, input_name: str | None = None) -> "Pipeline":
         """
@@ -181,7 +181,7 @@ class Pipeline:
         beginning_time = datetime.datetime.now()
         print(f"Resuming pipeline [at {beginning_time}] [from {block_name}]...")
 
-        cached_data = dict[str, Any]()
+        cached_data: Dict[str, Any] = dict()
 
         # Load in cache all cachable outputs that are present in the history
         # and entry block itself
@@ -227,7 +227,7 @@ class Pipeline:
     def format_time(time: datetime.datetime) -> str:
         return time.strftime("%Y-%m-%d.%H-%M-%S")
 
-    def __run(self, inp: Any, history: dict[str, str], cached_data: dict[str, Any]) -> Any:
+    def __run(self, inp: Any, history: Dict[str, str], cached_data: Dict[str, Any]) -> Any:
         """
         Run the pipeline
         :param history: dictionary where key is the name of the block and the value is name of the file with essential information

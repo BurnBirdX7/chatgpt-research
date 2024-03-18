@@ -18,4 +18,3 @@ from .Roberta import Roberta
 from .SourceMapping import SourceMapping
 from .OnlineWiki import OnlineWiki
 from .Chat import Dialogue, Chat, Question
-import config
