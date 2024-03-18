@@ -1,0 +1,22 @@
+name: colbert
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - cudatoolkit=11.3
+  - faiss-gpu
+  - gcc=9.4.0
+  - gxx=9.4.0
+  - pip=21.0
+  - python=3.8
+  - pytorch=1.13.1
+  - torchaudio=0.13.1
+  - torchvision=0.14.1
+  - tqdm
+  - ujson
+  - progress
+  - wikipedia-api
+  - openai
+prefix: /home/burnbird/miniconda3/envs/colbert

@@ -15,7 +15,7 @@ banned_title_prefixes: list[str] = [
     "Category:", "File:", "See also", "References", "External links"
 ]
 
-def is_banned(title: str) -> bool:
+def is_title_banned(title: str) -> bool:
     for banned in banned_title_prefixes:
         if title.strip().startswith(banned):
             return True
@@ -52,7 +52,7 @@ class WikiParseContext:
 
         self.pushed += 1
         for heading, section in self.current_page.items():
-            if is_banned(heading):
+            if is_title_banned(heading):
                 continue
 
             start_pid = self.pid
@@ -63,7 +63,12 @@ class WikiParseContext:
                     self.passage_file.write(f"{self.pid}\t{stripped_paragraph}\n")
                     self.pid += 1
 
-            url = f"https://en.wikipedia.org/wiki/{self.current_title}#{heading.replace(' ', '_')}"
+            clean_title = self.current_title.replace(' ', '_')
+            clean_header = heading.replace(' ', '_').replace('\t', '_').replace('\'', '')
+            if '\n' in clean_header:
+                # Header is malformed, remove part of it
+                clean_header = clean_header.split('\n', maxsplit=1)[0]
+            url = f"https://en.wikipedia.org/wiki/{clean_title}#{clean_header}"
             self.source_mapping.append_interval(self.pid - start_pid, url)
 
         self.current_title = None
@@ -205,7 +210,7 @@ def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[
             if event == 'end':
                 ctx.current_title = elem.text
         elif elem.tag == ctx.text_tag:
-            if event == 'end' and ctx.should_parse and not is_banned(ctx.current_title):
+            if event == 'end' and ctx.should_parse and not is_title_banned(ctx.current_title):
                 ctx.current_page = parse_wikitext(elem.text)
 
         if ctx.pushed > 25000:
