@@ -7,9 +7,8 @@ import xml.etree.ElementTree as ET
 import mwparserfromhell as mw
 from dataclasses import dataclass
 
-from colbert_search.WikiFile import WikiFile
 from src.pipeline import Block, ListDescriptor
-from src import SourceMapping
+from src import WikiFile, SourceMapping
 
 banned_title_prefixes: list[str] = [
     "Category:", "File:", "See also", "References", "External links"

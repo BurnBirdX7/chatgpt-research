@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import re
 
-from colbert_search.WikiFile import WikiFile, ListWikiFileDescriptor
+from src import WikiFile, ListWikiFileDescriptor
 from src.pipeline import map_block
 
 

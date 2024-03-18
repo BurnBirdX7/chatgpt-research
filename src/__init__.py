@@ -18,3 +18,6 @@ from .Roberta import Roberta
 from .SourceMapping import SourceMapping
 from .OnlineWiki import OnlineWiki
 from .Chat import Dialogue, Chat, Question
+from .WikiFile import WikiFile, ListWikiFileDescriptor
+from .Bz2Unpack import Bz2Unpack
+from .FindBz2Files import FindBz2Files
