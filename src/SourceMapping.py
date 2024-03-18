@@ -30,12 +30,22 @@ class SourceMapping:
           [0, 10) -> google.com
           [10, 16) -> ya.ru
 
-        append_interval(5, 'bing.com')
+        append_interval(5, 'google.com')
 
           [0, 10) -> google.com
           [10, 16) -> ya.ru
-          [16, 21) -> bing.com
+          [16, 21) -> google.com
+
+        append_interval(3, 'google.com'), again
+
+          [0, 10) -> google.com
+          [10, 16) -> ya.ru
+          [16, 24) -> google.com
         """
+        if len(self.sources) > 0 and self.sources[-1] == source:
+            self.upper_limits[-1] += length
+            return
+
         self.upper_limits.append(self.highest_bound + length)
         self.sources.append(source)
 
