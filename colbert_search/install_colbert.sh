@@ -3,7 +3,7 @@
 # Clone colbert
 if [ ! -d "colbert" ]; then
   echo "Cloning colbert"
-  git clone https://github.com/stanford-futuredata/ColBERT.git colbert
+  git clone https://github.com/stanford-futuredata/ColBERT.git colbert_git
 else
   echo "Skipped ColBERT download... Directory already exists..."
 fi

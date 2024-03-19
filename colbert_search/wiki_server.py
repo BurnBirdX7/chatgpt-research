@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import re
-from typing import List, Tuple, Any, Dict
-
-from flask import Flask, request
-from functools import lru_cache
-import os
 from dotenv import load_dotenv
 
-from colbert import Searcher
+import os
+import re
 
+from typing import List, Tuple, Any, Dict
+from flask import Flask, request
+from functools import lru_cache
+from colbert import Searcher
 from src import SourceMapping
 from src.config import WikiServerConfig
 
@@ -101,7 +100,7 @@ def wiki_server(config: WikiServerConfig):
 
     @app.route("/api/search", methods=["GET"])
     def api_search():
-        counter["api"] += 1
+        counter["api_calls"] += 1
         print("API request count:", counter["api_calls"])
         return api_search_query(request.args.get("query"), request.args.get("k"))
 
@@ -112,7 +111,7 @@ def wiki_server(config: WikiServerConfig):
         <html lang="en">
         <body>
         <form action="/api/search" method="get">
-        <input type="text" name="query" value="{query}">
+        <input type="text" name="query" value="Your Query">
         <button type="submit">Search</button>
         </form>
         </html>
@@ -124,6 +123,7 @@ def wiki_server(config: WikiServerConfig):
     def api_ping():
         return "pong"
 
+    global searchers
     searchers = init_searchers(INDEX_ROOT)
     app.run(wikiConfig.ip_address, wikiConfig.port)
 

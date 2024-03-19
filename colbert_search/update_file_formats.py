@@ -6,19 +6,19 @@ import shutil
 import sys
 from typing import Tuple, List
 
-from colbert_search.WikiFile import WikiFile
+from src import WikiDataFile
 from src import SourceMapping
 
-def find_matches(wikidict_pipe_path: str, directory: str) -> List[Tuple[WikiFile, str, int, bool]]:
+def find_matches(wikidict_pipe_path: str, directory: str) -> List[Tuple[WikiDataFile, str, int, bool]]:
     dic = json.load(open(wikidict_pipe_path, 'r'))['list']
 
     files = []
     for d, _, filesnames in os.walk(directory):
         files += [os.path.join(d, f) for f in filesnames]
 
-    lst: List[Tuple[WikiFile, str, int, bool]] = []
+    lst: List[Tuple[WikiDataFile, str, int, bool]] = []
     for d in dic:
-        w = WikiFile.from_dict(d)
+        w = WikiDataFile.from_dict(d)
         print("file:", w.path)
 
         pattern_str = fr"^wiki-{w.num}-{w.p_first}_(\w+)_(\d+).tsv$"
@@ -44,7 +44,7 @@ def tsv_table_to_csv_mapping(tsv_filename: str) -> SourceMapping:
                 print(f"Got wrong line format, line #{i}:")
                 continue
             id, url = parts
-            clean_url = url.replace('\t', '_').replace(' ', '_').replace('\'', '')
+            clean_url = url.strip().replace('\t', '_').replace(' ', '_').replace('\'', '')
             mapping.append_interval(1, clean_url)
 
     return mapping
@@ -61,7 +61,7 @@ def update_formats(wikidict_pipe_path, directory: str, out_directory: str) -> No
         if is_source:
             print(" -- remapping")
             mapping = tsv_table_to_csv_mapping(filepath)
-            name += f'_source_{partition}.csv'
+            name += f'_sources_{partition}.csv'
             path = os.path.join(out_directory, name)
             mapping.to_csv(path)
         else:

@@ -73,7 +73,7 @@ class BaseNode(Node, ABC):
         super().__init__(name)
 
         # Input:
-        self.__in_types = in_types
+        self.__in_types = list(in_types)
 
         # Output:
         out_descriptor.block_name = name

@@ -3,7 +3,7 @@ from __future__ import annotations
 __all__ = ['ConfigurableNode']
 
 from abc import abstractmethod, ABC
-from typing import Type, TypeVar, Generic, Tuple
+from typing import Type, TypeVar, Generic, Tuple, List
 
 from .base_data_descriptor import BaseDataDescriptor
 from .nodes import BaseNode
@@ -17,9 +17,9 @@ class ConfigurableNode(Generic[InT, OutT, ConfigT], BaseNode, ABC):
 
     def __init__(self,
                  name: str,
-                 in_type: Type[InT],
+                 in_types: List[type],
                  out_descriptor: BaseDataDescriptor[OutT]):
-        super().__init__(name, in_type, out_descriptor)
+        super().__init__(name, in_types, out_descriptor)
         self.config: ConfigT | None = None
 
     @abstractmethod

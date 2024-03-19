@@ -2,9 +2,14 @@
 
 ## Initialization
 
-Download ColBERT, ColVERTv2 checkpoint and FEVER dataset by executing `./install_colbert.sh`
+Download ColBERT, ColVERTv2 checkpoint and FEVER dataset by executing:
+```shell
+# From project root 
+cd colbert_search
+./install_colbert.sh
+```
 
-Use environment provided in file `./colbert_env_gpu.yml`
+Use Conda environment provided in file `colbert_search/colbert_env_gpu.yml`
 
 ```shell
 # From project root
