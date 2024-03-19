@@ -4,7 +4,7 @@ import faiss  # type: ignore
 import pandas as pd  # type: ignore
 import numpy as np
 
-from .SourceMapping import SourceMapping
+from .source_mapping import SourceMapping
 
 __all__ = ['Index']
 

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+__all__ = ['BaseDataDescriptor', 'ValueType']
+
 import datetime
 import random
 from typing import Generic, TypeVar, Union
 from abc import abstractmethod, ABC
 
 T = TypeVar('T')
-Value = Union[int, float, str, list, dict]
+ValueType = Union[int, float, str, list, dict]
 
 class BaseDataDescriptor(Generic[T], ABC):
     def __init__(self):
@@ -19,7 +21,7 @@ class BaseDataDescriptor(Generic[T], ABC):
         return issubclass(typ, self.get_data_type())
 
     @abstractmethod
-    def store(self, data: T) -> dict[str, Value]:
+    def store(self, data: T) -> dict[str, ValueType]:
         """
         Method stores data to the disk,
         and returns information crucial for its restoration as a dict
@@ -27,7 +29,7 @@ class BaseDataDescriptor(Generic[T], ABC):
         raise NotImplemented
 
     @abstractmethod
-    def load(self, dic: dict[str, Value]) -> T:
+    def load(self, dic: dict[str, ValueType]) -> T:
         """
         Restores data from disk and returns it
         """

@@ -7,8 +7,8 @@ import xml.etree.ElementTree as ET
 import mwparserfromhell as mw
 from dataclasses import dataclass
 
-from src.pipeline import Block, ListDescriptor
-from src import WikiFile, SourceMapping
+from src.pipeline import BaseNode, ListDescriptor
+from src import WikiDataFile, SourceMapping
 
 banned_title_prefixes: list[str] = [
     "Category:", "File:", "See also", "References", "External links"
@@ -221,13 +221,13 @@ def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[
     ctx.flush()
     return passage_files
 
-class PrepareWiki(Block):
+class PrepareWiki(BaseNode):
 
     def __init__(self, name: str, output_dir: str):
         super().__init__(name, list, ListDescriptor())
         self.output_dir = output_dir
 
-    def process(self, inp: list[WikiFile]) -> list[str]:
+    def process(self, inp: list[WikiDataFile]) -> list[str]:
         passage_files: List[str] = list()
         for file in inp:
             pf = prepare_wiki(

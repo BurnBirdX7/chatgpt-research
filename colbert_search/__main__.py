@@ -12,9 +12,13 @@ def main():
         raise ValueError("Not enough parameters")
 
     script = sys.argv[1]
+
+    # This file is placed in: {project_root}/colbert_search/{this_file}
     project_root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
     if script in colbert_rooted_scripts:
-        module_root = f"{project_root}/colbert_search/colbert"
+        module_root = os.path.join(project_root, "colbert_search/colbert/")
+        print(f"CWD for this execution is changed to \"{module_root}\"")
     else:
         module_root = f"{project_root}"
     script_path = f"{project_root}/colbert_search/{sys.argv[1]}.py"
@@ -22,9 +26,11 @@ def main():
     args = [sys.executable, script_path, *sys.argv[2:]]
     env = os.environ.copy()
     if 'PYHTONPATH' in env:
-        env['PYTHONPATH'] += f";{module_root}"
+        env['PYTHONPATH'] += f";{module_root};{project_root}"
     else:
-        env['PYTHONPATH'] = module_root
+        env['PYTHONPATH'] = f"{module_root};{project_root}"
+
+    print(f"PYTHONPATH: {env['PYTHONPATH']}")
 
     subprocess.run(args, cwd=module_root, env=env)
 

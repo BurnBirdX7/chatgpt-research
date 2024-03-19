@@ -1,12 +1,12 @@
 import pytest
 
-from src.pipeline.Block import Block, InT, OutT
-from src.pipeline.Blocks import map_block
-from src.pipeline.DataDescriptors import *
+from src.pipeline.nodes import BaseNode
+from src.pipeline.mapblock import map_block
+from src.pipeline.data_descriptors import *
 
 
 def test_simple() -> None:
-    @map_block(IntDescriptor(), int)
+    @map_block(IntDescriptor())
     def Mul2(a: int) -> int:
         return a * 2
 
@@ -49,28 +49,39 @@ def test_wrong_descriptor_should_fail():
         def none_ret(_: int) -> None:
             return
 
-def test_wrong_number_of_arguments_should_fail():
-    with pytest.raises(TypeError):
-        @map_block(FloatDescriptor())
-        def float_ret(a: int, b: float) -> float:
-            return float(a) + b
 
-
-def test_block():
-    class Handmade(Block[int, int]):
+def test_node():
+    class Handmade(BaseNode):
         def __init__(self, name: str):
-            super().__init__(name, int, IntDescriptor())
+            super().__init__(name, [int], IntDescriptor())
 
         def process(self, inp: int) -> int:
             return inp * 2
 
-    @map_block(IntDescriptor(), int)
+    @map_block(IntDescriptor())
     def DecoMade(inp: int) -> int:
         return inp * 2
 
     assert len(set(dir(DecoMade)).symmetric_difference(set(dir(Handmade)))) == 0
     assert Handmade.__name__ == "Handmade"
     assert DecoMade.__name__ == "DecoMade"
+    assert Handmade('a').process(5) == DecoMade('b').process(5)
 
+def test_node2():
 
+    class Handmade(BaseNode):
+        def __init__(self, name: str):
+            super().__init__(name, [int], IntDescriptor())
+
+        def process(self, a: int, b: int) -> int:
+            return a + b
+
+    @map_block(IntDescriptor())
+    def DecoMade(x: int, y: int) -> int:
+        return x + y
+
+    assert len(set(dir(DecoMade)).symmetric_difference(set(dir(Handmade)))) == 0
+    assert Handmade.__name__ == "Handmade"
+    assert DecoMade.__name__ == "DecoMade"
+    assert Handmade('a').process(5, 10) == DecoMade('b').process(5, 10)
 

@@ -4,7 +4,7 @@ from typing import Optional
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 
 from .BaseConfig import BaseConfig, DefaultValue
-from ..Roberta import Roberta
+from ..roberta import Roberta
 
 
 @dataclass

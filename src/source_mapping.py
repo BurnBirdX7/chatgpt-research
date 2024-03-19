@@ -14,7 +14,7 @@ class SourceMapping:
 
     """
 
-    def __init__(self):
+    def __init__(self: "SourceMapping") -> None:
         self.lowest_bound: int = 0
         self.upper_limits: List[int] = []
         self.sources: List[str] = []

@@ -3,26 +3,20 @@ from __future__ import annotations
 import re
 from typing import List, Tuple, Any, Dict
 
-from flask import Flask, render_template, request
+from flask import Flask, request
 from functools import lru_cache
-import math
 import os
 from dotenv import load_dotenv
-import pandas as pd
 
-from colbert.infra import Run, RunConfig, ColBERTConfig
 from colbert import Searcher
-import ast
 
 from src import SourceMapping
+from src.config import WikiServerConfig
 
 load_dotenv()
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 INDEX_ROOT = os.path.join(ROOT, "wiki/indexes")
-
-app = Flask(__name__)
-
 
 def init_searchers(dir_path: str) -> List[Tuple[Searcher, SourceMapping]]:
     print(f"Looking for indexes in {dir_path}")
@@ -55,7 +49,7 @@ def init_searchers(dir_path: str) -> List[Tuple[Searcher, SourceMapping]]:
     return lst
 
 
-searchers: List[Tuple[Searcher, SourceMapping]] = init_searchers(INDEX_ROOT)
+searchers: List[Tuple[Searcher, SourceMapping]] = []
 counter = {"api_calls": 0}
 
 
@@ -85,7 +79,6 @@ def search(searcher: Searcher, source_mapping: SourceMapping, query: str, k: int
     return list(topk_dict.values())
 
 
-
 @lru_cache(maxsize=1000000)
 def api_search_query(query: str, k: str | None):
     print(f"{query=}")
@@ -103,31 +96,38 @@ def api_search_query(query: str, k: str | None):
     return {"query" : query, "topk": topk[:100]}
 
 
-@app.route("/api/search", methods=["GET"])
-def api_search():
-    if request.method == "GET":
+def wiki_server(config: WikiServerConfig):
+    app = Flask(__name__)
+
+    @app.route("/api/search", methods=["GET"])
+    def api_search():
         counter["api"] += 1
         print("API request count:", counter["api_calls"])
         return api_search_query(request.args.get("query"), request.args.get("k"))
-    else:
-        return '', 405
 
+    @app.route("/", methods=["GET"])
+    def root():
+        page = """
+        <!DOCTYPE html>
+        <html lang="en">
+        <body>
+        <form action="/api/search" method="get">
+        <input type="text" name="query" value="{query}">
+        <button type="submit">Search</button>
+        </form>
+        </html>
+        """
 
-@app.route("/", methods=["GET"])
-def root():
-    page = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <body>
-    <form action="/api/search" method="get">
-    <input type="text" name="query" value="{query}">
-    <button type="submit">Search</button>
-    </form>
-    </html>
-    """
+        return page
 
-    return page
+    @app.route("/api/ping", methods=["GET"])
+    def api_ping():
+        return "pong"
+
+    searchers = init_searchers(INDEX_ROOT)
+    app.run(wikiConfig.ip_address, wikiConfig.port)
 
 
 if __name__ == "__main__":
-    app.run("0.0.0.0", int(os.getenv("PORT")))
+    wikiConfig = WikiServerConfig.load_from_env()
+    wiki_server(wikiConfig)

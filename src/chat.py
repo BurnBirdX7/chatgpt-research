@@ -117,6 +117,7 @@ class Chat:
             self.dialogue.add_msg(message)
 
             return message["content"]
+        raise OSError("Unreachable code")
 
     def multisubmit(self, text: str, resubmission_rate: int = 2):
         dialogue: Dialogue

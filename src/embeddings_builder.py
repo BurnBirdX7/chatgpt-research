@@ -6,7 +6,7 @@ import numpy as np
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from typing import List, Tuple, Optional, Callable, Dict
 
-from .SourceMapping import SourceMapping
+from .source_mapping import SourceMapping
 from .config.EmbeddingsConfig import EmbeddingsConfig
 
 

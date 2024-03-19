@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, List, Dict
+from typing import Any, List, Dict, cast
 
 from src.pipeline import BaseDataDescriptor
-from src.pipeline.BaseDataDescriptor import Value
+from src.pipeline.base_data_descriptor import ValueType
 
 
 @dataclass
-class WikiFile:
+class WikiDataFile:
     """
     Describes file that contains data from wikipedia
     """
@@ -20,8 +20,8 @@ class WikiFile:
     p_last: int   # last page ID present in file
 
     @staticmethod
-    def from_dict(d: Dict[str, Any]) -> "WikiFile":
-        return WikiFile(
+    def from_dict(d: Dict[str, Any]) -> "WikiDataFile":
+        return WikiDataFile(
             d["path"],
             d["date"],
             int(d["num"]),
@@ -29,7 +29,7 @@ class WikiFile:
             int(d["p_last"])
         )
 
-    def __lt__(self, other: "WikiFile"):
+    def __lt__(self, other: "WikiDataFile"):
         if self.date < other.date:
             return True
         if self.date == other.date:
@@ -41,8 +41,8 @@ class WikiFile:
         return False
 
 
-class ListWikiFileDescriptor(BaseDataDescriptor[List[WikiFile]]):
-    def store(self, data: List[WikiFile]) -> Dict[str, Value]:
+class ListWikiFileDescriptor(BaseDataDescriptor[List[WikiDataFile]]):
+    def store(self, data: List[WikiDataFile]) -> Dict[str, ValueType]:
         return {
             'list': [
                 asdict(bz2file)
@@ -50,14 +50,14 @@ class ListWikiFileDescriptor(BaseDataDescriptor[List[WikiFile]]):
             ]
         }
 
-    def load(self, dic: Dict[str, Value]) -> List[WikiFile]:
+    def load(self, dic: Dict[str, ValueType]) -> List[WikiDataFile]:
         return [
-            WikiFile.from_dict(bz2dict)
-            for bz2dict in dic['list']
+            WikiDataFile.from_dict(bz2dict)
+            for bz2dict in cast(List[Dict[str, Any]], dic['list'])
         ]
 
     def get_data_type(self) -> type:
         return list
 
     def is_type_compatible(self, typ: type | None):
-        return issubclass(typ, list) or typ == List[WikiFile]
+        return typ is not None and issubclass(typ, list) or typ == List[WikiDataFile]

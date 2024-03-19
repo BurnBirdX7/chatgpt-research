@@ -1,18 +1,18 @@
+from src import WikiDataFile, ListWikiFileDescriptor
+from src.pipeline import BaseNode
+
 import bz2
 import os
 from typing import List
 
-from colbert_search.FindBz2Files import WikiFile, ListWikiFileDescriptor
-from src.pipeline import Block
 
-
-class Bz2Unpack(Block[List[WikiFile], List[WikiFile]]):
+class Bz2Unpack(BaseNode):
 
     def __init__(self, name: str, output_dir: str):
-        super().__init__(name, list, ListWikiFileDescriptor())
+        super().__init__(name, [list], ListWikiFileDescriptor())
         self.output_dir = output_dir
 
-    def process(self, lst: List[WikiFile]) -> List[WikiFile]:
+    def process(self, lst: List[WikiDataFile]) -> List[WikiDataFile]:
         for file in lst:
             print(f"Unpacking {file.path}...", end="", flush=True)
             unpacked_filepath = f"wiki-{file.num}-p{file.p_first}-p{file.p_last}.xml"

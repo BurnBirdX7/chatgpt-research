@@ -1,22 +1,31 @@
 from __future__ import annotations
 
+__all__ = ['EmptyDataDescriptor',
+           'InDictDescriptor',
+           'IntDescriptor',
+           'FloatDescriptor',
+           'BytesDescriptor',
+           'StrDescriptor',
+           'ListDescriptor',
+           'DictDescriptor']
+
 import os.path
 from abc import ABC
 from typing import TypeVar, cast, List, Dict, Type
 
-from .BaseDataDescriptor import BaseDataDescriptor, Value
+from .base_data_descriptor import BaseDataDescriptor, ValueType
 
 T = TypeVar('T')
 
 class EmptyDataDescriptor(BaseDataDescriptor[None]):
     @classmethod
-    def get_data_type(cls) -> type[None]:
+    def get_data_type(cls) -> Type[None]:
         return type(None)
 
-    def store(self, data: None) -> dict[str, str]:
-        return {}
+    def store(self, data: None) -> Dict[str, ValueType]:
+        return dict()
 
-    def load(self, dic: dict[str, str]) -> None:
+    def load(self, dic: Dict[str, ValueType]) -> None:
         return None
 
     def is_type_compatible(self, typ: type | None):
@@ -24,7 +33,7 @@ class EmptyDataDescriptor(BaseDataDescriptor[None]):
 
 
 class InDictDescriptor(BaseDataDescriptor[T], ABC):
-    def store(self, data: T) -> dict[str, str]:
+    def store(self, data: T) -> dict[str, ValueType]:
         return {
             'value': str(data)
         }
@@ -32,8 +41,8 @@ class InDictDescriptor(BaseDataDescriptor[T], ABC):
 
 class IntDescriptor(InDictDescriptor[int]):
 
-    def load(self, dic: Dict[str, str]) -> int:
-        return int(dic['value'])
+    def load(self, dic: Dict[str, ValueType]) -> int:
+        return int(dic['value'])  # type: ignore
 
     @classmethod
     def get_data_type(cls) -> Type[int]:
@@ -42,8 +51,8 @@ class IntDescriptor(InDictDescriptor[int]):
 
 class FloatDescriptor(InDictDescriptor[float]):
 
-    def load(self, dic: Dict[str, str]) -> float:
-        return float(dic['value'])
+    def load(self, dic: Dict[str, ValueType]) -> float:
+        return float(dic['value'])  # type: ignore
 
     @classmethod
     def get_data_type(cls) -> Type[float]:
@@ -52,21 +61,21 @@ class FloatDescriptor(InDictDescriptor[float]):
 
 class StrDescriptor(InDictDescriptor[str]):
 
-    def load(self, dic: Dict[str, str]) -> str:
-        return dic['value']
+    def load(self, dic: Dict[str, ValueType]) -> str:
+        return dic['value']  # type: ignore
 
     @classmethod
     def get_data_type(cls) -> Type[str]:
         return str
 
 class ListDescriptor(BaseDataDescriptor[List[T]]):
-    def store(self, data: List[T]) -> Dict[str, Value]:
+    def store(self, data: List[T]) -> Dict[str, ValueType]:
         return {
             "list": data
         }
 
-    def load(self, dic: Dict[str, Value]) -> List[T]:
-        return cast(T, Dict["list"])
+    def load(self, dic: Dict[str, ValueType]) -> List[T]:
+        return cast(List[T], dic["list"])
 
     @classmethod
     def get_data_type(cls) -> Type[list]:
@@ -74,7 +83,7 @@ class ListDescriptor(BaseDataDescriptor[List[T]]):
 
 
 class BytesDescriptor(BaseDataDescriptor[bytes]):
-    def store(self, data: bytes) -> Dict[str, str]:
+    def store(self, data: bytes) -> Dict[str, ValueType]:
         filename = f"bytes-{self.block_name}-{self.get_timestamp_str()}.dat"
         filename = os.path.abspath(os.path.join(self.artifacts_folder, filename))
         with open(filename, "wb") as file:
@@ -83,8 +92,8 @@ class BytesDescriptor(BaseDataDescriptor[bytes]):
                 "filename": filename
             }
 
-    def load(self, dic: Dict[str, str]) -> bytes:
-        filename = dic['filename']
+    def load(self, dic: Dict[str, ValueType]) -> bytes:
+        filename = cast(str, dic['filename'])
         with open(filename, "rb") as file:
             data = file.read()
             return data
@@ -92,3 +101,13 @@ class BytesDescriptor(BaseDataDescriptor[bytes]):
     @classmethod
     def get_data_type(cls) -> Type[bytes]:
         return bytes
+
+class DictDescriptor(BaseDataDescriptor[dict]):
+    def store(self, data: dict) -> dict[str, ValueType]:
+        return data
+
+    def load(self, dic: dict[str, ValueType]) -> dict:
+        return dic
+
+    def get_data_type(self) -> type[dict]:
+        return dict
