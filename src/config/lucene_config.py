@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 
-from .BaseConfig import BaseConfig, DefaultValue
+from .base_config import BaseConfig, DefaultValue
 
 
 @dataclass

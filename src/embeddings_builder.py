@@ -6,8 +6,8 @@ import numpy as np
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from typing import List, Tuple, Optional, Callable, Dict
 
-from .source_mapping import SourceMapping
-from .config.EmbeddingsConfig import EmbeddingsConfig
+from src import SourceMapping
+from src.config import EmbeddingsConfig
 
 
 class EmbeddingsBuilder:

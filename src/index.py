@@ -8,7 +8,7 @@ from .source_mapping import SourceMapping
 
 __all__ = ['Index']
 
-from .config.IndexConfig import IndexConfig
+from .config import IndexConfig
 
 
 class Index:

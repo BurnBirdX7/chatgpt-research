@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from .BaseConfig import BaseConfig
+from .base_config import BaseConfig
 
 
 @dataclass

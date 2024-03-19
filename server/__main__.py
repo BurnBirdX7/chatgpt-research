@@ -2,7 +2,7 @@ from flask import Flask, render_template, request
 
 # from test.color_build_data import main
 from scripts.color_text_with_chaining import color_main_with_chaining
-from src.config.WikiConfig import WikiConfig
+from src.config import WikiConfig
 from scripts._elvis_data import elvis_related_articles
 
 app = Flask(__name__)

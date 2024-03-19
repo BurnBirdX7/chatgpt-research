@@ -15,6 +15,9 @@ class BaseDataDescriptor(Generic[T], ABC):
         self.artifacts_folder = "pipe-artifacts"
         self.block_name = "unnamed"
 
+    def __repr__(self) -> str:
+        return f"<Descriptor:{self.__class__.__name__}>"
+
     def is_type_compatible(self, typ: type | None):
         if typ is None:
             return False

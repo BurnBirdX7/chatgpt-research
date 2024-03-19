@@ -14,9 +14,7 @@ from typing import Dict
 import lucene
 from search import Searcher
 from src import EmbeddingsBuilder, Index
-from src.config.EmbeddingsConfig import EmbeddingsConfig
-from src.config.IndexConfig import IndexConfig
-from src.config.LuceneConfig import LuceneConfig
+from src.config import EmbeddingsConfig, IndexConfig, LuceneConfig
 
 
 def build_index_from_potential_sources(text: str,

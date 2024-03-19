@@ -7,7 +7,6 @@ from typing import Any, cast, Dict, Set, List
 
 from src.config import BaseConfig
 from src.pipeline.nodes import Node
-from src.pipeline.configurable_node import ConfigurableNode
 
 PipelineHistory = Dict[str, str]
 
@@ -30,7 +29,6 @@ class Pipeline:
         self.in_types = inp.in_types
         self.nodes: Dict[str, Node] = {inp.name: inp}  # All Blocks in the pipeline
         self.execution_order = [inp]
-        self.configs: Dict[str, BaseConfig] = dict()
 
         self.__must_cache_output: Set[str] = set()  # Set of blocks whose output should be cached
         self.__source_graph: Dict[str, List[str]] = {inp.name: ["$input"]}  # Edges point towards data source
@@ -229,16 +227,6 @@ class Pipeline:
             if not cur_node.is_input_type_acceptable(typs):
                 raise TypeError(f"Input type(s) not acceptable by \"{cur_node.name}\" node\n"
                                 f"expected types: {cur_node.in_types}, got: {typs}")
-
-            # Configure block, if possible
-            if isinstance(cur_node, ConfigurableNode):
-                cfg_block = cast(ConfigurableNode, cur_node)  # Cast for typechecker
-                config_name, config_type = cfg_block.get_config_spec()
-                # TODO: Check config type
-                if config_name in self.configs:
-                    cfg_block.config = self.configs[config_name]
-                else:
-                    cfg_block.config = cfg_block.get_default_config()
 
             # Process data
             prev_output = cur_node.process(*cur_input_data)

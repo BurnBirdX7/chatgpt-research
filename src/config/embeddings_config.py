@@ -3,7 +3,7 @@ from typing import Optional
 
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 
-from .BaseConfig import BaseConfig, DefaultValue
+from .base_config import BaseConfig, DefaultValue
 from ..roberta import Roberta
 
 

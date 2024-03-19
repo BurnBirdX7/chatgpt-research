@@ -5,7 +5,6 @@ __all__ = ['BaseNode', 'Node']
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
 
-from src.config import BaseConfig
 from src.pipeline.base_data_descriptor import BaseDataDescriptor
 
 
@@ -119,3 +118,16 @@ class BaseNode(Node, ABC):
         """
         Implement block logic in this method
         """
+
+
+class ConstantNode(BaseNode, ABC):
+
+    def __init__(self, name: str, value: Any, out_descriptor: BaseDataDescriptor):
+        super().__init__(name, [], out_descriptor)
+        self.value = value
+        if not out_descriptor.is_type_compatible(type(value)):
+            raise TypeError(f"Value {value} of type {type(value)} is not compatible with descriptor {out_descriptor!r}")
+
+    def process(self, *ignored) -> Any:
+        return self.value
+

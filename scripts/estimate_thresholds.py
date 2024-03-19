@@ -9,8 +9,7 @@ from progress.bar import ChargingBar  # type: ignore
 
 from scripts._elvis_data import elvis_related_articles, elvis_unrelated_articles
 from src import Roberta, EmbeddingsBuilder, Index, OnlineWiki
-from src.config.EmbeddingsConfig import EmbeddingsConfig
-from src.config.ThresholdConfig import ThresholdConfig
+from src.config import EmbeddingsConfig, ThresholdConfig
 
 
 def estimate_thresholds_on_index(index: Index,

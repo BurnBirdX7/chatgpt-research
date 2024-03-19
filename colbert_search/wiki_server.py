@@ -10,7 +10,7 @@ from flask import Flask, request
 from functools import lru_cache
 from colbert import Searcher
 from src import SourceMapping
-from src.config import WikiServerConfig
+from src.config import ColbertServerConfig
 
 load_dotenv()
 
@@ -95,7 +95,7 @@ def api_search_query(query: str, k: str | None):
     return {"query" : query, "topk": topk[:100]}
 
 
-def wiki_server(config: WikiServerConfig):
+def wiki_server(config: ColbertServerConfig):
     app = Flask(__name__)
 
     @app.route("/api/search", methods=["GET"])
@@ -129,5 +129,5 @@ def wiki_server(config: WikiServerConfig):
 
 
 if __name__ == "__main__":
-    wikiConfig = WikiServerConfig.load_from_env()
+    wikiConfig = ColbertServerConfig.load_from_env()
     wiki_server(wikiConfig)

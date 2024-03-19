@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from .BaseConfig import BaseConfig, DefaultValue
-from src.config.IndexConfig import IndexConfig
+from .base_config import BaseConfig, DefaultValue
+from src.config import IndexConfig
 from typing import Dict
 
 

@@ -6,8 +6,7 @@ from scripts.build_index_from_potential_sources import build_index_from_potentia
 from src import EmbeddingsBuilder, Index, Roberta
 from typing import Dict, List, Optional
 
-from src.config.EmbeddingsConfig import EmbeddingsConfig
-from src.config.IndexConfig import IndexConfig
+from src.config import EmbeddingsConfig, IndexConfig
 
 # from 'Childhood in Tupelo' section
 childhood_w_refs = (

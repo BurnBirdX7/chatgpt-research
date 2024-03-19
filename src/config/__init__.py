@@ -1,9 +1,9 @@
 
-from .BaseConfig import BaseConfig, DefaultValue
-from .EmbeddingsConfig import EmbeddingsConfig
-from .IndexConfig import IndexConfig
-from .LuceneConfig import LuceneConfig
-from .ServerConfig import ServerConfig
+from .base_config import BaseConfig, DefaultValue
+from .embeddings_config import EmbeddingsConfig
+from .index_config import IndexConfig
+from .lucene_config import LuceneConfig
+from .web_server_config import WebServerConfig
 from .ThresholdConfig import ThresholdConfig
-from .WikiConfig import WikiConfig
-from .WikiServerConfig import WikiServerConfig
+from .wiki_config import WikiConfig
+from .colbert_server_config import ColbertServerConfig

@@ -2,9 +2,7 @@ from typing import Callable
 
 import pytest
 
-from src.pipeline.nodes import BaseNode
-from src.pipeline.mapblock import map_block
-from src.pipeline.Pipeline import Pipeline
+from src.pipeline import BaseNode, map_block, Pipeline
 from src.pipeline.data_descriptors import *
 
 

@@ -1,9 +1,9 @@
 
-from .BaseConfig import BaseConfig, DefaultValue
+from .base_config import BaseConfig, DefaultValue
 from dataclasses import dataclass
 
 @dataclass
-class WikiServerConfig(BaseConfig):
+class ColbertServerConfig(BaseConfig):
     ip_address: str = DefaultValue('0.0.0.0')   # type: ignore
     port: int = DefaultValue(5678)              # type: ignore
 

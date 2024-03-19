@@ -4,9 +4,7 @@
 
 from scripts._elvis_data import elvis_related_articles
 from src import Index, EmbeddingsBuilder, OnlineWiki
-from src.config.EmbeddingsConfig import EmbeddingsConfig
-from src.config.IndexConfig import IndexConfig
-from src.config.WikiConfig import WikiConfig
+from src.config import EmbeddingsConfig, IndexConfig, WikiConfig
 
 
 # TODO: Review
