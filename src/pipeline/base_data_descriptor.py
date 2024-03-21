@@ -4,6 +4,7 @@ __all__ = ['BaseDataDescriptor', 'ValueType']
 
 import datetime
 import random
+import string
 from typing import Generic, TypeVar, Union
 from abc import abstractmethod, ABC
 
@@ -55,5 +56,5 @@ class BaseDataDescriptor(Generic[T], ABC):
         return time.strftime("%Y-%m-%d.%H-%M-%S")
 
     @staticmethod
-    def get_random_string() -> str:
-        return str(random.randint(111_111, 999_999))
+    def get_random_string(n: int = 16) -> str:
+        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=n))

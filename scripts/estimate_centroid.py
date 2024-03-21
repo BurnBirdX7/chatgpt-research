@@ -7,14 +7,14 @@ from src import EmbeddingsBuilder, OnlineWiki, Roberta
 from transformers import RobertaTokenizer, RobertaModel     # type: ignore
 from progress.bar import ChargingBar                        # type: ignore
 
-from src.config import EmbeddingsConfig
+from src.config import EmbeddingBuilderConfig
 
 
 def estimate_centroid(data: Iterable[str], tokenizer: RobertaTokenizer, model: RobertaModel) -> np.ndarray:
-    embedding_config = EmbeddingsConfig(tokenizer=tokenizer,
-                                        model=model,
-                                        normalize=False,
-                                        centroid_file=None)
+    embedding_config = EmbeddingBuilderConfig(tokenizer=tokenizer,
+                                              model=model,
+                                              normalize=False,
+                                              centroid_file=None)
 
     embedding_builder = EmbeddingsBuilder(embedding_config)
     embedding_builder.suppress_progress = True

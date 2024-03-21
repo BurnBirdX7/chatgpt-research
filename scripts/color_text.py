@@ -6,7 +6,7 @@ from scripts.build_index_from_potential_sources import build_index_from_potentia
 from src import EmbeddingsBuilder, Index, Roberta
 from typing import Dict, List, Optional
 
-from src.config import EmbeddingsConfig, IndexConfig
+from src.config import EmbeddingBuilderConfig, IndexConfig
 
 # from 'Childhood in Tupelo' section
 childhood_w_refs = (
@@ -42,7 +42,7 @@ def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
 
 def prob_test_wiki_with_colored(index: Index, text: str, expected_url: str,
                                 uniq_color: int) -> tuple[str, str, str]:
-    embeddings = EmbeddingsBuilder(EmbeddingsConfig(normalize=True)).from_text(text)
+    embeddings = EmbeddingsBuilder(EmbeddingBuilderConfig(normalize=True)).from_text(text)
 
     result_sources, result_dists = index.get_embeddings_source(embeddings)
     expected_count: int = 0

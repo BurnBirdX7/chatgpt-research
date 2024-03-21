@@ -1,6 +1,6 @@
 
 from .base_config import BaseConfig, DefaultValue
-from .embeddings_config import EmbeddingsConfig
+from .embeddings_config import EmbeddingBuilderConfig
 from .index_config import IndexConfig
 from .lucene_config import LuceneConfig
 from .web_server_config import WebServerConfig

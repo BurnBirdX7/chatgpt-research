@@ -14,7 +14,7 @@ from scripts._elvis_data import elvis_related_articles
 from src import Roberta, EmbeddingsBuilder, Index, OnlineWiki
 from transformers import RobertaForMaskedLM
 
-from src.config import EmbeddingsConfig, WikiConfig, IndexConfig
+from src.config import EmbeddingBuilderConfig, WikiConfig, IndexConfig
 
 tokenizer, model = Roberta.get_default()
 modelMLM = RobertaForMaskedLM.from_pretrained('roberta-large')
@@ -150,7 +150,7 @@ def generate_sequences(source_len: int, likelihoods: torch.Tensor,
 def color_main_with_chaining(input_text: str,
                              wiki_config: WikiConfig,
                              index: Index,
-                             embeddings_config: EmbeddingsConfig) -> str:
+                             embeddings_config: EmbeddingBuilderConfig) -> str:
     """
     Colors text when probable sources already defined
     :param input_text: text to color
@@ -279,5 +279,5 @@ if __name__ == "__main__":
     )
 
     index = Index.load(IndexConfig())  # Use default config, TODO: Maybe change
-    embeddings_builder = EmbeddingsBuilder(EmbeddingsConfig())
+    embeddings_builder = EmbeddingsBuilder(EmbeddingBuilderConfig())
     color_main_with_chaining(text, WikiConfig(elvis_related_articles))

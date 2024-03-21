@@ -7,11 +7,11 @@ from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from typing import List, Tuple, Optional, Callable, Dict
 
 from src import SourceMapping
-from src.config import EmbeddingsConfig
+from src.config import EmbeddingBuilderConfig
 
 
 class EmbeddingsBuilder:
-    def __init__(self, config: EmbeddingsConfig):
+    def __init__(self, config: EmbeddingBuilderConfig):
         self.tokenizer = config.tokenizer
         self.model = config.model
         self.max_sequence_length = self.model.config.max_position_embeddings
@@ -84,7 +84,6 @@ class EmbeddingsBuilder:
         :return: numpy array with dimensions (token_count, embedding_length)
                  token_count depends on text contents
         """
-
         input_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
         return self.from_ids(input_ids)
 

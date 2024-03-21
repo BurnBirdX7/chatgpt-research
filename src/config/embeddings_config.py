@@ -4,11 +4,11 @@ from typing import Optional
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 
 from .base_config import BaseConfig, DefaultValue
-from ..roberta import Roberta
+from src import Roberta
 
 
 @dataclass
-class EmbeddingsConfig(BaseConfig):
+class EmbeddingBuilderConfig(BaseConfig):
     tokenizer: RobertaTokenizer = DefaultValue(None)
     model: RobertaModel = DefaultValue(None)
     normalize: bool = DefaultValue(False)                           # type: ignore

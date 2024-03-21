@@ -14,7 +14,7 @@ from typing import Dict
 import lucene
 from search import Searcher
 from src import EmbeddingsBuilder, Index
-from src.config import EmbeddingsConfig, IndexConfig, LuceneConfig
+from src.config import EmbeddingBuilderConfig, IndexConfig, LuceneConfig
 
 
 def build_index_from_potential_sources(text: str,
@@ -47,7 +47,7 @@ def build_index_from_potential_sources(text: str,
         wikilink = f"https://en.wikipedia.org/wiki/{title}"
         return {wikilink: source_dict[title]}
 
-    builder = EmbeddingsBuilder(EmbeddingsConfig(normalize=True))
+    builder = EmbeddingsBuilder(EmbeddingBuilderConfig(normalize=True))
     embeddings, mapping = builder.from_sources(titles, source_provider)
     return Index.from_embeddings(embeddings, mapping, index_config)
 

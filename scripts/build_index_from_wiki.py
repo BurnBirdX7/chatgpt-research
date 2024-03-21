@@ -4,12 +4,12 @@
 
 from scripts._elvis_data import elvis_related_articles
 from src import Index, EmbeddingsBuilder, OnlineWiki
-from src.config import EmbeddingsConfig, IndexConfig, WikiConfig
+from src.config import EmbeddingBuilderConfig, IndexConfig, WikiConfig
 
 
 # TODO: Review
 def build_index_from_wiki(wiki_config: WikiConfig, index_config: IndexConfig) -> None:
-    builder = EmbeddingsBuilder(EmbeddingsConfig(normalize=True))
+    builder = EmbeddingsBuilder(EmbeddingBuilderConfig(normalize=True))
     sources = wiki_config.target_pages
     embeddings, mapping = builder.from_sources(sources, OnlineWiki.get_sections)
     Index.from_embeddings(embeddings, mapping, index_config).save()

@@ -9,7 +9,7 @@ from progress.bar import ChargingBar  # type: ignore
 
 from scripts._elvis_data import elvis_related_articles, elvis_unrelated_articles
 from src import Roberta, EmbeddingsBuilder, Index, OnlineWiki
-from src.config import EmbeddingsConfig, ThresholdConfig
+from src.config import EmbeddingBuilderConfig, ThresholdConfig
 
 
 def estimate_thresholds_on_index(index: Index,
@@ -26,7 +26,7 @@ def estimate_thresholds_on_index(index: Index,
 
     count = len(config.data) // 10
     pages = random.choices(list(config.data.items()), k=count)
-    embedding_builder = EmbeddingsBuilder(EmbeddingsConfig(tokenizer, model, normalize=True))
+    embedding_builder = EmbeddingsBuilder(EmbeddingBuilderConfig(tokenizer, model, normalize=True))
     embedding_builder.suppress_progress = True
 
     positives = []

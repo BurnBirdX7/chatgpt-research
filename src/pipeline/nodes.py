@@ -121,7 +121,6 @@ class BaseNode(Node, ABC):
 
 
 class ConstantNode(BaseNode, ABC):
-
     def __init__(self, name: str, value: Any, out_descriptor: BaseDataDescriptor):
         super().__init__(name, [], out_descriptor)
         self.value = value
