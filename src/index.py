@@ -6,13 +6,14 @@ import pandas as pd  # type: ignore
 import numpy as np
 
 from . import EmbeddingsBuilder
-from .pipeline import BaseDataDescriptor, base_data_descriptor, BaseNode
+from .pipeline import BaseDataDescriptor, base_data_descriptor, BaseNode, ListDescriptor
 from .source_mapping import SourceMapping
 
 __all__ = [
     'Index',
     'IndexDescriptor',
-    'IndexFromSourcesNode'
+    'IndexFromSourcesNode',
+    'SearchIndexNode'
 ]
 
 from .config import IndexConfig, EmbeddingBuilderConfig
@@ -140,6 +141,10 @@ class IndexDescriptor(BaseDataDescriptor[Index]):
 
 
 class IndexFromSourcesNode(BaseNode):
+    """
+    Node processes dictionary (source_name -> source_text) into Index that can be searched
+    """
+
     def __init__(self, name: str, embedding_builder_config: EmbeddingBuilderConfig):
         super().__init__(name,
                          [dict],
@@ -170,6 +175,9 @@ class IndexFromSourcesNode(BaseNode):
 
 
 class SearchIndexNode(BaseNode):
+    def __init__(self, name: str):
+        super().__init__(name, [Index, np.ndarray], ListDescriptor())
+
     def process(self, index: Index, embeddings: np.ndarray) -> List[str]:
         """
         Returns a list of sources for given embeddings

@@ -3,7 +3,10 @@ from __future__ import annotations
 import datetime
 import json
 import os.path
-from typing import Any, cast, Dict, Set, List
+from typing import Any, Dict, Set, List
+
+import networkx as nx
+from matplotlib import pyplot as plt
 
 from src.config import BaseConfig
 from src.pipeline.nodes import Node
@@ -203,6 +206,43 @@ class Pipeline:
     @staticmethod
     def format_time(time: datetime.datetime) -> str:
         return time.strftime("%Y-%m-%d.%H-%M-%S")
+
+    def draw(self):
+        g = self.__into_networkx()
+        colors = []
+        for node in g.nodes():
+            if node == "$input":
+                colors.append("tab:green")
+            elif node == self.output_node.name:
+                colors.append("tab:red")
+            else:
+                colors.append("skyblue")
+
+        edge_labels = {}
+        for u, vs in self.__source_graph.items():
+            for v in vs:
+                if v in self.nodes:
+                    typ = self.nodes[v].out_type
+                else:
+                    typ = self.in_type
+                edge_labels[(v, u)] = typ.__name__
+
+        layout = nx.kamada_kawai_layout(g, pos=nx.circular_layout(g) | {'$input': (-1, 1)})
+        nx.draw(g,
+                pos=layout,
+                node_size=1500,
+                with_labels=True,
+                node_color=colors,
+                edge_color="grey")
+        nx.draw_networkx_edge_labels(g, layout, edge_labels=edge_labels, label_pos=0.15)
+
+    def show(self):
+        plt.figure(1, figsize=(10, 10))
+        self.draw()
+        plt.show()
+
+    def __into_networkx(self) -> nx.Graph:
+        return nx.DiGraph(self.__source_graph).reverse()
 
     def __run(self, _input: Any, history: Dict[str, str], cached_data: Dict[str, Any]) -> Any:
         """

@@ -10,7 +10,14 @@ from src.pipeline.data_descriptors import DictDescriptor
 from src.config import ColbertServerConfig
 
 
-class QuerySources(BaseNode):
+class QuerySourcesNode(BaseNode):
+    """
+    Node accepts request and queries possible sources from colbert index
+
+    Returns dictionary (source_url -> source_text)
+
+    Prerequisite: colbert server must be running
+    """
 
     def __init__(self, name: str, config: ColbertServerConfig):
         super().__init__(name, [str], DictDescriptor())

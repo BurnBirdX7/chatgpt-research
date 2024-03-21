@@ -5,11 +5,11 @@ __all__ = ['BaseDataDescriptor', 'ValueType']
 import datetime
 import random
 import string
-from typing import Generic, TypeVar, Union
+from typing import Generic, TypeVar, Union, List, Dict
 from abc import abstractmethod, ABC
 
 T = TypeVar('T')
-ValueType = Union[int, float, str, list, dict]
+ValueType = Union[int, float, str, list, dict, List["ValueType"], Dict[str, "ValueType"]]
 
 class BaseDataDescriptor(Generic[T], ABC):
     def __init__(self):

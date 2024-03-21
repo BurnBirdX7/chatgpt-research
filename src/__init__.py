@@ -7,4 +7,4 @@ from .chat import Dialogue, Chat, Question
 from .wiki_data_file import WikiDataFile, ListWikiFileDescriptor
 from .bz2_unpack import Bz2Unpack
 from .find_bz2_files import FindBz2Files
-from .query_sources import QuerySources
+from .query_sources import QuerySourcesNode

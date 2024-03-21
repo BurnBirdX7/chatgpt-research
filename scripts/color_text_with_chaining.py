@@ -1,5 +1,3 @@
-import copy
-import math
 import time
 from datetime import datetime
 from typing import Tuple, List, Set, Optional, Dict
@@ -46,38 +44,6 @@ source_text_template_str = "<a class=\"{{ color }}\"><i>{{ token }}</i></a>\n"
 source_item_str = "<a href=\"{{ link }}\" class=\"{{ color }}\">{{ link }}</a></br>\n"
 
 
-def generate_sequences(source_len: int, likelihoods: torch.Tensor,
-                       token_ids: List[int], token_start_pos: int, source: str) -> List[Chain]:
-    """
-    Generates chains of tokens with the same source
-    """
-    result_chains: List[Chain] = []
-
-    for source_start_pos in range(0, source_len):
-        chain = Chain(source)
-        shift_upper_bound = min(source_len - source_start_pos, len(token_ids) - token_start_pos)
-        for shift in range(0, shift_upper_bound):
-            token_pos = token_start_pos + shift
-            source_pos = source_start_pos + shift
-
-            assert token_pos < len(token_ids)
-            assert source_pos < source_len
-
-            token_curr_id = token_ids[token_pos]
-            token_curr_likelihood = likelihoods[source_pos][token_curr_id].item()
-
-            if token_curr_likelihood < 1e-5:
-                chain.skip()
-                if chain.skips > 3:
-                    break
-            else:
-                chain.append(token_curr_likelihood, token_pos)
-                if len(chain) > 1:
-                    result_chains.append(copy.deepcopy(chain))
-
-    return result_chains
-
-
 def color_main_with_chaining(input_text: str,
                              wiki_config: WikiConfig,
                              index: Index,
@@ -98,15 +64,15 @@ def color_main_with_chaining(input_text: str,
     sources, result_dists = index.get_embeddings_source(input_embeddings)
     print("sources:", sources, "result_ids dists:", result_dists, "\n\n")
 
-    tokenized_input = tokenizer.tokenize(input_text)  # разбиваем на токены входную строку с гпт
-    print("tokens:", tokenized_input, "\n\n")  # все токены разбитые из input
+    input_tokens = tokenizer.tokenize(input_text)  # разбиваем на токены входную строку с гпт
+    print("tokens:", input_tokens, "\n\n")  # все токены разбитые из input
+    input_token_ids = tokenizer.convert_tokens_to_ids(input_tokens)
 
-    gpt_token_ids = tokenizer.convert_tokens_to_ids(tokenized_input)
     sourcetext_dict = OnlineWiki.get_sections(wiki_config.target_pages)
 
     start_time = time.perf_counter()
     result_chains = []
-    for token_pos, (token, token_id, source) in enumerate(zip(tokenized_input, gpt_token_ids, sources)):
+    for token_pos, (token, token_id, source) in enumerate(zip(input_tokens, input_token_ids, sources)):
         wiki_text = sourcetext_dict[source]
         wiki_token_ids = tokenizer.encode(wiki_text, return_tensors='pt').squeeze()
 
@@ -124,7 +90,7 @@ def color_main_with_chaining(input_text: str,
 
             wiki_logits = output_page[0].squeeze()
             likelihoods = torch.nn.functional.softmax(wiki_logits, dim=1)
-            result_chains += generate_sequences(len(wiki_logits), likelihoods, gpt_token_ids, token_pos, source)
+            result_chains += Chain.generate_chains(len(wiki_logits), likelihoods, input_token_ids, token_pos, source)
 
     print("All sequences: ")
     for chain in result_chains:
@@ -146,7 +112,7 @@ def color_main_with_chaining(input_text: str,
     print(f"Time: {time.perf_counter() - start_time} s.")
 
     # prepare tokens for coloring
-    tokens_for_coloring = map(lambda s: tokenizer.convert_tokens_to_string([s]), tokenized_input)
+    tokens_for_coloring = map(lambda s: tokenizer.convert_tokens_to_string([s]), input_tokens)
 
     # prepare links for coloring
     pos2chain: Dict[int, Chain] = {}
