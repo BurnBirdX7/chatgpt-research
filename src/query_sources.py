@@ -43,5 +43,20 @@ class QuerySources(BaseNode):
                 dic['source_url']: dic['text']
                 for dic in req_lst
             })
+        conn.close()
 
         return accumulated_sources
+
+    def prerequisite_check(self) -> str | None:
+        conn = http.client.HTTPConnection(self.config.ip_address, self.config.port)
+        try:
+            conn.request("GET", self.config.api_ping_path)
+            text = conn.getresponse().read().decode('utf-8')
+            if text != "colbert-pong":
+                return f"Request was successful but resulted in unexpected response: {text}"
+
+        except Exception as e:
+            return f"Couldn't make a request to colbert server"
+
+        finally:
+            conn.close()

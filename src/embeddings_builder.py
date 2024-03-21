@@ -1,13 +1,18 @@
+from __future__ import annotations
+
+import os.path
+
 import faiss  # type: ignore
 from progress.bar import ChargingBar  # type: ignore
 import torch  # type: ignore
 import numpy as np
 
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
-from typing import List, Tuple, Optional, Callable, Dict
+from typing import List, Tuple, Optional, Callable, Dict, Any
 
-from src import SourceMapping
-from src.config import EmbeddingBuilderConfig
+from .source_mapping import SourceMapping
+from .config import EmbeddingBuilderConfig
+from .pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor
 
 
 class EmbeddingsBuilder:
@@ -116,3 +121,40 @@ class EmbeddingsBuilder:
             embeddings = np.concatenate([embeddings, page_embeddings])
 
         return embeddings, src_map
+
+
+class NDArrayDescriptor(BaseDataDescriptor[np.ndarray]):
+
+    def store(self, data: np.ndarray) -> Dict[str, base_data_descriptor.ValueType]:
+        filename = f"ndarray-{self.get_timestamp_str()}-{self.get_random_string(4)}.npy"
+        path = os.path.join(self.artifacts_folder, filename)
+        with open(path, "wb") as f:
+            np.save(f, data)
+
+        return {
+            "path": os.path.abspath(path)
+        }
+
+    def load(self, dic: Dict[str, base_data_descriptor.ValueType]) -> np.ndarray:
+        path = dic["path"]
+        with open(path, "rb") as f:
+            return np.load(f)
+
+    def get_data_type(self) -> type:
+        return np.ndarray
+
+
+class EmbeddingsFromTextNode(BaseNode):
+    def __init__(self, name: str, config: EmbeddingBuilderConfig):
+        super().__init__(name, [str], NDArrayDescriptor())
+        self.eb_config = config
+
+    def process(self, text: str) -> np.ndarray:
+        eb = EmbeddingsBuilder(self.eb_config)
+        return eb.from_text(text)
+
+    def prerequisite_check(self) -> str | None:
+        centroid_file = self.eb_config.centroid_file
+        if centroid_file is not None:
+            if not os.path.exists(centroid_file):
+                return f"Centroid file \"{self.eb_config.centroid_file}\" is specified but doesn't exist"

@@ -95,7 +95,7 @@ def api_search_query(query: str, k: str | None):
     return {"query" : query, "topk": topk[:100]}
 
 
-def wiki_server(config: ColbertServerConfig):
+def colbert_server(config: ColbertServerConfig):
     app = Flask(__name__)
 
     @app.route("/api/search", methods=["GET"])
@@ -121,13 +121,12 @@ def wiki_server(config: ColbertServerConfig):
 
     @app.route("/api/ping", methods=["GET"])
     def api_ping():
-        return "pong"
+        return "colbert-pong"
 
     global searchers
     searchers = init_searchers(INDEX_ROOT)
-    app.run(wikiConfig.ip_address, wikiConfig.port)
+    app.run(config.ip_address, config.port)
 
 
 if __name__ == "__main__":
-    wikiConfig = ColbertServerConfig.load_from_env()
-    wiki_server(wikiConfig)
+    colbert_server(ColbertServerConfig.load_from_env())

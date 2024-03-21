@@ -99,16 +99,31 @@ class Index:
 
 
 class IndexDescriptor(BaseDataDescriptor[Index]):
-    def store(self, data: Index) -> dict[str, base_data_descriptor.ValueType]:
+    def store(self, data: Index) -> Dict[str, base_data_descriptor.ValueType]:
+
+        # Generate names for files:
+        output_folder = self.artifacts_folder
+        time_str = self.get_timestamp_str()
+        rand_str = self.get_random_string(2)
+        index_file_name = os.path.join(output_folder, f'{time_str}-{rand_str}.faiss_index')
+        mapping_file_name = os.path.join(output_folder, f'{time_str}-{rand_str}.mapping.csv')
+
+        # Replace current config names with the generated
+        data.config.index_file = index_file_name
+        data.config.mapping_file = mapping_file_name
+
+        # Save
         data.save()
+
+        # Return data
         return {
-            'index_file': os.path.abspath(data.config.index_file),
-            'mapping_file': os.path.abspath(data.config.mapping_file),
+            'index_file': os.path.abspath(index_file_name),
+            'mapping_file': os.path.abspath(mapping_file_name),
             'threshold': data.config.threshold,
             'use_gpu': str(data.config.faiss_use_gpu),
         }
 
-    def load(self, dic: dict[str, base_data_descriptor.ValueType]) -> Index:
+    def load(self, dic: Dict[str, base_data_descriptor.ValueType]) -> Index:
         index_file = dic['index_file']
         mapping_file = dic['mapping_file']
         threshold = dic['threshold']
@@ -120,14 +135,14 @@ class IndexDescriptor(BaseDataDescriptor[Index]):
             faiss_use_gpu=bool(use_gpu),
         ))
 
-    def get_data_type(self) -> type[Index]:
+    def get_data_type(self) -> type:
         return Index
 
 
 class IndexFromSourcesNode(BaseNode):
     def __init__(self, name: str, embedding_builder_config: EmbeddingBuilderConfig):
         super().__init__(name,
-                         [str],
+                         [dict],
                          IndexDescriptor())
         self.eb_config = embedding_builder_config
 
@@ -135,18 +150,7 @@ class IndexFromSourcesNode(BaseNode):
         """
         Accepts a dictionary (source_name -> source_text)
         """
-
-        # Configuration of the index:
-        output_folder = self.out_descriptor.artifacts_folder
-        time_str = self.out_descriptor.get_timestamp_str()
-        rand_str = self.out_descriptor.get_random_string(2)
-        index_file_name = os.path.join(output_folder, f'{time_str}-{rand_str}.faiss_index')
-        mapping_file_name = os.path.join(output_folder, f'{time_str}-{rand_str}.mapping.csv')
-
-        index_cfg = IndexConfig(
-            index_file=index_file_name,
-            mapping_file=mapping_file_name,
-        )
+        index_cfg = IndexConfig()
 
         # Build embeddings
         eb = EmbeddingsBuilder(self.eb_config)
@@ -165,5 +169,10 @@ class IndexFromSourcesNode(BaseNode):
         return Index.from_embeddings(all_embeddings, mapping, index_cfg)
 
 
-
-
+class SearchIndexNode(BaseNode):
+    def process(self, index: Index, embeddings: np.ndarray) -> List[str]:
+        """
+        Returns a list of sources for given embeddings
+        """
+        sources, dists = index.get_embeddings_source(embeddings)
+        return sources

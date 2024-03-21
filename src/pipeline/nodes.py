@@ -62,6 +62,14 @@ class Node(ABC):
     def process(self, *inp) -> Any:
         ...
 
+    def prerequisite_check(self) -> str | None:
+        """
+        Override this method to check if the prerequisites are met BEFORE running the pipeline
+
+        :return: None if everything is ok, or error if prerequisites are not met
+        """
+        return None
+
 
 class BaseNode(Node, ABC):
 

@@ -23,12 +23,19 @@ class Pipeline:
     """
 
     def __init__(self: "Pipeline", inp: Node):
+
+        if len(inp.in_types) > 1:
+            raise ValueError("First node must accept zero or one parameter")
+        elif len(inp.in_types) == 1:
+            self.in_type = inp.in_types[0]
+        else:
+            self.in_type = type(None)
+
         self.input_node = inp
         self.output_node = inp
         self.artifacts_folder = "pipe-artifacts"
-        self.in_types = inp.in_types
         self.nodes: Dict[str, Node] = {inp.name: inp}  # All Blocks in the pipeline
-        self.execution_order = [inp]
+        self.execution_plan = [inp]
 
         self.__must_cache_output: Set[str] = set()  # Set of blocks whose output should be cached
         self.__source_graph: Dict[str, List[str]] = {inp.name: ["$input"]}  # Edges point towards data source
@@ -57,7 +64,7 @@ class Pipeline:
             self.__must_cache_output |= {input_node.name}
 
         # Set the node into place
-        self.__set_node(new_node, [input_node])
+        self.__set_node(new_node, [input_node.name])
         return self
 
     def attach(self,
@@ -79,37 +86,32 @@ class Pipeline:
         if new_node.name in self.__source_graph:
             raise ValueError(f"Block with name '{new_node.name}' already exists in the pipeline")
 
-        inputs: List[Node] = []
+        input_types: List[type] = []
         for name in input_names:
-            if name not in self.nodes:
-                raise ValueError(f"Block with name '{new_node.name}' does not exist in the pipeline")
-
-            inp_block = self.nodes[name]
-            inputs.append(inp_block)
+            if name == "$input":
+                input_types.append(self.in_type)
+            elif name in self.nodes:
+                input_types.append(self.nodes[name].out_type)
+            else:
+                raise ValueError(f"Block with name '{name}' does not exist in the pipeline")
 
         # Check type compatibility
-        input_types: List[type] = [node.out_type for node in inputs]
         if not new_node.is_input_type_acceptable(input_types):
             raise TypeError(f"Node \"{new_node.name}\" expects types: {new_node.in_types}. "
                             f"Got types: {input_types}")
 
         # Set the node in place
-        self.__set_node(new_node, inputs)
+        self.__set_node(new_node, list(input_names))
         self.__must_cache_output |= {name
                                      for name in input_names
                                      if name != self.output_node.name}
 
         return self
 
-    def __set_node(self, new_node: Node, inputs: list[Node]):
-        def get_name(b: Node) -> str:
-            return b.name
-
-        names = list(map(get_name, inputs))
-
+    def __set_node(self, new_node: Node, input_names: list[str]):
         # Update graph and execution order
-        self.execution_order.append(new_node)
-        self.__source_graph[new_node.name] = names
+        self.execution_plan.append(new_node)
+        self.__source_graph[new_node.name] = input_names
 
         # General structure updated
         self.nodes[new_node.name] = new_node
@@ -170,9 +172,9 @@ class Pipeline:
             dic_filename = os.path.join(history_dir, dic_filename)
             inp = self.__load_data(block_name, dic_filename)
 
-        exec_order = self.execution_order
-        idx = self.execution_order.index(self.nodes[block_name])
-        self.execution_order = self.execution_order[idx+1:]
+        old_execution_plan = self.execution_plan
+        start_node_idx = self.execution_plan.index(self.nodes[block_name])
+        self.execution_plan = self.execution_plan[start_node_idx + 1:]
 
         try:
             return self.__run(inp, history, cached_data), history
@@ -180,7 +182,7 @@ class Pipeline:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
             self.__save_history(beginning_time, history)
-            self.execution_order = exec_order  # restore execution order
+            self.execution_plan = old_execution_plan  # restore execution order
 
     def set_artifacts_folder(self, artifacts_folder: str):
         self.artifacts_folder = artifacts_folder
@@ -208,6 +210,12 @@ class Pipeline:
         :param history: dictionary where key is the name of the block and the value is name of the file with essential information
         """
 
+        # Check prerequisites:
+        for node in self.execution_plan:
+            r = node.prerequisite_check()
+            if r is not None:
+                raise ValueError(f"Prerequisite check failed for node \"{node.name}\": {r}")
+
         if not os.path.exists(self.artifacts_folder):
             os.mkdir(self.artifacts_folder)
 
@@ -215,7 +223,7 @@ class Pipeline:
         prev_node_name: str = "$input"
 
         # Execution:
-        for cur_node in self.execution_order:
+        for cur_node in self.execution_plan:
             # Construct input for the current block
             source_names = self.__source_graph[cur_node.name]
             cur_input_data = []
