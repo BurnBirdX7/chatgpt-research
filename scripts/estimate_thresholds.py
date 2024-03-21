@@ -27,7 +27,7 @@ def estimate_thresholds_on_index(index: Index,
     count = len(config.data) // 10
     pages = random.choices(list(config.data.items()), k=count)
     embedding_builder = EmbeddingsBuilder(EmbeddingBuilderConfig(tokenizer, model, normalize=True))
-    embedding_builder.suppress_progress = True
+    embedding_builder.suppress_progress_report = True
 
     positives = []
     negatives = []

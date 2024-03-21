@@ -25,7 +25,7 @@ class BaseConfig:
         for field in fields(self):
             if isinstance(field.default, DefaultValue):
                 val = getattr(self, field.name)
-                if isinstance(val, DefaultValue) or val is None:
+                if isinstance(val, DefaultValue):
                     setattr(self, field.name, field.default.val)
 
     def get(self, key: str) -> Any:

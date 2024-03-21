@@ -1,23 +1,23 @@
 from flask import Flask, render_template, request
 
-# from test.color_build_data import main
-from scripts.color_text_with_chaining import color_main_with_chaining
-from src.config import WikiConfig
-from scripts._elvis_data import elvis_related_articles
+from scripts.color_pipeline import get_coloring_pipeline
 
 app = Flask(__name__)
 
-
 @app.route("/", methods=['GET', 'POST'])
-def input_text():
-    return render_template('template_of_start_page.html')
+def request_page():
+    return render_template('root_page.html')
 
 
 @app.route("/result", methods=['POST'])
-def result():
+def result_page():
     user_input = request.form['user_input']
-    file = color_main_with_chaining(user_input, WikiConfig(elvis_related_articles))
-    return render_template(file)
+
+    coloring_pipeline = get_coloring_pipeline()
+
+    pos2chain, _ = coloring_pipeline.run(user_input)
+
+    return
 
 
 if __name__ == "__main__":

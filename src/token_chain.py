@@ -6,7 +6,7 @@ import torch
 from typing import Optional, List, Set, Any, Dict
 
 from src.config import EmbeddingBuilderConfig
-from src.pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor
+from src.pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor, DictDescriptor
 
 
 class Chain:
@@ -154,16 +154,16 @@ class ChainListDescriptor(BaseDataDescriptor):
 class ChainingNode(BaseNode):
     def __init__(self, name: str, embedding_builder_config: EmbeddingBuilderConfig):
         super().__init__(name, [str, list, dict], ChainListDescriptor())
-        self.en_config = embedding_builder_config
+        self.eb_config = embedding_builder_config
 
     def process(self, input_text: str, sources: List[str], sources_data: Dict[str, str], *ignore) -> Any:
-        input_tokens = self.en_config.tokenizer.tokenize(input_text)
-        input_token_ids = self.en_config.tokenizer.convert_tokens_to_ids(input_tokens)
+        input_tokens = self.eb_config.tokenizer.tokenize(input_text)
+        input_token_ids = self.eb_config.tokenizer.convert_tokens_to_ids(input_tokens)
 
         result_chains = []
         for token_pos, (token, token_id, source) in enumerate(zip(input_tokens, input_token_ids, sources)):
             wiki_text = sources_data[source]
-            wiki_token_ids = self.en_config.tokenizer.encode(wiki_text, return_tensors='pt').squeeze()
+            wiki_token_ids = self.eb_config.tokenizer.encode(wiki_text, return_tensors='pt').squeeze()
             print(f"> token: '{token}', "
                   f"id: {token_id}, "
                   f"source token count: {len(wiki_token_ids)}, "
@@ -178,7 +178,7 @@ class ChainingNode(BaseNode):
                 wiki_token_ids_batch = wiki_token_ids_batch.unsqueeze(0)
 
                 with torch.no_grad():
-                    output_page = self.en_config.model(wiki_token_ids_batch)
+                    output_page = self.eb_config.model(wiki_token_ids_batch)
 
                 wiki_logits = output_page[0].squeeze()
                 likelihoods = torch.nn.functional.softmax(wiki_logits, dim=1)
@@ -186,3 +186,58 @@ class ChainingNode(BaseNode):
                                                        source)
 
         return result_chains
+
+
+class FilterChainsNode(BaseNode):
+    """
+    Removes intersections between chains giving priority to chains with higher score
+    """
+
+    def __init__(self, name: str):
+        super().__init__(name, [list], ChainListDescriptor())
+
+    def process(self, chains: List[Chain]) -> List[Chain]:
+        filtered_chains: List[Chain] = []
+        marked_positions: Set[int] = set()
+        for chain in sorted(chains, key=lambda x: x.get_score(), reverse=True):
+            positions = chain.get_token_positions()
+            marked_positions_inside_chain = marked_positions.intersection(positions)
+            if len(marked_positions_inside_chain) == 0:
+                marked_positions |= positions
+                filtered_chains.append(chain)
+
+        return chains
+
+
+class Pos2ChainMappingDescriptor(BaseDataDescriptor[Dict[int, Chain]]):
+
+    def store(self, data: Dict[int, Chain]) -> dict[str, base_data_descriptor.ValueType]:
+        return {
+            str(pos): chain.to_dict()
+            for pos, chain in data.items()
+        }
+
+    def load(self, dic: dict[str, base_data_descriptor.ValueType]) -> Dict[int, Chain]:
+        return {
+            int(pos_str): Chain.from_dict(chain_dict)
+            for pos_str, chain_dict in dic.items()
+        }
+
+    def get_data_type(self) -> type:
+        return dict
+
+
+class Pos2ChainMapNode(BaseNode):
+    """
+    Converts a list of NON-INTERSECTING chains into mapping (pos -> chain)
+    """
+    def __init__(self, name: str):
+        super().__init__(name, [list], DictDescriptor())
+
+    def process(self, chains: List[Chain]) -> Dict[int, Chain]:
+        pos2chain: Dict[int, Chain] = {}
+        for i, chain in enumerate(chains):
+            for pos in chain.get_token_positions():
+                pos2chain[pos] = chain
+
+        return pos2chain

@@ -8,7 +8,6 @@ from typing import Any, Dict, Set, List
 import networkx as nx
 from matplotlib import pyplot as plt
 
-from src.config import BaseConfig
 from src.pipeline.nodes import Node
 
 PipelineHistory = Dict[str, str]
@@ -124,7 +123,7 @@ class Pipeline:
     def run(self, inp: Any = None) -> tuple[Any, PipelineHistory]:
         typs = [type(inp)]
         if not self.input_node.is_input_type_acceptable(typs):
-            raise TypeError(f"Expected types {self.in_types} but got {typs}")
+            raise TypeError(f"Expected type {self.in_type} but got {typs}")
 
         history: Dict[str, str] = {"$input": inp}
         beginning_time = datetime.datetime.now()
@@ -168,12 +167,12 @@ class Pipeline:
             dic_filename = os.path.join(history_dir, dic_filename)
             cached_data[cached_block_name] = self.__load_data(cached_block_name, dic_filename)
 
-        if block_name in cached_data:
-            inp = cached_data[block_name]
-        else:
-            dic_filename = history[block_name]
-            dic_filename = os.path.join(history_dir, dic_filename)
-            inp = self.__load_data(block_name, dic_filename)
+        # Load original $input:
+        if "$input" in self.__must_cache_output:
+            cached_data["$input"] = self.in_type(history["$input"])
+
+        # Set `resume` input
+        inp = cached_data[block_name]
 
         old_execution_plan = self.execution_plan
         start_node_idx = self.execution_plan.index(self.nodes[block_name])
@@ -207,17 +206,7 @@ class Pipeline:
     def format_time(time: datetime.datetime) -> str:
         return time.strftime("%Y-%m-%d.%H-%M-%S")
 
-    def draw(self):
-        g = self.__into_networkx()
-        colors = []
-        for node in g.nodes():
-            if node == "$input":
-                colors.append("tab:green")
-            elif node == self.output_node.name:
-                colors.append("tab:red")
-            else:
-                colors.append("skyblue")
-
+    def draw_network(self, ax, g, colors, exec_edges):
         edge_labels = {}
         for u, vs in self.__source_graph.items():
             for v in vs:
@@ -226,23 +215,65 @@ class Pipeline:
                 else:
                     typ = self.in_type
                 edge_labels[(v, u)] = typ.__name__
+        edge_labels[(self.output_node.name, "$output")] = self.output_node.out_type.__name__
+        g1 = g.copy()
+        g1.add_edges_from(exec_edges)
 
-        layout = nx.kamada_kawai_layout(g, pos=nx.circular_layout(g) | {'$input': (-1, 1)})
+        layout = nx.kamada_kawai_layout(g1, pos=nx.circular_layout(g) | {'$input': (-1, 1)})
+        nx.draw_networkx(g, layout, ax=ax, node_size=1500, node_color=colors, with_labels=True)
+        nx.draw_networkx_edges(g, layout, ax=ax, node_size=1500, edgelist=exec_edges, edge_color="tab:red",
+                               connectionstyle="arc3,rad=0.35")
+        nx.draw_networkx_edges(g, layout, ax=ax, node_size=1500, edge_color="grey")
+        nx.draw_networkx_edge_labels(g, layout, ax=ax, edge_labels=edge_labels, label_pos=0.30)
+
+    def draw_execution(self, ax, g, colors, exec_edges):
+        g = self.__into_networkx()
+
+        node_count = len(self.execution_plan)
+        distance = 2 / (node_count + 1)
+        layout = {
+                     node.name: (-1 + (i + 1) * distance, 0)
+                     for i, node in enumerate(self.execution_plan)
+                 } | { "$input": (-1, 0), "$output": (+1, 0) }
+
         nx.draw(g,
                 pos=layout,
-                node_size=1500,
-                with_labels=True,
+                ax=ax,
+                edgelist=exec_edges,
+                node_size=500,
                 node_color=colors,
-                edge_color="grey")
-        nx.draw_networkx_edge_labels(g, layout, edge_labels=edge_labels, label_pos=0.15)
+                edge_color="tab:red")
+
+    def draw(self, ax1, ax2):
+        g = self.__into_networkx()
+        colors = []
+        for node in g.nodes():
+            if node == "$input":
+                colors.append("tab:green")
+            elif node == "$output":
+                colors.append("tab:red")
+            else:
+                colors.append("skyblue")
+
+        exec_edges = [("$input", self.input_node.name)]
+        for i in range(len(self.execution_plan) - 1):
+            exec_edges.append((self.execution_plan[i].name, self.execution_plan[i + 1].name))
+        exec_edges.append((self.output_node.name, "$output"))
+
+        self.draw_network(ax1, g, colors, exec_edges)
+        self.draw_execution(ax2, g, colors, exec_edges)
+        ax1.set_title("Data flow")
+        ax2.set_title("Execution order")
 
     def show(self):
-        plt.figure(1, figsize=(10, 10))
-        self.draw()
+        fix, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12), height_ratios=[11.6, 0.4])
+        self.draw(ax1, ax2)
         plt.show()
 
     def __into_networkx(self) -> nx.Graph:
-        return nx.DiGraph(self.__source_graph).reverse()
+        g = nx.DiGraph(self.__source_graph).reverse()
+        g.add_edge(self.output_node.name, "$output")
+        return g
 
     def __run(self, _input: Any, history: Dict[str, str], cached_data: Dict[str, Any]) -> Any:
         """

@@ -24,7 +24,7 @@ class EmbeddingsBuilder:
         self.normalize = config.normalize
         print(f"Embedding normalization: {self.normalize}")
 
-        self.suppress_progress = False
+        self.suppress_progress_report = False
 
         if config.centroid_file is not None:
             self.centroid = np.load(config.centroid_file)
@@ -48,7 +48,7 @@ class EmbeddingsBuilder:
         previous_half: Optional[np.ndarray] = None
 
         iterable = range(0, len(input_ids), window_step)
-        if not self.suppress_progress:
+        if not self.suppress_progress_report:
             iterable = ChargingBar('Embeddings').iter(iterable)
 
         for i in iterable:
