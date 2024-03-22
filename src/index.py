@@ -130,9 +130,9 @@ class IndexDescriptor(BaseDataDescriptor[Index]):
         threshold = dic['threshold']
         use_gpu = dic['use_gpu']
         return Index.load(IndexConfig(
-            index_file=index_file,
-            mapping_file=mapping_file,
-            threshold=threshold,
+            index_file=str(index_file),
+            mapping_file=str(mapping_file),
+            threshold=float(threshold), # type: ignore
             faiss_use_gpu=bool(use_gpu),
         ))
 

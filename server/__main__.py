@@ -1,10 +1,15 @@
 from flask import Flask, render_template, request
 
 from scripts.color_pipeline import get_coloring_pipeline
+from server.render_colored_text import render_colored_text
 
 app = Flask(__name__)
 
-@app.route("/", methods=['GET', 'POST'])
+coloring_pipeline = get_coloring_pipeline()
+coloring_pipeline.check_prerequisites()
+coloring_pipeline.force_caching("input-tokenized")
+
+@app.route("/", methods=['GET'])
 def request_page():
     return render_template('root_page.html')
 
@@ -13,11 +18,10 @@ def request_page():
 def result_page():
     user_input = request.form['user_input']
 
-    coloring_pipeline = get_coloring_pipeline()
+    pos2chain, _, cache = coloring_pipeline.run(user_input)
+    tokens = cache["input-tokenized"]
 
-    pos2chain, _ = coloring_pipeline.run(user_input)
-
-    return
+    return render_colored_text(user_input, tokens, pos2chain)
 
 
 if __name__ == "__main__":

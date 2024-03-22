@@ -10,19 +10,19 @@ from src.pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor, Dic
 
 
 class Chain:
-    begin_pos: Optional[int]
-    end_pos: Optional[int]
+    begin_pos: int
+    end_pos: int
     likelihoods: List[float]
     skips: int = 0
     source: str
 
     def __init__(self, source: str,
-                 begin_pos: Optional[int] = None,
-                 end_pos: Optional[int] = None,
+                 begin_pos: int = None,   # type: ignore
+                 end_pos: int = None,     # type: ignore
                  likelihoods: Optional[List[float]] = None,
                  skips: int = 0):
-        self.begin_pos = begin_pos
-        self.end_pos = end_pos
+        self.begin_pos: int = begin_pos
+        self.end_pos: int = end_pos
         self.likelihoods = [] if (likelihoods is None) else likelihoods
         self.source = source
         self.skips = skips
@@ -143,8 +143,8 @@ class ChainListDescriptor(BaseDataDescriptor):
 
     def load(self, dic: dict[str, base_data_descriptor.ValueType]) -> List[Chain]:
         return [
-            Chain.from_dict(d)
-            for d in dic["chains"]
+            Chain.from_dict(d)      # type: ignore
+            for d in dic["chains"]  # type: ignore
         ]
 
     def get_data_type(self) -> type[list]:
@@ -156,7 +156,7 @@ class ChainingNode(BaseNode):
         super().__init__(name, [str, list, dict], ChainListDescriptor())
         self.eb_config = embedding_builder_config
 
-    def process(self, input_text: str, sources: List[str], sources_data: Dict[str, str], *ignore) -> Any:
+    def process(self, input_text: str, sources: List[str], sources_data: Dict[str, str]) -> Any:
         input_tokens = self.eb_config.tokenizer.tokenize(input_text)
         input_token_ids = self.eb_config.tokenizer.convert_tokens_to_ids(input_tokens)
 
@@ -198,7 +198,7 @@ class FilterChainsNode(BaseNode):
 
     def process(self, chains: List[Chain]) -> List[Chain]:
         filtered_chains: List[Chain] = []
-        marked_positions: Set[int] = set()
+        marked_positions: Set[int] = set()  # positions that are marked with some source
         for chain in sorted(chains, key=lambda x: x.get_score(), reverse=True):
             positions = chain.get_token_positions()
             marked_positions_inside_chain = marked_positions.intersection(positions)
@@ -206,7 +206,7 @@ class FilterChainsNode(BaseNode):
                 marked_positions |= positions
                 filtered_chains.append(chain)
 
-        return chains
+        return filtered_chains
 
 
 class Pos2ChainMappingDescriptor(BaseDataDescriptor[Dict[int, Chain]]):
@@ -219,7 +219,7 @@ class Pos2ChainMappingDescriptor(BaseDataDescriptor[Dict[int, Chain]]):
 
     def load(self, dic: dict[str, base_data_descriptor.ValueType]) -> Dict[int, Chain]:
         return {
-            int(pos_str): Chain.from_dict(chain_dict)
+            int(pos_str): Chain.from_dict(chain_dict)  # type: ignore
             for pos_str, chain_dict in dic.items()
         }
 
@@ -232,7 +232,7 @@ class Pos2ChainMapNode(BaseNode):
     Converts a list of NON-INTERSECTING chains into mapping (pos -> chain)
     """
     def __init__(self, name: str):
-        super().__init__(name, [list], DictDescriptor())
+        super().__init__(name, [list], Pos2ChainMappingDescriptor())
 
     def process(self, chains: List[Chain]) -> Dict[int, Chain]:
         pos2chain: Dict[int, Chain] = {}

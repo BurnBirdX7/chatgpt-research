@@ -3,7 +3,8 @@
 # Output: config.temp_index_file, config.temp_mapping_file
 
 from scripts._elvis_data import elvis_related_articles
-from src import Index, EmbeddingsBuilder, OnlineWiki
+from src import Index, EmbeddingsBuilder
+from src.online_wiki import OnlineWiki
 from src.config import EmbeddingBuilderConfig, IndexConfig, WikiConfig
 
 

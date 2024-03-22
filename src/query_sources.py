@@ -10,7 +10,7 @@ from src.pipeline.data_descriptors import DictDescriptor
 from src.config import ColbertServerConfig
 
 
-class QuerySourcesNode(BaseNode):
+class QueryColbertServer(BaseNode):
     """
     Node accepts request and queries possible sources from colbert index
 
@@ -21,17 +21,17 @@ class QuerySourcesNode(BaseNode):
 
     def __init__(self, name: str, config: ColbertServerConfig):
         super().__init__(name, [str], DictDescriptor())
-        self.config: ColbertServerConfig = config
+        self.server_config: ColbertServerConfig = config
 
     def request(self, conn: http.client.HTTPConnection, text: str) -> List[Dict[str, str]]:
-        url = self.config.get_api_url() + '?query=' + urlparse.quote_plus(text)
+        url = self.server_config.get_api_url() + '?query=' + urlparse.quote_plus(text)
         conn.request("GET", url)
         response = conn.getresponse()
         content = response.read().decode('utf-8')
         return json.loads(content)['topk']
 
     def process(self, text: str) -> dict:
-        conn = http.client.HTTPConnection(self.config.ip_address, self.config.port)
+        conn = http.client.HTTPConnection(self.server_config.ip_address, self.server_config.port)
 
         words = text.split(' ')
         if len(words) <= 100:
@@ -55,15 +55,17 @@ class QuerySourcesNode(BaseNode):
         return accumulated_sources
 
     def prerequisite_check(self) -> str | None:
-        conn = http.client.HTTPConnection(self.config.ip_address, self.config.port)
+        conn = http.client.HTTPConnection(self.server_config.ip_address, self.server_config.port)
         try:
-            conn.request("GET", self.config.api_ping_path)
+            conn.request("GET", self.server_config.api_ping_path)
             text = conn.getresponse().read().decode('utf-8')
             if text != "colbert-pong":
                 return f"Request was successful but resulted in unexpected response: {text}"
 
         except Exception as e:
-            return f"Couldn't make a request to colbert server"
+            return f"Couldn't make a request to colbert server, cfg: {self.server_config}"
 
         finally:
             conn.close()
+
+        return None

@@ -15,7 +15,7 @@ from typing import List
 
 import pandas as pd
 
-from src import Question, Config
+from src.chat import Question
 
 
 def table_from_answer(answer: str) -> pd.DataFrame:
@@ -68,7 +68,7 @@ def table_from_many_questions(questions: List[Question]) -> pd.DataFrame:
 
 
 def get_files(dirname: str) -> List[str]:
-    dirname = Config.artifact(dirname)
+    dirname = os.path.join('artifacts', dirname)
     return [
         os.path.join(dirname, f)
         for f in os.listdir(dirname)

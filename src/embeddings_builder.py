@@ -12,7 +12,7 @@ from typing import List, Tuple, Optional, Callable, Dict, Any
 
 from .source_mapping import SourceMapping
 from .config import EmbeddingBuilderConfig
-from .pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor
+from .pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor, ListDescriptor
 
 
 class EmbeddingsBuilder:
@@ -137,7 +137,7 @@ class NDArrayDescriptor(BaseDataDescriptor[np.ndarray]):
 
     def load(self, dic: Dict[str, base_data_descriptor.ValueType]) -> np.ndarray:
         path = dic["path"]
-        with open(path, "rb") as f:
+        with open(path, "rb") as f:  # type: ignore
             return np.load(f)
 
     def get_data_type(self) -> type:
@@ -158,3 +158,17 @@ class EmbeddingsFromTextNode(BaseNode):
         if centroid_file is not None:
             if not os.path.exists(centroid_file):
                 return f"Centroid file \"{self.eb_config.centroid_file}\" is specified but doesn't exist"
+
+        return None
+
+
+class TokenizeText(BaseNode):
+    def __init__(self, name, config: EmbeddingBuilderConfig):
+        super().__init__(name, [str], ListDescriptor())
+        self.eb_config = config
+
+    def process(self, text: str, *ignore) -> List[str]:
+        tokenizer = self.eb_config.tokenizer
+        tokens = tokenizer.tokenize(text)
+        readable_tokens = list(map(lambda s: tokenizer.convert_tokens_to_string([s]), tokens))
+        return readable_tokens

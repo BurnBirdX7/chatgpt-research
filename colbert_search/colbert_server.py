@@ -79,13 +79,13 @@ def search(searcher: Searcher, source_mapping: SourceMapping, query: str, k: int
 
 
 @lru_cache(maxsize=1000000)
-def api_search_query(query: str, k: str | None):
+def api_search_query(query: str, k_str: str | None):
     print(f"{query=}")
 
-    if k is None:
+    if k_str is None:
         k = 10
     else:
-        k = min(int(k), 100)
+        k = min(int(k_str), 100)
 
     topk: List[Dict[str, Any]] = []
     for searcher, sources in searchers:

@@ -8,7 +8,8 @@ from matplotlib import pyplot as plt  # type: ignore
 from progress.bar import ChargingBar  # type: ignore
 
 from scripts._elvis_data import elvis_related_articles, elvis_unrelated_articles
-from src import Roberta, EmbeddingsBuilder, Index, OnlineWiki
+from src import Roberta, EmbeddingsBuilder, Index
+from src.online_wiki import OnlineWiki
 from src.config import EmbeddingBuilderConfig, ThresholdConfig
 
 

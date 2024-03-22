@@ -3,10 +3,7 @@ from __future__ import annotations
 import datetime
 import json
 import os.path
-from typing import Any, Dict, Set, List
-
-import networkx as nx
-from matplotlib import pyplot as plt
+from typing import Any, Dict, Set, List, Tuple
 
 from src.pipeline.nodes import Node
 
@@ -40,7 +37,7 @@ class Pipeline:
         self.execution_plan = [inp]
 
         self.__must_cache_output: Set[str] = set()  # Set of blocks whose output should be cached
-        self.__source_graph: Dict[str, List[str]] = {inp.name: ["$input"]}  # Edges point towards data source
+        self.graph: Dict[str, List[str]] = {inp.name: ["$input"]}  # Edges point towards data source
 
     def attach_back(self, new_node: Node) -> "Pipeline":
         """
@@ -49,7 +46,7 @@ class Pipeline:
         """
 
         # Important checks
-        if new_node.name in self.__source_graph:
+        if new_node.name in self.graph:
             raise ValueError(f"Block with name '{new_node.name}' already exists in the pipeline")
 
         # Current output node of the pipeline will provide input for the new node
@@ -85,7 +82,7 @@ class Pipeline:
         """
 
         # Important checks
-        if new_node.name in self.__source_graph:
+        if new_node.name in self.graph:
             raise ValueError(f"Block with name '{new_node.name}' already exists in the pipeline")
 
         input_types: List[type] = []
@@ -110,17 +107,41 @@ class Pipeline:
 
         return self
 
+    def force_caching(self, node_name: str) -> None:
+        """
+        Force caching of node's output during pipeline execution
+        """
+        if node_name in self.nodes:
+            self.__must_cache_output.add(node_name)
+
+    def check_prerequisites(self):
+        """Throws ValueError if prerequisites are not met"""
+        for node in self.execution_plan:
+            r = node.prerequisite_check()
+            if r is not None:
+                raise ValueError(f"Prerequisite check failed for node \"{node.name}\": {r}")
+
+
     def __set_node(self, new_node: Node, input_names: list[str]):
         # Update graph and execution order
         self.execution_plan.append(new_node)
-        self.__source_graph[new_node.name] = input_names
+        self.graph[new_node.name] = input_names
 
         # General structure updated
         self.nodes[new_node.name] = new_node
         self.output_node = new_node
         new_node.set_artifacts_folder(self.artifacts_folder)
 
-    def run(self, inp: Any = None) -> tuple[Any, PipelineHistory]:
+    def run(self, inp: Any = None) -> Tuple[Any, PipelineHistory, Dict[str, Any]]:
+        """
+        Accepts an input for the first node (must be a single value or None)
+
+        :param inp: input
+        :return: tuple:
+                   - Primary output (output of the last node)
+                   - Pipeline History (dictionary that describes how data was saved)
+                   - Cached outputs of the blocks
+        """
         typs = [type(inp)]
         if not self.input_node.is_input_type_acceptable(typs):
             raise TypeError(f"Expected type {self.in_type} but got {typs}")
@@ -129,20 +150,26 @@ class Pipeline:
         beginning_time = datetime.datetime.now()
         print(f"Starting pipeline [at {beginning_time}]...")
 
+        cache = {"$input": inp}
+
         try:
-            return self.__run(inp, history, {"$input": inp}), history
+            return self.__run(inp, history, cache), history, cache
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
             self.__save_history(beginning_time, history)
 
-    def resume(self, history_file: str, block_name: str) -> Any:
+    def resume(self, history_file_name: str, block_name: str) -> Tuple[Any, PipelineHistory, Dict[str, Any]]:
         """
         Resume pipeline run from the block name, load all cachable data in memory
+
+        :param history_file_name: file that describes how data was saved
+        :param block_name: name of the block to resume from
+        :return: the
         """
-        history_dir = os.path.dirname(history_file)
+        history_dir = os.path.dirname(history_file_name)
         history_dir = os.path.abspath(history_dir)
-        with open(history_file, "r") as f:
+        with open(history_file_name, "r") as f:
             history = json.loads(f.read())
 
         # TODO: Add pipeline structure check
@@ -150,7 +177,7 @@ class Pipeline:
         # TODO: Optimize excessive caching
 
         if block_name not in history:
-            raise ValueError(f"f{block_name} isn't present in history file {history_file} [{history}]")
+            raise ValueError(f"f{block_name} isn't present in history file {history_file_name} [{history}]")
 
         beginning_time = datetime.datetime.now()
         print(f"Resuming pipeline [at {beginning_time}] [from {block_name}]...")
@@ -160,7 +187,7 @@ class Pipeline:
         # Load in cache all cachable outputs that are present in the history
         # and entry block itself
         for cached_block_name in self.__must_cache_output | {block_name}:
-            if cached_block_name not in history:
+            if cached_block_name not in history or cached_block_name == "$input":
                 continue
 
             dic_filename = history[cached_block_name]
@@ -179,7 +206,7 @@ class Pipeline:
         self.execution_plan = self.execution_plan[start_node_idx + 1:]
 
         try:
-            return self.__run(inp, history, cached_data), history
+            return self.__run(inp, history, cached_data), history, cached_data
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
@@ -206,86 +233,12 @@ class Pipeline:
     def format_time(time: datetime.datetime) -> str:
         return time.strftime("%Y-%m-%d.%H-%M-%S")
 
-    def draw_network(self, ax, g, colors, exec_edges):
-        edge_labels = {}
-        for u, vs in self.__source_graph.items():
-            for v in vs:
-                if v in self.nodes:
-                    typ = self.nodes[v].out_type
-                else:
-                    typ = self.in_type
-                edge_labels[(v, u)] = typ.__name__
-        edge_labels[(self.output_node.name, "$output")] = self.output_node.out_type.__name__
-        g1 = g.copy()
-        g1.add_edges_from(exec_edges)
-
-        layout = nx.kamada_kawai_layout(g1, pos=nx.circular_layout(g) | {'$input': (-1, 1)})
-        nx.draw_networkx(g, layout, ax=ax, node_size=1500, node_color=colors, with_labels=True)
-        nx.draw_networkx_edges(g, layout, ax=ax, node_size=1500, edgelist=exec_edges, edge_color="tab:red",
-                               connectionstyle="arc3,rad=0.35")
-        nx.draw_networkx_edges(g, layout, ax=ax, node_size=1500, edge_color="grey")
-        nx.draw_networkx_edge_labels(g, layout, ax=ax, edge_labels=edge_labels, label_pos=0.30)
-
-    def draw_execution(self, ax, g, colors, exec_edges):
-        g = self.__into_networkx()
-
-        node_count = len(self.execution_plan)
-        distance = 2 / (node_count + 1)
-        layout = {
-                     node.name: (-1 + (i + 1) * distance, 0)
-                     for i, node in enumerate(self.execution_plan)
-                 } | { "$input": (-1, 0), "$output": (+1, 0) }
-
-        nx.draw(g,
-                pos=layout,
-                ax=ax,
-                edgelist=exec_edges,
-                node_size=500,
-                node_color=colors,
-                edge_color="tab:red")
-
-    def draw(self, ax1, ax2):
-        g = self.__into_networkx()
-        colors = []
-        for node in g.nodes():
-            if node == "$input":
-                colors.append("tab:green")
-            elif node == "$output":
-                colors.append("tab:red")
-            else:
-                colors.append("skyblue")
-
-        exec_edges = [("$input", self.input_node.name)]
-        for i in range(len(self.execution_plan) - 1):
-            exec_edges.append((self.execution_plan[i].name, self.execution_plan[i + 1].name))
-        exec_edges.append((self.output_node.name, "$output"))
-
-        self.draw_network(ax1, g, colors, exec_edges)
-        self.draw_execution(ax2, g, colors, exec_edges)
-        ax1.set_title("Data flow")
-        ax2.set_title("Execution order")
-
-    def show(self):
-        fix, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12), height_ratios=[11.6, 0.4])
-        self.draw(ax1, ax2)
-        plt.show()
-
-    def __into_networkx(self) -> nx.Graph:
-        g = nx.DiGraph(self.__source_graph).reverse()
-        g.add_edge(self.output_node.name, "$output")
-        return g
-
-    def __run(self, _input: Any, history: Dict[str, str], cached_data: Dict[str, Any]) -> Any:
+    def __run(self, _input: Any, history: Dict[str, str], cache: Dict[str, Any]) -> Any:
         """
         Run the pipeline
         :param history: dictionary where key is the name of the block and the value is name of the file with essential information
         """
-
-        # Check prerequisites:
-        for node in self.execution_plan:
-            r = node.prerequisite_check()
-            if r is not None:
-                raise ValueError(f"Prerequisite check failed for node \"{node.name}\": {r}")
+        self.check_prerequisites()
 
         if not os.path.exists(self.artifacts_folder):
             os.mkdir(self.artifacts_folder)
@@ -296,26 +249,29 @@ class Pipeline:
         # Execution:
         for cur_node in self.execution_plan:
             # Construct input for the current block
-            source_names = self.__source_graph[cur_node.name]
+            source_names = self.graph[cur_node.name]
             cur_input_data = []
             for s_name in source_names:
-                cur_input_data.append(prev_output if s_name == prev_node_name else cached_data[s_name])
+                cur_input_data.append(prev_output if s_name == prev_node_name else cache[s_name])
 
             # Type-check
             typs = [type(val) for val in cur_input_data]
             if not cur_node.is_input_type_acceptable(typs):
                 raise TypeError(f"Input type(s) not acceptable by \"{cur_node.name}\" node\n"
                                 f"expected types: {cur_node.in_types}, got: {typs}")
+            try:
+                # Process data
+                prev_output = cur_node.process(*cur_input_data)
+                prev_node_name = cur_node.name
 
-            # Process data
-            prev_output = cur_node.process(*cur_input_data)
-            prev_node_name = cur_node.name
+                if cur_node.name in self.__must_cache_output:
+                    cache[cur_node.name] = prev_output
 
-            if cur_node.name in self.__must_cache_output:
-                cached_data[cur_node.name] = prev_output
+                # Save data to disk before resuming
+                history[cur_node.name] = self.__store_data(cur_node, prev_output)
 
-            # Save data to disk before resuming
-            history[cur_node.name] = self.__store_data(cur_node, prev_output)
+            except Exception:
+                raise RuntimeError(f"Exception occurred during processing of node {cur_node.name}")
 
         return prev_output
 

@@ -6,10 +6,10 @@ from src.token_chain import Chain
 
 
 def render_colored_text(input_text: str, tokens: List[str], pos2chain: Dict[int, Chain]) -> str:
-    template_page = Template(open("templates/result_page.jinja2.html", "r").read())
-    template_link = Template(open("templates/source_link.jinja2.html", "r").read())
-    template_text = Template(open("templates/source_text.jinja2.html", "r").read())
-    template_source_item = Template(open("templates/source_item.jinja2.html.jinja2.html", "r").read())
+    template_page = Template(open("server/templates/result_page.jinja2.html", "r").read())
+    template_link = Template(open("server/templates/source_link.jinja2.html", "r").read())
+    template_text = Template(open("server/templates/source_text.jinja2.html", "r").read())
+    template_source_item = Template(open("server/templates/source_item.jinja2.html", "r").read())
 
     color: int = 7
     output_page: str = ''

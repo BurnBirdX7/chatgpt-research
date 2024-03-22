@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 
 from scripts._elvis_data import elvis_unrelated_articles, elvis_unrelated_articles_large
-from src import EmbeddingsBuilder, OnlineWiki, Roberta
+from src import EmbeddingsBuilder, Roberta
+from src.online_wiki import OnlineWiki
 from transformers import RobertaTokenizer, RobertaModel     # type: ignore
 from progress.bar import ChargingBar                        # type: ignore
 
@@ -24,6 +25,8 @@ def estimate_centroid(data: Iterable[str], tokenizer: RobertaTokenizer, model: R
     embeddings = np.empty((0, embedding_builder.embedding_length))
     for page in ChargingBar('Processing texts').iter(data):
         embeddings = np.concatenate([embeddings, embedding_builder.from_text(page)])
+
+    print(" >> Embedding count:", len(embeddings))
 
     return embeddings.mean(0)
 

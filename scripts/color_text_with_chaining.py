@@ -9,7 +9,8 @@ import torch
 from jinja2 import Template
 
 from scripts._elvis_data import elvis_related_articles
-from src import Roberta, EmbeddingsBuilder, Index, OnlineWiki
+from src import Roberta, EmbeddingsBuilder, Index
+from src.online_wiki import OnlineWiki
 from transformers import RobertaForMaskedLM
 
 from src.config import EmbeddingBuilderConfig, WikiConfig, IndexConfig

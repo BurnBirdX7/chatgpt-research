@@ -8,6 +8,11 @@ from typing import Optional, List, Dict
 
 from progress.bar import Bar, Progress  # type: ignore
 
+__all__ = [
+    'Dialogue',
+    'Chat',
+    'Question'
+]
 
 class Dialogue:
     def __init__(self: "Dialogue"):

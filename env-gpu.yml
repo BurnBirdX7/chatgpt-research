@@ -7,6 +7,9 @@ channels:
 dependencies:
   - python=3.9
   - pytorch
+  - torchvision
+  - torchaudio
+  - scipy
   - pytorch-cuda=11.8
   - numpy
   - pandas
