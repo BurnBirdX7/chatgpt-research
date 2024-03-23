@@ -3,17 +3,16 @@ from typing import List
 
 import pandas as pd
 
-
 DEFAULT_INPUT_LOC = "collections/fever.jsonl"
 DEFAULT_OUTPUT_COLLECTION_LOC = "collections/fever.tsv"
 DEFAULT_OUTPUT_MAPPING_LOC = "collections/fever_map.tsv"
 
 
 def unpack_sources(pack: List[List[List[str]]]) -> List[str]:
-    sources = pack[0]
+    sources = [evidence for sublist in pack for evidence in sublist]
     sources = map(lambda lst: lst[2], sources)
-    sources = map(lambda s: s.replace("-LRB-", "(").replace("-RRB-", ")"), sources)
-    sources = map(lambda s: f"en.wikipedia.org/wiki/{s}", sources)
+    sources = map(lambda s: s.replace("-LRB-", "(").replace("-RRB-", ")").replace('-COLON-', ':'), sources)
+    sources = map(lambda s: f"https://en.wikipedia.org/wiki/{s}", sources)
     return list(sources)
 
 
