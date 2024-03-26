@@ -154,37 +154,10 @@ class ChainingNode(BaseNode):
         super().__init__(name, [str, list, dict], ChainListDescriptor())
         self.eb_config = embedding_builder_config
 
-    def process(self, input_text: str, sources: List[str], sources_data: Dict[str, str]) -> Any:
+    def process(self, input_text: str, sources: List[str], source_batched_likelihoods: Dict[str, torch.Tensor]) -> Any:
         tokenizer = self.eb_config.tokenizer
-        model = self.eb_config.model
-
-        model_time = 0
-        chaining_time = 0
 
         input_token_ids = tokenizer.encode(input_text)
-
-        source_batched_likelihoods = {}  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
-        unique_sources = set(sources)
-        for i, source in enumerate(unique_sources):
-            print(f"Producing embeddings for source {i+1}/{len(unique_sources)}: \"{source}\"")
-            source_text = sources_data[source]
-            tokenizer_output = tokenizer(text=source_text, add_special_tokens=False,
-                                         return_tensors='pt', return_attention_mask=True,
-                                         padding=True, pad_to_multiple_of=tokenizer.model_max_length)
-
-            def make_batch(tensor: torch.Tensor) -> torch.Tensor:
-                return tensor.reshape((-1, tokenizer.model_max_length)).to(model.device)
-
-            source_attention_mask = make_batch(tokenizer_output['attention_mask'])
-            source_token_id_batch = make_batch(tokenizer_output['input_ids'])
-            model_start_time = time.time()
-            with torch.no_grad():
-                # Logits have dimensions: (passage, position, vocab)
-                batched_logits = model(source_token_id_batch, attention_mask=source_attention_mask).logits
-            batched_likelihoods = torch.nn.functional.softmax(batched_logits, dim=2)
-            model_time += time.time() - model_start_time
-            source_batched_likelihoods[source] = batched_likelihoods.cpu()
-
         result_chains = []
         for token_pos, (token_id, source) in enumerate(zip(input_token_ids, sources)):
             print(f"position: {token_pos + 1} / {len(input_token_ids)}")
@@ -194,15 +167,10 @@ class ChainingNode(BaseNode):
                   f"token id: {token_id}, "
                   f"source: {source}")
 
-            chaining_start_time = time.time()
             for i, passage_likelihoods in enumerate(batched_likelihoods):
                 print(f"\tpassage #{i+1}")
                 result_chains += Chain.generate_chains(len(passage_likelihoods), passage_likelihoods, input_token_ids, token_pos,
                                                        source)
-            chaining_time += time.time() - chaining_start_time
-
-        print(f"[STAT] > model time: {datetime.timedelta(seconds=model_time)}")
-        print(f"[STAT] > chaining time: {datetime.timedelta(seconds=chaining_time)}")
 
         torch.cuda.empty_cache()
         return result_chains

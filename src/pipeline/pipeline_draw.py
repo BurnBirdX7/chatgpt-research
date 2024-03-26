@@ -8,7 +8,9 @@ import networkx as nx  # type: ignore
 from matplotlib import pyplot as plt
 
 
-def draw_network(pipeline: Pipeline, ax: Axes, g: nx.DiGraph, colors: List[str], exec_edges: List[Tuple[str, str]]):
+def draw_network(pipeline: Pipeline,
+                 graph_axes: Axes, execution_axes: Axes,
+                 g: nx.DiGraph, colors: List[str], exec_edges: List[Tuple[str, str]]):
     edge_labels = {}
     for u, vs in pipeline.graph.items():
         for v in vs:
@@ -22,11 +24,17 @@ def draw_network(pipeline: Pipeline, ax: Axes, g: nx.DiGraph, colors: List[str],
     g1.add_edges_from(exec_edges)
 
     layout = nx.kamada_kawai_layout(g1, pos=nx.circular_layout(g) | {'$input': (-1, 1)})
-    nx.draw_networkx(g, layout, ax=ax, node_size=1500, node_color=colors, with_labels=True)
-    nx.draw_networkx_edges(g, layout, ax=ax, node_size=1500, edgelist=exec_edges, edge_color="tab:red",
+
+    # Draw dataflow
+    nx.draw_networkx(g, layout, ax=graph_axes, node_size=1500, node_color=colors, with_labels=True)
+    nx.draw_networkx_edges(g, layout, ax=graph_axes, node_size=1500, edge_color="grey")
+    nx.draw_networkx_edge_labels(g, layout, ax=graph_axes, edge_labels=edge_labels, label_pos=0.30)
+
+    # Draw execution flow
+    nx.draw_networkx_nodes(g, layout, ax=execution_axes, node_size=1500, node_color=colors)
+    nx.draw_networkx_labels(g, layout, ax=execution_axes)
+    nx.draw_networkx_edges(g, layout, ax=execution_axes, node_size=1500, edgelist=exec_edges, edge_color="tab:red",
                            connectionstyle="arc3,rad=0.35")
-    nx.draw_networkx_edges(g, layout, ax=ax, node_size=1500, edge_color="grey")
-    nx.draw_networkx_edge_labels(g, layout, ax=ax, edge_labels=edge_labels, label_pos=0.30)
 
 
 def draw_execution(pipeline: Pipeline, ax: Axes, g: nx.DiGraph, colors: List[str], exec_edges: List[Tuple[str, str]]):
@@ -46,7 +54,7 @@ def draw_execution(pipeline: Pipeline, ax: Axes, g: nx.DiGraph, colors: List[str
             edge_color="tab:red")
 
 
-def draw(pipeline: Pipeline, ax1: Axes, ax2: Axes):
+def draw(pipeline: Pipeline, ax: Tuple[Axes, Axes, Axes]):
     g = __into_networkx(pipeline)
     colors = []
     for node in g.nodes():
@@ -62,15 +70,23 @@ def draw(pipeline: Pipeline, ax1: Axes, ax2: Axes):
         exec_edges.append((pipeline.execution_plan[i].name, pipeline.execution_plan[i + 1].name))
     exec_edges.append((pipeline.output_node.name, "$output"))
 
-    draw_network(pipeline, ax1, g, colors, exec_edges)
-    draw_execution(pipeline, ax2, g, colors, exec_edges)
-    ax1.set_title("Data flow")
-    ax2.set_title("Execution order")
+    draw_network(pipeline, ax[0], ax[1], g, colors, exec_edges)
+    draw_execution(pipeline, ax[2], g, colors, exec_edges)
+    ax[0].set_title("Data flow")
+    ax[1].set_title("Execution order")
+    ax[2].set_title("Execution order")
 
 
 def show(pipeline: Pipeline):
-    fix, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12), height_ratios=[11.6, 0.4])
-    draw(pipeline, ax1, ax2)
+    fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2, figsize=(20, 12), height_ratios=[11.6, 0.4])
+
+    gs = ax21.get_gridspec()
+    ax21.remove()
+    ax22.remove()
+    ax3 = fig.add_subplot(gs[1, :])
+    fig.tight_layout()
+
+    draw(pipeline, (ax11, ax12, ax3))
     plt.show()
 
 

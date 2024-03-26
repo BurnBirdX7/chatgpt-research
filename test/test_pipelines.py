@@ -23,7 +23,7 @@ def test_simple_pipeline() -> None:
                 .attach_back(ModifyString("modStr"))
                 .attach_back(Str2Float("s2f")))
 
-    res, _ = pipeline.run(18)
+    res = pipeline.run(18).last_node_result
     assert res == float(str(18) + '.367')
 
 class IntMod(BaseNode):
@@ -50,7 +50,7 @@ def test_empty_input_pipeline() -> None:
         .attach_back(Int2Str("i2s"))
     )
 
-    res, _ = pipeline.run()
+    res = pipeline.run().last_node_result
     assert res == str(42 // 2)
 
 
@@ -77,7 +77,7 @@ def test_diverging_paths():
     """
 
     val = 15
-    res, _ = pipeline.run(val)
+    res = pipeline.run(val).last_node_result
 
     path1 = str((val * 2) * 3)
     path2 = str((val * 2) // 2)

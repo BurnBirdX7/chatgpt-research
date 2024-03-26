@@ -2,7 +2,7 @@ from transformers import RobertaForMaskedLM
 
 from src import QueryColbertServer
 from src.token_chain import ChainingNode, FilterChainsNode, Pos2ChainMapNode
-from src.embeddings_builder import EmbeddingsFromTextNode, TokenizeText
+from src.embeddings_builder import EmbeddingsFromTextNode, TokenizeTextNode, EmbeddingsForMultipleSources
 from src.index import IndexFromSourcesNode, SearchIndexNode
 from src.pipeline import Pipeline
 from src.config import ColbertServerConfig, EmbeddingBuilderConfig
@@ -23,12 +23,15 @@ def get_coloring_pipeline() -> Pipeline:
     # Pipeline:
     pipeline = Pipeline(QueryColbertServer("possible-sources-dict", colbert_cfg))
     pipeline.attach_back(IndexFromSourcesNode("possible-sources-index", text_eb_config))
+    pipeline.attach(TokenizeTextNode("input-tokenized", text_eb_config), "$input")
     pipeline.attach(EmbeddingsFromTextNode("input-embeddings", text_eb_config), "$input")
     pipeline.attach(SearchIndexNode("sources-list"), "possible-sources-index", "input-embeddings")
-    pipeline.attach(TokenizeText("input-tokenized", text_eb_config), "$input")
+    pipeline.attach(
+        EmbeddingsForMultipleSources("source-embeddings", chaining_eb_config),
+        "sources-list", "possible-sources-dict")
     pipeline.attach(
         ChainingNode("all-chains", chaining_eb_config),
-        "$input", "sources-list", "possible-sources-dict"
+        "$input", "sources-list", "source-embeddings"
     )
     
     pipeline.attach_back(FilterChainsNode("filtered-chains"))

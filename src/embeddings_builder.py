@@ -10,6 +10,8 @@ import numpy as np
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from typing import List, Tuple, Optional, Callable, Dict, Any
 
+from .pipeline.base_data_descriptor import ValueType
+from .pipeline.data_descriptors import ComplexDictDescriptor
 from .source_mapping import SourceMapping
 from .config import EmbeddingBuilderConfig
 from .pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor, ListDescriptor
@@ -159,6 +161,26 @@ class NDArrayDescriptor(BaseDataDescriptor[np.ndarray]):
         return np.ndarray
 
 
+class TensorDescriptor(BaseDataDescriptor[torch.Tensor]):
+
+    def store(self, data: torch.Tensor) -> dict[str, ValueType]:
+        filename = f"tensor-{self.get_timestamp_str()}-{self.get_random_string(4)}.pt"
+        path = os.path.join(self.artifacts_folder, filename)
+        torch.save(data, path)
+        return {"path": os.path.abspath(path)}
+
+    def load(self, dic: dict[str, ValueType]) -> torch.Tensor:
+        path = dic["path"]
+        return torch.load(path)
+
+    def get_data_type(self) -> type[torch.Tensor]:
+        return torch.Tensor
+
+    def is_optional(self) -> bool:
+        # Tensors are heavy space-wise, so their storing them is optional
+        return True
+
+
 class EmbeddingsFromTextNode(BaseNode):
     def __init__(self, name: str, config: EmbeddingBuilderConfig):
         super().__init__(name, [str], NDArrayDescriptor())
@@ -177,7 +199,7 @@ class EmbeddingsFromTextNode(BaseNode):
         return None
 
 
-class TokenizeText(BaseNode):
+class TokenizeTextNode(BaseNode):
     def __init__(self, name, config: EmbeddingBuilderConfig):
         super().__init__(name, [str], ListDescriptor())
         self.eb_config = config
@@ -187,3 +209,37 @@ class TokenizeText(BaseNode):
         tokens = tokenizer.tokenize(text)
         readable_tokens = list(map(lambda s: tokenizer.convert_tokens_to_string([s]), tokens))
         return readable_tokens
+
+
+class EmbeddingsForMultipleSources(BaseNode):
+
+    def __init__(self, name, embeddings_builder_config: EmbeddingBuilderConfig):
+        super().__init__(name, [list, dict], ComplexDictDescriptor(TensorDescriptor()))
+        self.eb_config = embeddings_builder_config
+
+    def process(self, sources: List[str], sources_data: Dict[str, str]) -> Dict[str, torch.Tensor]:
+        tokenizer = self.eb_config.tokenizer
+        model = self.eb_config.model
+
+        unique_sources = set(sources)
+        source_batched_likelihoods = {}  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
+
+        for i, source in enumerate(unique_sources):
+            print(f"Producing embeddings for source {i + 1}/{len(unique_sources)}: \"{source}\"")
+            source_text = sources_data[source]
+            tokenizer_output = tokenizer(text=source_text, add_special_tokens=False,
+                                         return_tensors='pt', return_attention_mask=True,
+                                         padding=True, pad_to_multiple_of=tokenizer.model_max_length)
+
+            def make_batch(tensor: torch.Tensor) -> torch.Tensor:
+                return tensor.reshape((-1, tokenizer.model_max_length)).to(model.device)
+
+            source_attention_mask = make_batch(tokenizer_output['attention_mask'])
+            source_token_id_batch = make_batch(tokenizer_output['input_ids'])
+            with torch.no_grad():
+                # Logits have dimensions: (passage, position, vocab)
+                batched_logits = model(source_token_id_batch, attention_mask=source_attention_mask).logits
+            batched_likelihoods = torch.nn.functional.softmax(batched_logits, dim=2)
+            source_batched_likelihoods[source] = batched_likelihoods.cpu()
+
+        return source_batched_likelihoods

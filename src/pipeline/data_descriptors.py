@@ -111,3 +111,56 @@ class DictDescriptor(BaseDataDescriptor[dict]):
 
     def get_data_type(self) -> type[dict]:
         return dict
+
+
+class ComplexListDescriptor(BaseDataDescriptor[List[T]]):
+
+    def __init__(self, elem_descriptor: BaseDataDescriptor[T]):
+        super().__init__()
+        self.elem_descriptor = elem_descriptor
+
+    def store(self, data: List[T]) -> dict[str, ValueType]:
+        lst = []
+        for elem in data:
+            lst.append(self.elem_descriptor.store(elem))
+
+        return {'data': lst}
+
+    def load(self, dic: dict[str, ValueType]) -> List[T]:
+        lst = []
+        for dat in dic['data']:
+            lst.append(self.elem_descriptor.load(dat))
+        return lst
+
+    def get_data_type(self) -> Type[list]:
+        return list
+
+    def is_optional(self) -> bool:
+        return self.elem_descriptor.is_optional()
+
+
+class ComplexDictDescriptor(BaseDataDescriptor[Dict[str, T]]):
+
+    def __init__(self, elem_descriptor: BaseDataDescriptor[T]):
+        super().__init__()
+        self.elem_descriptor = elem_descriptor
+
+    def store(self, data: Dict[str, T]) -> dict[str, ValueType]:
+        dic = {}
+        for key, elem in data.items():
+            dic[key] = self.elem_descriptor.store(elem)
+
+        return dic
+
+    def load(self, dic: dict[str, ValueType]) -> Dict[str, T]:
+        dic = {}
+        for key, dat in dic.items():
+            dic[key] = self.elem_descriptor.load(dat)
+
+        return dic
+
+    def get_data_type(self) -> Type[dict]:
+        return dict
+
+    def is_optional(self) -> bool:
+        return self.elem_descriptor.is_optional()

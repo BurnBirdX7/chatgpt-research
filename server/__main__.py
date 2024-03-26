@@ -1,3 +1,5 @@
+import datetime
+import time
 from functools import lru_cache
 
 from flask import Flask, render_template, request, Response
@@ -11,11 +13,20 @@ coloring_pipeline = get_coloring_pipeline()
 coloring_pipeline.check_prerequisites()
 coloring_pipeline.force_caching("input-tokenized")
 
-@lru_cache(10)
+@lru_cache(1)
 def color_text(text):
-    pos2chain, _, cache = coloring_pipeline.run(text)
-    tokens = cache["input-tokenized"]
-    return pos2chain, tokens
+
+    start = time.time()
+    result = coloring_pipeline.run(text)
+    seconds = time.time() - start
+
+    print(f"Time taken to run: {datetime.timedelta(seconds=seconds)}")
+
+    print("Statistics")
+    for _, stat in result.statistics.items():
+        print(str(stat))
+
+    return result.last_node_result, result.cache["input-tokenized"]
 
 @app.route("/", methods=['GET'])
 def request_page():

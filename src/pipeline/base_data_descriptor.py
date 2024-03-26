@@ -24,6 +24,9 @@ class BaseDataDescriptor(Generic[T], ABC):
             return False
         return issubclass(typ, self.get_data_type())
 
+    def is_optional(self) -> bool:
+        return False
+
     @abstractmethod
     def store(self, data: T) -> dict[str, ValueType]:
         """

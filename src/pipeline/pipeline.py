@@ -3,11 +3,11 @@ from __future__ import annotations
 import datetime
 import json
 import os.path
+import time
 from typing import Any, Dict, Set, List, Tuple
 
 from src.pipeline.nodes import Node
-
-PipelineHistory = Dict[str, str]
+from .pipeline_result import PipelineResult, PipelineHistory, NodeStatistics
 
 
 class PipelineError(RuntimeError):
@@ -132,7 +132,7 @@ class Pipeline:
         self.output_node = new_node
         new_node.set_artifacts_folder(self.artifacts_folder)
 
-    def run(self, inp: Any = None) -> Tuple[Any, PipelineHistory, Dict[str, Any]]:
+    def run(self, inp: Any = None) -> PipelineResult:
         """
         Accepts an input for the first node (must be a single value or None)
 
@@ -153,13 +153,13 @@ class Pipeline:
         cache = {"$input": inp}
 
         try:
-            return self.__run(inp, history, cache), history, cache
+            return self.__run(inp, history, cache)
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
             self.__save_history(beginning_time, history)
 
-    def resume(self, history_file_name: str, block_name: str) -> Tuple[Any, PipelineHistory, Dict[str, Any]]:
+    def resume(self, history_file_name: str, block_name: str) -> PipelineResult:
         """
         Resume pipeline run from the block name, load all cachable data in memory
 
@@ -206,7 +206,7 @@ class Pipeline:
         self.execution_plan = self.execution_plan[start_node_idx + 1:]
 
         try:
-            return self.__run(inp, history, cached_data), history, cached_data
+            return self.__run(inp, history, cached_data)
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
@@ -233,7 +233,7 @@ class Pipeline:
     def format_time(time: datetime.datetime) -> str:
         return time.strftime("%Y-%m-%d.%H-%M-%S")
 
-    def __run(self, _input: Any, history: Dict[str, str], cache: Dict[str, Any]) -> Any:
+    def __run(self, _input: Any, history: Dict[str, str], cache: Dict[str, Any]) -> PipelineResult:
         """
         Run the pipeline
         :param history: dictionary where key is the name of the block and the value is name of the file with essential information
@@ -242,6 +242,8 @@ class Pipeline:
 
         if not os.path.exists(self.artifacts_folder):
             os.mkdir(self.artifacts_folder)
+
+        statistic_dic: Dict[str, NodeStatistics] = {}
 
         prev_output: Any = _input
         prev_node_name: str = "$input"
@@ -261,19 +263,34 @@ class Pipeline:
                                 f"expected types: {cur_node.in_types}, got: {typs}")
             try:
                 # Process data
+                cur_node_start = time.time()
+                del prev_output
                 prev_output = cur_node.process(*cur_input_data)
+                cur_node_processing_time = time.time() - cur_node_start
+
                 prev_node_name = cur_node.name
 
                 if cur_node.name in self.__must_cache_output:
                     cache[cur_node.name] = prev_output
 
                 # Save data to disk before resuming
-                history[cur_node.name] = self.__store_data(cur_node, prev_output)
+                cur_node_descriptor_start = time.time()
+                if not cur_node.out_descriptor.is_optional():
+                    # TODO: Implement a way to force optional data to be saved
+                    history[cur_node.name] = self.__store_data(cur_node, prev_output)
+                cur_node_descriptor_time = time.time() - cur_node_descriptor_start
+
+                # Collect statistics
+                statistic_dic[cur_node.name] = NodeStatistics(
+                    cur_node.name,
+                    cur_node_processing_time,
+                    cur_node_descriptor_time
+                )
 
             except Exception:
                 raise RuntimeError(f"Exception occurred during processing of node \"{cur_node.name}\"")
 
-        return prev_output
+        return PipelineResult(prev_output, history, cache, statistic_dic)
 
     def __store_data(self, node: Node, data: Any) -> str:
         dic = node.out_descriptor.store(data)
