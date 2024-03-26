@@ -271,7 +271,7 @@ class Pipeline:
                 history[cur_node.name] = self.__store_data(cur_node, prev_output)
 
             except Exception:
-                raise RuntimeError(f"Exception occurred during processing of node {cur_node.name}")
+                raise RuntimeError(f"Exception occurred during processing of node \"{cur_node.name}\"")
 
         return prev_output
 

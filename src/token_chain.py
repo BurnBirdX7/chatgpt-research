@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import copy
-import math
+import datetime
+import time
+
+import numpy as np
 import torch
 from typing import Optional, List, Set, Any, Dict
 
@@ -70,7 +73,6 @@ class Chain:
             source=d["source"]
         )
 
-
     def append(self, likelihood: float, position: int) -> None:
         self.likelihoods.append(likelihood)
         if self.begin_pos is None:
@@ -90,24 +92,20 @@ class Chain:
 
     def get_score(self):
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
-        score = 1.0
-        for lh in self.likelihoods:
-            score *= lh
-
-        score **= 1 / len(self.likelihoods)
-        score *= math.log2(2 + len(self))
+        l = np.exp(np.log(self.likelihoods).mean())
+        score = l * len(self.likelihoods)**2
         return score
 
     @staticmethod
     def generate_chains(source_len: int, likelihoods: torch.Tensor,
-                        token_ids: List[int], token_start_pos: int, source: str) -> List[Chain]:
+                        token_ids: List[int], token_start_pos: int, source_name: str) -> List[Chain]:
         """
         Generates chains of tokens with the same source
         """
         result_chains: List[Chain] = []
 
         for source_start_pos in range(0, source_len):
-            chain = Chain(source)
+            chain = Chain(source_name)
             shift_upper_bound = min(source_len - source_start_pos, len(token_ids) - token_start_pos)
             for shift in range(0, shift_upper_bound):
                 token_pos = token_start_pos + shift
@@ -157,33 +155,50 @@ class ChainingNode(BaseNode):
         self.eb_config = embedding_builder_config
 
     def process(self, input_text: str, sources: List[str], sources_data: Dict[str, str]) -> Any:
-        input_tokens = self.eb_config.tokenizer.tokenize(input_text)
-        input_token_ids = self.eb_config.tokenizer.convert_tokens_to_ids(input_tokens)
+        tokenizer = self.eb_config.tokenizer
+        model = self.eb_config.model
+
+        model_time = 0
+        chaining_time = 0
+
+        input_token_ids = tokenizer.encode(input_text)
+
+        source_batched_likelihoods = {}  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
+        unique_sources = set(sources)
+        for i, source in enumerate(unique_sources):
+            print(f"Producing embeddings for source {i+1}/{len(unique_sources)}: \"{source}\"")
+            source_text = sources_data[source]
+            tokenizer_output = tokenizer(text=source_text, add_special_tokens=False,
+                                         return_tensors='pt', return_attention_mask=True,
+                                         padding=True, pad_to_multiple_of=tokenizer.model_max_length)
+            source_attention_mask = tokenizer_output['attention_mask'].reshape((-1, tokenizer.model_max_length))
+            source_token_id_batch = tokenizer_output['input_ids'].reshape((-1, tokenizer.model_max_length))
+            model_start_time = time.time()
+            with torch.no_grad():
+                # Logits have dimensions: (passage, position, vocab)
+                batched_logits = model(source_token_id_batch, attention_mask=source_attention_mask).logits
+            batched_likelihoods = torch.nn.functional.softmax(batched_logits, dim=2)
+            model_time += time.time() - model_start_time
+            source_batched_likelihoods[source] = batched_likelihoods
 
         result_chains = []
-        for token_pos, (token, token_id, source) in enumerate(zip(input_tokens, input_token_ids, sources)):
-            wiki_text = sources_data[source]
-            wiki_token_ids = self.eb_config.tokenizer.encode(wiki_text, return_tensors='pt').squeeze()
-            print(f"> token: '{token}', "
-                  f"id: {token_id}, "
-                  f"source token count: {len(wiki_token_ids)}, "
-                  f"top source: {source}")
+        for token_pos, (token_id, source) in enumerate(zip(input_token_ids, sources)):
+            print(f"position: {token_pos + 1} / {len(input_token_ids)}")
 
-            for batch in range(0, len(wiki_token_ids), 256):
-                print(f"\tbatch: [{batch} : {batch + 512})")
-                wiki_token_ids_batch = wiki_token_ids[batch:batch + 512]
-                if len(wiki_token_ids_batch) < 2:
-                    break
+            batched_likelihoods = source_batched_likelihoods[source]
+            print(f"batch size: {len(batched_likelihoods)}, "
+                  f"token id: {token_id}, "
+                  f"source: {source}")
 
-                wiki_token_ids_batch = wiki_token_ids_batch.unsqueeze(0)
-
-                with torch.no_grad():
-                    output_page = self.eb_config.model(wiki_token_ids_batch)
-
-                wiki_logits = output_page[0].squeeze()
-                likelihoods = torch.nn.functional.softmax(wiki_logits, dim=1)
-                result_chains += Chain.generate_chains(len(wiki_logits), likelihoods, input_token_ids, token_pos,
+            chaining_start_time = time.time()
+            for i, passage_likelihoods in enumerate(batched_likelihoods):
+                print(f"\tpassage #{i+1}")
+                result_chains += Chain.generate_chains(len(passage_likelihoods), passage_likelihoods, input_token_ids, token_pos,
                                                        source)
+            chaining_time += time.time() - chaining_start_time
+
+        print(f"[STAT] > model time: {datetime.timedelta(seconds=model_time)}")
+        print(f"[STAT] > chaining time: {datetime.timedelta(seconds=chaining_time)}")
 
         return result_chains
 

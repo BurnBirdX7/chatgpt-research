@@ -17,9 +17,13 @@ from .pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor, ListDe
 
 class EmbeddingsBuilder:
     def __init__(self, config: EmbeddingBuilderConfig):
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.tokenizer = config.tokenizer
         self.model = config.model
-        self.max_sequence_length = self.model.config.max_position_embeddings
+
+        self.max_model_input_length = self.tokenizer.model_max_length
+        self.model_output_length = self.model.config.hidden_size
+
         self.embedding_length = self.model.config.hidden_size
         self.normalize = config.normalize
         print(f"Embedding normalization: {self.normalize}")
@@ -38,28 +42,27 @@ class EmbeddingsBuilder:
         :param input_ids: list of token ids
         :return: numpy array with dimensions (token_count, embedding_length)
         """
-        sequence_length: int = self.max_sequence_length
-        shorten_by: int = 2 if sequence_length % 2 == 0 else 3
-        sequence_length -= shorten_by
+        sequence_length: int = self.max_model_input_length
         window_step: int = sequence_length // 2
 
         embedding_len: int = self.embedding_length
         embeddings: np.ndarray = np.empty((0, embedding_len))
         previous_half: Optional[np.ndarray] = None
 
-        iterable = range(0, len(input_ids), window_step)
+        window_steps = range(0, len(input_ids), window_step)
         if not self.suppress_progress_report:
-            iterable = ChargingBar('Embeddings').iter(iterable)
+            window_steps = ChargingBar('Embeddings').iter(window_steps)
 
-        for i in iterable:
+        for i in window_steps:
             # Create tensor with acceptable dimensions:
             input_ids_tensor = torch.tensor(input_ids[i: i + sequence_length]).unsqueeze(0)
 
             # Moves tensor to model's device
             input_ids_tensor = input_ids_tensor.to(self.model.device)
 
-            output = self.model(input_ids_tensor)
-            seq_embeddings = output.last_hidden_state.detach().squeeze(0).cpu().numpy().astype(np.float32)
+            with torch.no_grad():
+                output = self.model(input_ids_tensor)
+            seq_embeddings = output.last_hidden_state.squeeze(0).cpu().numpy().astype(np.float32)
 
             if previous_half is not None:
                 # Get mean value of 2 halves (prev[:t] and curr[t:])
@@ -82,6 +85,18 @@ class EmbeddingsBuilder:
             faiss.normalize_L2(embeddings)
 
         return embeddings
+
+    def tensor_from_text(self, text: str) -> torch.Tensor:
+        tokenizer_output = self.tokenizer(text, return_tensors='pt', return_attention_mask=True,
+                                          add_special_tokens=False,
+                                          padding=True, pad_to_multiple_of=self.max_model_input_length)
+
+        input_ids = tokenizer_output['input_ids'].reshape((-1, self.max_model_input_length)).to(self.device)
+        attention_mask = tokenizer_output['attention_mask'].reshape(input_ids.shape).to(self.device)
+        with torch.no_grad():
+            output = self.model(input_ids, attention_mask=attention_mask)
+
+        return output.last_hidden_state.reshape((-1, self.model_output_length))
 
     def from_text(self, text: str) -> np.ndarray:
         """
@@ -151,7 +166,7 @@ class EmbeddingsFromTextNode(BaseNode):
 
     def process(self, text: str) -> np.ndarray:
         eb = EmbeddingsBuilder(self.eb_config)
-        return eb.from_text(text)
+        return eb.tensor_from_text(text).cpu().numpy()
 
     def prerequisite_check(self) -> str | None:
         centroid_file = self.eb_config.centroid_file
