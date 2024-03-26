@@ -171,15 +171,19 @@ class ChainingNode(BaseNode):
             tokenizer_output = tokenizer(text=source_text, add_special_tokens=False,
                                          return_tensors='pt', return_attention_mask=True,
                                          padding=True, pad_to_multiple_of=tokenizer.model_max_length)
-            source_attention_mask = tokenizer_output['attention_mask'].reshape((-1, tokenizer.model_max_length))
-            source_token_id_batch = tokenizer_output['input_ids'].reshape((-1, tokenizer.model_max_length))
+
+            def make_batch(tensor: torch.Tensor) -> torch.Tensor:
+                return tensor.reshape((-1, tokenizer.model_max_length)).to(model.device)
+
+            source_attention_mask = make_batch(tokenizer_output['attention_mask'])
+            source_token_id_batch = make_batch(tokenizer_output['input_ids'])
             model_start_time = time.time()
             with torch.no_grad():
                 # Logits have dimensions: (passage, position, vocab)
                 batched_logits = model(source_token_id_batch, attention_mask=source_attention_mask).logits
             batched_likelihoods = torch.nn.functional.softmax(batched_logits, dim=2)
             model_time += time.time() - model_start_time
-            source_batched_likelihoods[source] = batched_likelihoods
+            source_batched_likelihoods[source] = batched_likelihoods.cpu()
 
         result_chains = []
         for token_pos, (token_id, source) in enumerate(zip(input_token_ids, sources)):
@@ -200,6 +204,7 @@ class ChainingNode(BaseNode):
         print(f"[STAT] > model time: {datetime.timedelta(seconds=model_time)}")
         print(f"[STAT] > chaining time: {datetime.timedelta(seconds=chaining_time)}")
 
+        torch.cuda.empty_cache()
         return result_chains
 
 

@@ -16,7 +16,7 @@ def get_coloring_pipeline() -> Pipeline:
         centroid_file='artifacts/centroid-colbert.npy'
     )  # Default
     chaining_eb_config = EmbeddingBuilderConfig(
-        model=RobertaForMaskedLM.from_pretrained("roberta-large"),
+        model=RobertaForMaskedLM.from_pretrained("roberta-large").to(text_eb_config.model.device),
         centroid_file='artifacts/centroid-colbert.npy'
     )
 

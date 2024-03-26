@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import torch
 from dotenv import load_dotenv
 
 import os
@@ -102,7 +103,9 @@ def colbert_server(config: ColbertServerConfig):
     def api_search():
         counter["api_calls"] += 1
         print("API request count:", counter["api_calls"])
-        return api_search_query(request.args.get("query"), request.args.get("k"))
+        result = api_search_query(request.args.get("query"), request.args.get("k"))
+        torch.cuda.empty_cache()
+        return result
 
     @app.route("/", methods=["GET"])
     def root():

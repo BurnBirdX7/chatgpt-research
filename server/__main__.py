@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, Response
 
 from scripts.color_pipeline import get_coloring_pipeline
 from server.render_colored_text import render_colored_text
@@ -26,7 +26,7 @@ def request_page():
 def result_page():
     user_input = request.form['user_input']
     pos2chain, tokens = color_text(user_input)
-    return render_colored_text(user_input, tokens, pos2chain)
+    return Response(render_colored_text(user_input, tokens, pos2chain), mimetype='text/html')
 
 
 if __name__ == "__main__":
