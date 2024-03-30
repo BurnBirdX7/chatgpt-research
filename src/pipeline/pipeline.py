@@ -21,7 +21,7 @@ class Pipeline:
     Class that helps streamline data processing pipelines
     """
 
-    def __init__(self: "Pipeline", inp: Node):
+    def __init__(self: "Pipeline", inp: Node, store_intermediate_data: bool = True):
 
         if len(inp.in_types) > 1:
             raise ValueError("First node must accept zero or one parameter")
@@ -29,6 +29,8 @@ class Pipeline:
             self.in_type = inp.in_types[0]
         else:
             self.in_type = type(None)
+
+        self.store_intermediate_data = store_intermediate_data
 
         self.input_node = inp
         self.output_node = inp
@@ -219,6 +221,9 @@ class Pipeline:
             node.set_artifacts_folder(artifacts_folder)
 
     def __save_history(self, time: datetime.datetime, history: PipelineHistory):
+        if not self.store_intermediate_data:
+            return
+
         pipeline_history_file = f"pipeline_{Pipeline.format_time(time)}.json"
         pipeline_history_file = os.path.join(self.artifacts_folder, pipeline_history_file)
         print(f"Saving history [at {os.path.abspath(pipeline_history_file)}]")
@@ -275,7 +280,7 @@ class Pipeline:
 
                 # Save data to disk before resuming
                 cur_node_descriptor_start = time.time()
-                if not cur_node.out_descriptor.is_optional():
+                if self.store_intermediate_data and not cur_node.out_descriptor.is_optional():
                     # TODO: Implement a way to force optional data to be saved
                     history[cur_node.name] = self.__store_data(cur_node, prev_output)
                 cur_node_descriptor_time = time.time() - cur_node_descriptor_start

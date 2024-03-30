@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from typing import Union, Tuple, List, Any, Dict
 
@@ -77,7 +79,9 @@ class Index:
 
     def search(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        :param x: 2D array with shape (N, dim)
+        Search for similar vectors (top-1)
+
+        :param x: 2D array with shape (N, dim), where N is vector count and dim is vector length
         :return: tuple(indexes, distances)
         """
         dists, ids = self.index.search(x, 1)
@@ -85,8 +89,22 @@ class Index:
         dists = np.squeeze(dists)
         return ids, dists
 
-    def get_source(self, idx: int):
+    def search_topk(self, x: np.ndarray, k: int) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Same as search, but for top-k similar vectors
+
+        :param x: 2D array with shape (N, dim)
+        :return: tuple(indexes, distances) where
+                    indexes and distances are numpy array of shape (N, k)
+        """
+        dists, ids = self.index.search(x, k)
+        return ids, dists
+
+    def get_source(self, idx: int) -> str:
         return self.mapping.get_source(idx)
+
+    def get_sources(self, indexes: List[int] | np.ndarray) -> list[str]:
+        return list(map(lambda x: self.get_source(x), indexes))
 
     def get_embeddings_source(self, x: np.ndarray) -> Tuple[List[str], np.ndarray]:
         """
@@ -97,6 +115,21 @@ class Index:
         """
         indexes, distances = self.search(x)
         return list(map(lambda i: self.get_source(i), indexes)), distances
+
+    def get_topk_sources_for_embeddings(self, x: np.ndarray, k: int) -> List[List[str]]:
+        """
+        Finds top-k most probable sources for the embeddings
+
+        :param x: 2D array with shape (N, dim)
+        :param k: k in the top-k
+        :return: list of lists with dimensions (N, k)
+        """
+
+        indexes, _ = self.search_topk(x, k)
+        return [
+            self.get_sources(idxs)
+            for idxs in indexes  # indexes has (N, k) dims => idxs has (k,) dims
+        ]
 
 
 class IndexDescriptor(BaseDataDescriptor[Index]):
@@ -175,12 +208,13 @@ class IndexFromSourcesNode(BaseNode):
 
 
 class SearchIndexNode(BaseNode):
-    def __init__(self, name: str):
+    def __init__(self, name: str, k: int = 10):
         super().__init__(name, [Index, np.ndarray], ListDescriptor())
+        self.k = k
 
-    def process(self, index: Index, embeddings: np.ndarray) -> List[str]:
+    def process(self, index: Index, embeddings: np.ndarray) -> List[List[str]]:
         """
-        Returns a list of sources for given embeddings
+        Returns a list of lists of sources for given embeddings,
+        top-k probable sources per embeddings
         """
-        sources, dists = index.get_embeddings_source(embeddings)
-        return sources
+        return index.get_topk_sources_for_embeddings(embeddings, self.k)

@@ -154,25 +154,24 @@ class ChainingNode(BaseNode):
         super().__init__(name, [str, list, dict], ChainListDescriptor())
         self.eb_config = embedding_builder_config
 
-    def process(self, input_text: str, sources: List[str], source_batched_likelihoods: Dict[str, torch.Tensor]) -> Any:
+    def process(self, input_text: str, sources: List[List[str]], source_batched_likelihoods: Dict[str, torch.Tensor]) -> Any:
         tokenizer = self.eb_config.tokenizer
 
         input_token_ids = tokenizer.encode(input_text)
         result_chains = []
-        for token_pos, (token_id, source) in enumerate(zip(input_token_ids, sources)):
+        for token_pos, (token_id, token_sources) in enumerate(zip(input_token_ids, sources)):
             print(f"position: {token_pos + 1} / {len(input_token_ids)}")
 
-            batched_likelihoods = source_batched_likelihoods[source]
-            print(f"batch size: {len(batched_likelihoods)}, "
-                  f"token id: {token_id}, "
-                  f"source: {source}")
+            for source in token_sources:
+                batched_likelihoods = source_batched_likelihoods[source]
+                print(f"\tbatch size: {len(batched_likelihoods)}, "
+                      f"token id: {token_id}, "
+                      f"source: {source}")
 
-            for i, passage_likelihoods in enumerate(batched_likelihoods):
-                print(f"\tpassage #{i+1}")
-                result_chains += Chain.generate_chains(len(passage_likelihoods), passage_likelihoods, input_token_ids, token_pos,
-                                                       source)
+                for i, passage_likelihoods in enumerate(batched_likelihoods):
+                    result_chains += Chain.generate_chains(len(passage_likelihoods), passage_likelihoods, input_token_ids, token_pos,
+                                                           source)
 
-        torch.cuda.empty_cache()
         return result_chains
 
 

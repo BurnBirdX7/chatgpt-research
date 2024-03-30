@@ -12,6 +12,7 @@ app = Flask(__name__)
 coloring_pipeline = get_coloring_pipeline()
 coloring_pipeline.check_prerequisites()
 coloring_pipeline.force_caching("input-tokenized")
+coloring_pipeline.store_intermediate_data = False
 
 @lru_cache(1)
 def color_text(text):
@@ -26,7 +27,10 @@ def color_text(text):
     for _, stat in result.statistics.items():
         print(str(stat))
 
-    return result.last_node_result, result.cache["input-tokenized"]
+    tokens = result.cache["input-tokenized"]
+    pos2seq = result.last_node_result
+    del result
+    return pos2seq, tokens
 
 @app.route("/", methods=['GET'])
 def request_page():

@@ -25,13 +25,13 @@ def get_coloring_pipeline() -> Pipeline:
     pipeline.attach_back(IndexFromSourcesNode("possible-sources-index", text_eb_config))
     pipeline.attach(TokenizeTextNode("input-tokenized", text_eb_config), "$input")
     pipeline.attach(EmbeddingsFromTextNode("input-embeddings", text_eb_config), "$input")
-    pipeline.attach(SearchIndexNode("sources-list"), "possible-sources-index", "input-embeddings")
+    pipeline.attach(SearchIndexNode("sources-names", k=10), "possible-sources-index", "input-embeddings")
     pipeline.attach(
         EmbeddingsForMultipleSources("source-embeddings", chaining_eb_config),
-        "sources-list", "possible-sources-dict")
+        "sources-names", "possible-sources-dict")
     pipeline.attach(
         ChainingNode("all-chains", chaining_eb_config),
-        "$input", "sources-list", "source-embeddings"
+        "$input", "sources-names", "source-embeddings"
     )
     
     pipeline.attach_back(FilterChainsNode("filtered-chains"))

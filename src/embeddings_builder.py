@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import os.path
 
 import faiss  # type: ignore
@@ -217,11 +218,11 @@ class EmbeddingsForMultipleSources(BaseNode):
         super().__init__(name, [list, dict], ComplexDictDescriptor(TensorDescriptor()))
         self.eb_config = embeddings_builder_config
 
-    def process(self, sources: List[str], sources_data: Dict[str, str]) -> Dict[str, torch.Tensor]:
+    def process(self, sources: List[List[str]], sources_data: Dict[str, str]) -> Dict[str, torch.Tensor]:
         tokenizer = self.eb_config.tokenizer
         model = self.eb_config.model
 
-        unique_sources = set(sources)
+        unique_sources = set(itertools.chain.from_iterable(sources))
         source_batched_likelihoods = {}  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
 
         for i, source in enumerate(unique_sources):

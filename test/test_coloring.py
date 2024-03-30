@@ -1,7 +1,12 @@
+from __future__ import annotations
+
+import datetime
 import pprint
+import time
 from dataclasses import dataclass
 
 import pandas as pd
+import torch.cuda
 
 from src.token_chain import Chain
 from scripts.color_pipeline import get_coloring_pipeline
@@ -51,20 +56,33 @@ class Stat:
         return (self.tp + self.tn) / (self.tp + self.tn + self.fp + self.fn)
 
     @property
-    def precision(self) -> float:
+    def precision(self) -> float | None:
         return self.tp / (self.tp + self.fp) if self.tp + self.fp else None
 
     @property
-    def recall(self) -> float:
+    def recall(self) -> float | None:
         return self.tp / (self.tp + self.fn) if self.tp + self.fn > 0 else None
+
+    @property
+    def f1(self) -> float | None:
+        p = self.precision
+        r = self.recall
+        return 2 * p * r / (p + r) if p is not None and r is not None else None
 
 
 pipeline = get_coloring_pipeline()
+pipeline.store_intermediate_data = False
 pipeline.force_caching("input-tokenized")
 pipeline.check_prerequisites()
 
-if __name__ == '__main__':
-    passages = pd.read_csv('passages.csv')
+def estimate():
+    start_time = time.time()
+
+    # Sample passages
+    all_passages = pd.read_csv('passages.csv')
+    pos_passages = all_passages[all_passages['supported']].sample(100)
+    neg_passages = all_passages[all_passages['supported'] == False].sample(100)
+    passages = pd.concat([pos_passages, neg_passages], ignore_index=True)
 
     stats = {
         f.__name__: Stat()
@@ -73,13 +91,18 @@ if __name__ == '__main__':
 
     print(f"{stats.keys()=}")
 
-    for i, passage, supported in passages.sample(100).itertuples():
-        pos2chain, _, cache = pipeline.run(passage)
-        tokens = cache['input-tokenized']
+    for i, passage, supported in passages.itertuples():
+        result = pipeline.run(passage)
+        tokens = result.cache['input-tokenized']
 
         for f in incremental:
-            pred = f(tokens, pos2chain)
+            pred = f(tokens, result.last_node_result)
             stats[f.__name__].add(pred, supported)
+
+    best_precision = ("", 0.0)
+    best_recall = ("", 0.0)
+    best_accuracy = ("", 0.0)
+    best_f1 = ("", 0.0)
 
     for key, stat in stats.items():
         print(f"{key}:")
@@ -87,3 +110,33 @@ if __name__ == '__main__':
         print(f"\t{stat.precision=}")
         print(f"\t{stat.recall=}")
         print(f"\t{stat.accuracy=}")
+        print(f"\t{stat.f1=}")
+
+        if stat.accuracy > best_accuracy[1]:
+            best_accuracy = key, stat.accuracy
+
+        if stat.recall > best_recall[1]:
+            best_recall = key, stat.recall
+
+        if stat.precision > best_precision[1]:
+            best_precision = key, stat.precision
+
+        if stat.f1 > best_f1[1]:
+            best_f1 = key, stat.f1
+
+    print(f"{best_accuracy=}")
+    print(f"{best_precision=}")
+    print(f"{best_recall=}")
+    print(f"{best_f1=}")
+    print(f"time elapsed: {datetime.timedelta(seconds=time.time() - start_time)}")
+    return False
+
+
+if __name__ == '__main__':
+    run = True
+    while run:
+        try:
+            run = estimate()
+        except Exception as e:
+            torch.cuda.empty_cache()
+            print("Caught exception:", e)
