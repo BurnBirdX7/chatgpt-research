@@ -1,15 +1,10 @@
 from __future__ import annotations
 
 import copy
-import datetime
-import time
 
 import numpy as np
 import torch
-from typing import Optional, List, Set, Any, Dict
-
-from src.config import EmbeddingBuilderConfig
-from src.pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor, DictDescriptor
+from typing import Optional, List, Set
 
 
 class Chain:
@@ -93,7 +88,7 @@ class Chain:
     def get_score(self):
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
         l = np.exp(np.log(self.likelihoods).mean())
-        score = l * len(self.likelihoods)**2
+        score = l * (len(self.likelihoods)**2)
         return score
 
     @staticmethod
@@ -101,6 +96,12 @@ class Chain:
                         token_ids: List[int], token_start_pos: int, source_name: str) -> List[Chain]:
         """
         Generates chains of tokens with the same source
+
+        :param source_len: length of the source
+        :param likelihoods: inferred from the source text likelihoods for the tokens
+        :param token_ids: token ids of the target text
+        :param token_start_pos: position from where to start building chains
+        :param source_name: name of the source, doesn't affect generation, all produced chains will have this name
         """
         result_chains: List[Chain] = []
 
@@ -127,104 +128,3 @@ class Chain:
                         result_chains.append(copy.deepcopy(chain))
 
         return result_chains
-
-
-class ChainListDescriptor(BaseDataDescriptor):
-
-    def store(self, data: List[Chain]) -> dict[str, base_data_descriptor.ValueType]:
-        return {
-            "chains": [
-                chain.to_dict()
-                for chain in data
-            ]
-        }
-
-    def load(self, dic: dict[str, base_data_descriptor.ValueType]) -> List[Chain]:
-        return [
-            Chain.from_dict(d)      # type: ignore
-            for d in dic["chains"]  # type: ignore
-        ]
-
-    def get_data_type(self) -> type[list]:
-        return list
-
-
-class ChainingNode(BaseNode):
-    def __init__(self, name: str, embedding_builder_config: EmbeddingBuilderConfig):
-        super().__init__(name, [str, list, dict], ChainListDescriptor())
-        self.eb_config = embedding_builder_config
-
-    def process(self, input_text: str, sources: List[List[str]], source_batched_likelihoods: Dict[str, torch.Tensor]) -> Any:
-        tokenizer = self.eb_config.tokenizer
-
-        input_token_ids = tokenizer.encode(input_text)
-        result_chains = []
-        for token_pos, (token_id, token_sources) in enumerate(zip(input_token_ids, sources)):
-            print(f"position: {token_pos + 1} / {len(input_token_ids)}")
-
-            for source in token_sources:
-                batched_likelihoods = source_batched_likelihoods[source]
-                print(f"\tbatch size: {len(batched_likelihoods)}, "
-                      f"token id: {token_id}, "
-                      f"source: {source}")
-
-                for i, passage_likelihoods in enumerate(batched_likelihoods):
-                    result_chains += Chain.generate_chains(len(passage_likelihoods), passage_likelihoods, input_token_ids, token_pos,
-                                                           source)
-
-        return result_chains
-
-
-class FilterChainsNode(BaseNode):
-    """
-    Removes intersections between chains giving priority to chains with higher score
-    """
-
-    def __init__(self, name: str):
-        super().__init__(name, [list], ChainListDescriptor())
-
-    def process(self, chains: List[Chain]) -> List[Chain]:
-        filtered_chains: List[Chain] = []
-        marked_positions: Set[int] = set()  # positions that are marked with some source
-        for chain in sorted(chains, key=lambda x: x.get_score(), reverse=True):
-            positions = chain.get_token_positions()
-            marked_positions_inside_chain = marked_positions.intersection(positions)
-            if len(marked_positions_inside_chain) == 0:
-                marked_positions |= positions
-                filtered_chains.append(chain)
-
-        return filtered_chains
-
-
-class Pos2ChainMappingDescriptor(BaseDataDescriptor[Dict[int, Chain]]):
-
-    def store(self, data: Dict[int, Chain]) -> dict[str, base_data_descriptor.ValueType]:
-        return {
-            str(pos): chain.to_dict()
-            for pos, chain in data.items()
-        }
-
-    def load(self, dic: dict[str, base_data_descriptor.ValueType]) -> Dict[int, Chain]:
-        return {
-            int(pos_str): Chain.from_dict(chain_dict)  # type: ignore
-            for pos_str, chain_dict in dic.items()
-        }
-
-    def get_data_type(self) -> type:
-        return dict
-
-
-class Pos2ChainMapNode(BaseNode):
-    """
-    Converts a list of NON-INTERSECTING chains into mapping (pos -> chain)
-    """
-    def __init__(self, name: str):
-        super().__init__(name, [list], Pos2ChainMappingDescriptor())
-
-    def process(self, chains: List[Chain]) -> Dict[int, Chain]:
-        pos2chain: Dict[int, Chain] = {}
-        for i, chain in enumerate(chains):
-            for pos in chain.get_token_positions():
-                pos2chain[pos] = chain
-
-        return pos2chain

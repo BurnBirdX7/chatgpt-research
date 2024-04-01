@@ -2,7 +2,7 @@ from typing import Optional, List, Dict
 
 from jinja2 import Template
 
-from src.token_chain import Chain
+from src.chaining import Chain
 
 
 def render_colored_text(input_text: str, tokens: List[str], pos2chain: Dict[int, Chain]) -> str:

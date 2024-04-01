@@ -37,9 +37,9 @@ class Pipeline:
         self.artifacts_folder = "pipe-artifacts"
         self.nodes: Dict[str, Node] = {inp.name: inp}  # All Blocks in the pipeline
         self.execution_plan = [inp]
+        self.graph: Dict[str, List[str]] = {inp.name: ["$input"]}  # Edges point towards data source
 
         self.__must_cache_output: Set[str] = set()  # Set of blocks whose output should be cached
-        self.graph: Dict[str, List[str]] = {inp.name: ["$input"]}  # Edges point towards data source
 
     def attach_back(self, new_node: Node) -> "Pipeline":
         """

@@ -27,7 +27,7 @@ def draw_network(pipeline: Pipeline,
 
     # Draw dataflow
     nx.draw_networkx(g, layout, ax=graph_axes, node_size=1500, node_color=colors, with_labels=True)
-    nx.draw_networkx_edges(g, layout, ax=graph_axes, node_size=1500, edge_color="grey")
+    nx.draw_networkx_edges(g, layout, ax=graph_axes, node_size=1500, edge_color="lightgrey")
     nx.draw_networkx_edge_labels(g, layout, ax=graph_axes, edge_labels=edge_labels, label_pos=0.30)
 
     # Draw execution flow
@@ -78,7 +78,7 @@ def draw(pipeline: Pipeline, ax: Tuple[Axes, Axes, Axes]):
 
 
 def show(pipeline: Pipeline):
-    fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2, figsize=(20, 12), height_ratios=[11.6, 0.4])
+    fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2, figsize=(40, 24), height_ratios=[11.6, 0.4])
 
     gs = ax21.get_gridspec()
     ax21.remove()
@@ -90,8 +90,8 @@ def show(pipeline: Pipeline):
     plt.show()
 
 
-def __into_networkx(self) -> nx.DiGraph:
-    g = nx.DiGraph(self.graph).reverse()
-    g.add_edge(self.output_node.name, "$output")
+def __into_networkx(pipeline: Pipeline) -> nx.DiGraph:
+    g = nx.DiGraph(pipeline.graph).reverse()
+    g.add_edge(pipeline.output_node.name, "$output")
     return g
 
