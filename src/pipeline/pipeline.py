@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 import os.path
 import time
 from typing import Any, Dict, Set, List, Tuple
@@ -21,8 +22,9 @@ class Pipeline:
     Class that helps streamline data processing pipelines
     """
 
-    def __init__(self: "Pipeline", inp: Node, store_intermediate_data: bool = True):
+    def __init__(self: "Pipeline", inp: Node, store_intermediate_data: bool = True, name: str = "pipeline") -> None:
 
+        # Types:
         if len(inp.in_types) > 1:
             raise ValueError("First node must accept zero or one parameter")
         elif len(inp.in_types) == 1:
@@ -30,16 +32,21 @@ class Pipeline:
         else:
             self.in_type = type(None)
 
+        # Options:
         self.store_intermediate_data = store_intermediate_data
 
+        # Pipeline setup
         self.input_node = inp
         self.output_node = inp
         self.artifacts_folder = "pipe-artifacts"
         self.nodes: Dict[str, Node] = {inp.name: inp}  # All Blocks in the pipeline
         self.execution_plan = [inp]
         self.graph: Dict[str, List[str]] = {inp.name: ["$input"]}  # Edges point towards data source
-
         self.__must_cache_output: Set[str] = set()  # Set of blocks whose output should be cached
+
+        # Misc
+        self.name = name
+        self.logger = logging.getLogger(f"pipeline.{self.name}")
 
     def attach_back(self, new_node: Node) -> "Pipeline":
         """
@@ -134,6 +141,9 @@ class Pipeline:
         self.output_node = new_node
         new_node.set_artifacts_folder(self.artifacts_folder)
 
+        # Inject logger
+        new_node.logger = logging.getLogger(f"{self.logger.name}.<{new_node.name}>")
+
     def run(self, inp: Any = None) -> PipelineResult:
         """
         Accepts an input for the first node (must be a single value or None)
@@ -150,7 +160,7 @@ class Pipeline:
 
         history: Dict[str, str] = {"$input": inp}
         beginning_time = datetime.datetime.now()
-        print(f"Starting pipeline [at {beginning_time}]...")
+        self.logger.info(f"Starting pipeline [at {beginning_time}]...")
 
         cache = {"$input": inp}
 
@@ -182,7 +192,7 @@ class Pipeline:
             raise ValueError(f"f{block_name} isn't present in history file {history_file_name} [{history}]")
 
         beginning_time = datetime.datetime.now()
-        print(f"Resuming pipeline [at {beginning_time}] [from {block_name}]...")
+        self.logger.info(f"Resuming pipeline [at {beginning_time}] [from {block_name}]...")
 
         cached_data: Dict[str, Any] = dict()
 
@@ -226,7 +236,7 @@ class Pipeline:
 
         pipeline_history_file = f"pipeline_{Pipeline.format_time(time)}.json"
         pipeline_history_file = os.path.join(self.artifacts_folder, pipeline_history_file)
-        print(f"Saving history [at {os.path.abspath(pipeline_history_file)}]")
+        self.logger.info(f"Saving history [at {os.path.abspath(pipeline_history_file)}]")
         with open(pipeline_history_file, "w") as file:
             file.write(json.dumps(history))
 
@@ -267,6 +277,8 @@ class Pipeline:
                 raise TypeError(f"Input type(s) not acceptable by \"{cur_node.name}\" node\n"
                                 f"expected types: {cur_node.in_types}, got: {typs}")
             try:
+                self.logger.info(f"Running \"{cur_node.name}\" node")
+
                 # Process data
                 cur_node_start = time.time()
                 del prev_output

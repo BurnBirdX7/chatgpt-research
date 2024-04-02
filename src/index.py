@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import Union, Tuple, List, Any, Dict
 
@@ -63,7 +64,10 @@ class Index:
         sequence_len, embedding_len = data.shape
 
         faiss.normalize_L2(data)
-        print("Building index... ", end="")
+
+        print = logging.getLogger(__name__).debug
+
+        print("Started building index... ")
         index = faiss.IndexFlatIP(embedding_len)
         if config.faiss_use_gpu:
             gpu_res = faiss.StandardGpuResources()
