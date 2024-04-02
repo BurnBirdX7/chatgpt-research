@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __all__ = ['BaseNode', 'Node']
 
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
 
@@ -16,6 +17,8 @@ class Node(ABC):
     def __init__(self, name: str):
         if '$' in name:
             raise ValueError('Prohibited character `$` in block name')
+
+        self.logger = logging.getLogger(f"node.{self.__class__.__name__}.{name}")
 
         self.__name = name
 

@@ -9,6 +9,7 @@ from .token_chain import Chain
 
 __all__ = ['ChainingNode', 'FilterChainsNode', 'Pos2ChainMapNode']
 
+
 class ChainingNode(BaseNode):
     def __init__(self, name: str, embedding_builder_config: EmbeddingBuilderConfig):
         super().__init__(name, [str, list, dict], ChainListDescriptor())
@@ -21,13 +22,13 @@ class ChainingNode(BaseNode):
         input_token_ids = tokenizer.encode(input_text)
         result_chains = []
         for token_pos, (token_id, token_sources) in enumerate(zip(input_token_ids, sources)):
-            print(f"position: {token_pos + 1} / {len(input_token_ids)}")
+            self.logger.debug(f"position: {token_pos + 1} / {len(input_token_ids)}")
 
             for source in token_sources:
                 batched_likelihoods = source_batched_likelihoods[source]
-                print(f"\tbatch size: {len(batched_likelihoods)}, "
-                      f"token id: {token_id}, "
-                      f"source: {source}")
+                self.logger.debug(f"\tbatch size: {len(batched_likelihoods)}, "
+                                  f"token id: {token_id}, "
+                                  f"source: {source}")
 
                 for i, passage_likelihoods in enumerate(batched_likelihoods):
                     result_chains += Chain.generate_chains(len(passage_likelihoods), passage_likelihoods,
@@ -61,6 +62,7 @@ class Pos2ChainMapNode(BaseNode):
     """
     Converts a list of NON-INTERSECTING chains into mapping (pos -> chain)
     """
+
     def __init__(self, name: str):
         super().__init__(name, [list], Pos2ChainMappingDescriptor())
 

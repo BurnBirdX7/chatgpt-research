@@ -24,7 +24,7 @@ def get_coloring_pipeline() -> Pipeline:
     # == Pipeline ==
 
     # First node strips input of punctuation
-    pipeline = Pipeline(TextProcessingNode.new("input-stripped", remove_punctuation))
+    pipeline = Pipeline(TextProcessingNode.new("input-stripped", remove_punctuation), name="text-coloring")
 
     # Node queries all sources that might contain similar text from ColBERT
     pipeline.attach_back(QueryColbertServer("possible-sources-dict-raw", colbert_cfg))

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import logging
 import os.path
 
 import faiss  # type: ignore
@@ -19,7 +20,9 @@ from .pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor, ListDe
 
 
 class EmbeddingsBuilder:
-    def __init__(self, config: EmbeddingBuilderConfig):
+    def __init__(self, config: EmbeddingBuilderConfig, logger: logging.Logger = logging.getLogger(__name__)) -> None:
+        self.logger = logger
+
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.tokenizer = config.tokenizer
         self.model = config.model
@@ -29,16 +32,17 @@ class EmbeddingsBuilder:
 
         self.embedding_length = self.model.config.hidden_size
         self.normalize = config.normalize
-        print(f"Embedding normalization: {self.normalize}")
+        self.logger.debug(f"EmbeddingsBuilder: Embedding normalization: {self.normalize}")
 
         self.suppress_progress_report = False
 
         if config.centroid_file is not None:
             self.centroid = np.load(config.centroid_file)
-            print('Centroid loaded!')
+            self.logger.debug(f'Centroid loaded from file "{config.centroid_file}"')
+            self.logger.debug(f'Centroid {self.centroid}')
         else:
             self.centroid = np.zeros(self.embedding_length)
-            print('No centroid')
+            self.logger.debug('Using default centroid')
 
     def from_ids(self, input_ids: List[int]) -> np.ndarray:
         """
@@ -126,7 +130,7 @@ class EmbeddingsBuilder:
         embeddings = np.empty((0, self.model.config.hidden_size))
 
         for i, page in enumerate(source_list):
-            print(f"Source {i + 1}/{len(source_list)} in processing")
+            self.logger.debug(f"Source {i + 1}/{len(source_list)} in processing")
             sources_dict = source_provider(page)
 
             input_ids: List[int] = []
@@ -188,7 +192,7 @@ class EmbeddingsFromTextNode(BaseNode):
         self.eb_config = config
 
     def process(self, text: str) -> np.ndarray:
-        eb = EmbeddingsBuilder(self.eb_config)
+        eb = EmbeddingsBuilder(self.eb_config, logging.getLogger(f"{self.logger.name}.{EmbeddingsBuilder}"))
         return eb.tensor_from_text(text).cpu().numpy()
 
     def prerequisite_check(self) -> str | None:
@@ -226,7 +230,7 @@ class LikelihoodsForMultipleSources(BaseNode):
         source_batched_likelihoods = {}  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
 
         for i, source in enumerate(unique_sources):
-            print(f"Producing embeddings for source {i + 1}/{len(unique_sources)}: \"{source}\"")
+            self.logger.debug(f"Generating likelihoods for source {i + 1}/{len(unique_sources)}: \"{source}\"")
             source_text = sources_data[source]
             tokenizer_output = tokenizer(text=source_text, add_special_tokens=False,
                                          return_tensors='pt', return_attention_mask=True,

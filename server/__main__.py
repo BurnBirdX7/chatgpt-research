@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 from functools import lru_cache
 
@@ -13,6 +14,8 @@ coloring_pipeline = get_coloring_pipeline()
 coloring_pipeline.check_prerequisites()
 coloring_pipeline.force_caching("input-tokenized")
 coloring_pipeline.store_intermediate_data = False
+
+logging.basicConfig(level=logging.DEBUG, format='[%(name)s]:%(levelname)s:%(message)s')
 
 @lru_cache(1)
 def color_text(text):
