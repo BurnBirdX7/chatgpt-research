@@ -212,7 +212,7 @@ class TokenizeTextNode(BaseNode):
         return readable_tokens
 
 
-class EmbeddingsForMultipleSources(BaseNode):
+class LikelihoodsForMultipleSources(BaseNode):
 
     def __init__(self, name, embeddings_builder_config: EmbeddingBuilderConfig):
         super().__init__(name, [list, dict], ComplexDictDescriptor(TensorDescriptor()))
