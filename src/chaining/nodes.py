@@ -30,8 +30,8 @@ class ChainingNode(BaseNode):
                       f"source: {source}")
 
                 for i, passage_likelihoods in enumerate(batched_likelihoods):
-                    result_chains += Chain.generate_chains(len(passage_likelihoods), passage_likelihoods,
-                                                           input_token_ids, token_pos, source)
+                    result_chains += Chain.generate_chains(passage_likelihoods, source,
+                                                           input_token_ids, token_pos)
 
         return result_chains
 
@@ -45,6 +45,7 @@ class FilterChainsNode(BaseNode):
         super().__init__(name, [list], ChainListDescriptor())
 
     def process(self, chains: List[Chain]) -> List[Chain]:
+        print("Chain count: ", len(chains))
         filtered_chains: List[Chain] = []
         marked_positions: Set[int] = set()  # positions that are marked with some source
         for chain in sorted(chains, key=lambda x: x.get_score(), reverse=True):
@@ -54,6 +55,7 @@ class FilterChainsNode(BaseNode):
                 marked_positions |= positions
                 filtered_chains.append(chain)
 
+        print("Filtered chains count: ", len(filtered_chains))
         return filtered_chains
 
 
