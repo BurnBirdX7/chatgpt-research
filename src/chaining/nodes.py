@@ -46,7 +46,7 @@ class FilterChainsNode(BaseNode):
         super().__init__(name, [list], ChainListDescriptor())
 
     def process(self, chains: List[Chain]) -> List[Chain]:
-        print("Chain count: ", len(chains))
+        self.logger.debug(f"Chain count: {len(chains)}")
         filtered_chains: List[Chain] = []
         marked_positions: Set[int] = set()  # positions that are marked with some source
         for chain in sorted(chains, key=lambda x: x.get_score(), reverse=True):
@@ -56,7 +56,7 @@ class FilterChainsNode(BaseNode):
                 marked_positions |= positions
                 filtered_chains.append(chain)
 
-        print("Filtered chains count: ", len(filtered_chains))
+        self.logger.debug(f"Filtered chains count: {len(filtered_chains)}")
         return filtered_chains
 
 
