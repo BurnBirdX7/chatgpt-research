@@ -22,18 +22,14 @@ def render_colored_text(input_text: str, tokens: List[str], pos2chain: Dict[int,
             chain = pos2chain[i]
             source = chain.source
             score = chain.get_score()
-            if last_chain == chain:
-                output_page += template_link.render(link=source,
-                                                    score=score,
-                                                    color="color" + str(color),
-                                                    token=key)
-            else:
+            if last_chain != chain:
                 color += 1
                 last_chain = chain
                 output_source_list += template_source_item.render(link=source,
                                                                   color="color" + str(color))
-                output_page += template_link.render(link=source,
+            output_page += template_link.render(link=source,
                                                     score=score,
+                                                    chain=str(chain),
                                                     color="color" + str(color),
                                                     token=key)
         else:

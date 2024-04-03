@@ -14,23 +14,32 @@ class Chain:
 
     def __init__(self, source: str,
                  begin_pos: int,
-                 likelihoods: Optional[List[float] | npt.NDArray[np.float64]] = None,
                  all_likelihoods: Optional[List[float] | npt.NDArray[np.float64]] = None,
                  parent: Optional[Chain] = None):
         self.begin_pos: int = begin_pos
-        self.likelihoods = np.array([] if (likelihoods is None) else likelihoods)
         self.all_likelihoods = np.array([] if (all_likelihoods is None) else all_likelihoods)
         self.source = source
-        self.skips_count = len(self.all_likelihoods) - len(self.likelihoods)
         self.parent = parent
 
         self._begin_skips = 0
         self._end_skips = 0
 
-
     @property
     def end_pos(self) -> int:
         return self.begin_pos + len(self)
+
+    @property
+    def likelihoods(self) -> npt.NDArray[np.float64]:
+        return self.all_likelihoods[self.all_likelihoods >= Chain.likelihood_significance_threshold]
+
+    def __eq__(self, other: Chain) -> bool:
+        if not isinstance(other, Chain):
+            return False
+
+        return (self.source == other.source and
+                self.begin_pos == other.begin_pos and
+                np.array_equal(self.all_likelihoods, other.all_likelihoods))
+
 
     def __len__(self) -> int:
         return len(self.all_likelihoods)
@@ -65,26 +74,27 @@ class Chain:
     def from_dict(d: dict) -> "Chain":
         return Chain(
             begin_pos=d["begin_pos"],
-            likelihoods=d["likelihoods"],
             all_likelihoods=d["all_likelihoods"],
             source=d["source"]
         )
 
     def append_end(self, likelihood: float) -> None:
         self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
-        self.likelihoods = np.append(self.likelihoods, likelihood)
         self._end_skips = 0
 
     def skip_end(self, likelihood: float) -> None:
         self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
-        self.skips_count += 1
         self._end_skips += 1
         if len(self) == 0:
             self._begin_skips += 1
 
     def trim(self):
+        """
+        Trims chain based on the meta information about skips
+        """
         end_trim = len(self) - self._end_skips
         self.all_likelihoods = self.all_likelihoods[self._begin_skips:end_trim]
+        self.begin_pos += self._begin_skips
         self._begin_skips = 0
         self._end_skips = 0
 
@@ -101,28 +111,6 @@ class Chain:
         l = np.exp(np.log(self.likelihoods).mean())
         score = l * (len(self.likelihoods)**2)
         return score
-
-    def get_all_subchains(self) -> List[Chain]:
-        parent = self if self.parent is None else self.parent
-
-        pos = self.begin_pos
-        skip_mask: npt.NDArray[np.bool_] = self.likelihoods < Chain.likelihood_significance_threshold
-
-        n = len(self)
-        subchains = [
-            Chain(
-                self.source,
-                pos + i,
-                self.likelihoods[i:i+l],
-                skip_mask[i:i+l].sum(),
-                parent
-            )
-            for l in range(2, n)
-            for i in range(0, n - l)
-        ]
-
-        print(f"Subchains count: {len(subchains)}, {self}")
-        return subchains
 
     @staticmethod
     def generate_chains(likelihoods: torch.Tensor, source_name: str,
@@ -160,8 +148,7 @@ class Chain:
                         break
                 else:
                     chain.append_end(token_curr_likelihood)
-                    new_chain = chain.trim_copy()
-                    if len(new_chain) > 1:
-                        result_chains.append(new_chain)
+                    if len(chain) > 1:
+                        result_chains.append(copy.copy(chain))
 
         return result_chains
