@@ -51,7 +51,7 @@ def get_coloring_pipeline() -> Pipeline:
 
     # Build high-likelihood chains
     pipeline.attach(
-        ChainingNode("all-chains", chaining_eb_config),
+        ChainingNode("all-chains", chaining_eb_config, True),
         "input-stripped", "sources-names", "source-likelihoods"
     )
 

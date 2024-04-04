@@ -5,7 +5,7 @@ from functools import lru_cache
 
 from flask import Flask, render_template, request, Response
 
-from scripts.color_pipeline import get_coloring_pipeline
+from scripts.coloring_pipeline import get_coloring_pipeline
 from server.render_colored_text import render_colored_text
 
 app = Flask(__name__)

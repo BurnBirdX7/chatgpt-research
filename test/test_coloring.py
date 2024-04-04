@@ -8,8 +8,8 @@ from dataclasses import dataclass
 import pandas as pd
 import torch.cuda
 
-from src.token_chain import Chain
-from scripts.color_pipeline import get_coloring_pipeline
+from src.chaining import Chain
+from scripts.coloring_pipeline import get_coloring_pipeline
 
 def majority_label(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
     return len(pos2chain) >= 0.5 * len(tokens)

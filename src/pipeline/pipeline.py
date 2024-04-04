@@ -304,8 +304,8 @@ class Pipeline:
                     cur_node_descriptor_time
                 )
 
-            except Exception:
-                raise RuntimeError(f"Exception occurred during processing of node \"{cur_node.name}\"")
+            except Exception as e:
+                raise RuntimeError(f"Exception occurred during processing of node \"{cur_node.name}\"") from e
 
         return PipelineResult(prev_output, history, cache, statistic_dic)
 

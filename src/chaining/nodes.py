@@ -11,9 +11,17 @@ __all__ = ['ChainingNode', 'FilterChainsNode', 'Pos2ChainMapNode']
 
 
 class ChainingNode(BaseNode):
-    def __init__(self, name: str, embedding_builder_config: EmbeddingBuilderConfig):
+    def __init__(self,
+                 name: str,
+                 embedding_builder_config: EmbeddingBuilderConfig,
+                 use_bidirectional_chaining: bool = False
+                 ):
         super().__init__(name, [str, list, dict], ChainListDescriptor())
         self.eb_config = embedding_builder_config
+        if use_bidirectional_chaining:
+            self.chaining_func = Chain.generate_chains_bidirectional
+        else:
+            self.chaining_func = Chain.generate_chains
 
     def process(self, input_text: str, sources: List[List[str]],
                 source_batched_likelihoods: Dict[str, torch.Tensor]) -> Any:
@@ -31,8 +39,8 @@ class ChainingNode(BaseNode):
                                   f"source: {source}")
 
                 for i, passage_likelihoods in enumerate(batched_likelihoods):
-                    result_chains += Chain.generate_chains(passage_likelihoods, source,
-                                                           input_token_ids, token_pos)
+                    result_chains += self.chaining_func(passage_likelihoods, source,
+                                                        input_token_ids, token_pos)
 
         return result_chains
 
@@ -50,6 +58,9 @@ class FilterChainsNode(BaseNode):
         filtered_chains: List[Chain] = []
         marked_positions: Set[int] = set()  # positions that are marked with some source
         for chain in sorted(chains, key=lambda x: x.get_score(), reverse=True):
+            if len(chain) < 2:
+                continue
+
             positions = chain.get_token_positions()
             marked_positions_inside_chain = marked_positions.intersection(positions)
             if len(marked_positions_inside_chain) == 0:
