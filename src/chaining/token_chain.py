@@ -11,6 +11,7 @@ from typing import Optional, List, Set
 
 class Chain:
     likelihood_significance_threshold = 1e-5
+    max_skips = 3
 
     def __init__(self, source: str,
                  begin_pos: int,
@@ -181,10 +182,10 @@ class Chain:
                 token_curr_id = target_token_ids[target_pos]
                 token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
 
-                if token_curr_likelihood < 1e-5:
+                if token_curr_likelihood < Chain.likelihood_significance_threshold:
                     chain.skip_end(token_curr_likelihood)
                     skips += 1
-                    if skips > 3:
+                    if skips > Chain.max_skips:
                         break
                 else:
                     chain.append_end(token_curr_likelihood)
@@ -223,10 +224,10 @@ class Chain:
                 token_curr_id = target_token_ids[target_pos]
                 token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
 
-                if token_curr_likelihood < 1e-5:
+                if token_curr_likelihood < Chain.likelihood_significance_threshold:
                     forward_chain.skip_end(token_curr_likelihood)
                     skips += 1
-                    if skips > 3:
+                    if skips > Chain.max_skips:
                         break
                 else:
                     forward_chain.append_end(token_curr_likelihood)
@@ -248,10 +249,10 @@ class Chain:
                 token_curr_id = target_token_ids[target_pos]
                 token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
 
-                if token_curr_likelihood < 1e-5:
+                if token_curr_likelihood < Chain.likelihood_significance_threshold:
                     backward_chain.skip_end(token_curr_likelihood)
                     skips += 1
-                    if skips > 3:
+                    if skips > Chain.max_skips:
                         break
                 else:
                     backward_chain.append_end(token_curr_likelihood)
@@ -262,7 +263,7 @@ class Chain:
 
             # COMBINE CHAINS:
             for backward_chain, forward_chain in itertools.product(backward_chains, forward_chains):
-                if backward_chain._end_skips + forward_chain._begin_skips > 3:
+                if backward_chain._end_skips + forward_chain._begin_skips > Chain.max_skips:
                     # Reject chain combinations with a large gap in the middle
                     continue
 
