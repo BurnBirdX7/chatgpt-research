@@ -11,7 +11,7 @@ from server.render_colored_text import render_colored_text
 app = Flask(__name__)
 
 coloring_pipeline = get_coloring_pipeline()
-coloring_pipeline.check_prerequisites()
+coloring_pipeline.assert_prerequisites()
 coloring_pipeline.force_caching("input-tokenized")
 coloring_pipeline.store_intermediate_data = False
 

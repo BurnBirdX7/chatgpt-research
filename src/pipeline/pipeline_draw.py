@@ -38,11 +38,11 @@ def draw_network(pipeline: Pipeline,
 
 
 def draw_execution(pipeline: Pipeline, ax: Axes, g: nx.DiGraph, colors: List[str], exec_edges: List[Tuple[str, str]]):
-    node_count = len(pipeline.execution_plan)
+    node_count = len(pipeline.__default_execution_order)
     distance = 2 / (node_count + 1)
     layout = {
                  node.name: (-1 + (i + 1) * distance, 0)
-                 for i, node in enumerate(pipeline.execution_plan)
+                 for i, node in enumerate(pipeline.__default_execution_order)
              } | {"$input": (-1, 0), "$output": (+1, 0)}
 
     nx.draw(g,
@@ -66,8 +66,8 @@ def draw(pipeline: Pipeline, ax: Tuple[Axes, Axes, Axes]):
             colors.append("skyblue")
 
     exec_edges = [("$input", pipeline.input_node.name)]
-    for i in range(len(pipeline.execution_plan) - 1):
-        exec_edges.append((pipeline.execution_plan[i].name, pipeline.execution_plan[i + 1].name))
+    for i in range(len(pipeline.__default_execution_order) - 1):
+        exec_edges.append((pipeline.__default_execution_order[i].name, pipeline.__default_execution_order[i + 1].name))
     exec_edges.append((pipeline.output_node.name, "$output"))
 
     draw_network(pipeline, ax[0], ax[1], g, colors, exec_edges)

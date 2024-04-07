@@ -73,7 +73,8 @@ class Stat:
 pipeline = get_coloring_pipeline()
 pipeline.store_intermediate_data = False
 pipeline.force_caching("input-tokenized")
-pipeline.check_prerequisites()
+pipeline.assert_prerequisites()
+
 
 def estimate():
     start_time = time.time()
