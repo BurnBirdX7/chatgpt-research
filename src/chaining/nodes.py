@@ -38,9 +38,7 @@ class ChainingNode(BaseNode):
                                   f"token id: {token_id}, "
                                   f"source: {source}")
 
-                for i, passage_likelihoods in enumerate(batched_likelihoods):
-                    result_chains += self.chaining_func(passage_likelihoods, source,
-                                                        input_token_ids, token_pos)
+                result_chains += self.chaining_func(batched_likelihoods.reshape(-1), source, input_token_ids, token_pos)
 
         return result_chains
 

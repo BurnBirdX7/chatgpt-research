@@ -22,7 +22,37 @@ class Pipeline:
     Class that helps streamline data processing pipelines
     """
 
-    def __init__(self: "Pipeline", inp: Node, store_intermediate_data: bool = True, name: str = "pipeline") -> None:
+    def __init__(self: "Pipeline",
+                 inp: Node,
+                 store_intermediate_data: bool = True,
+                 store_optional_data: bool = False,
+                 name: str = "pipeline") -> None:
+        """
+        Create a Pipeline object
+
+        Parameters
+        ----------
+        inp : Node
+            The input node, this node accepts input that passed to the pipeline
+            This node can have one or zero inputs
+            Other nodes also can acquire input value by receiving "$input" input
+
+        store_intermediate_data : bool, default=True
+            Whether to store outputs of the nodes to disk
+
+        store_optional_data : bool, default=False
+            Whether to store optional data, ignored if store_intermediate_data is False
+
+        name : str, default="pipeline"
+            Name of the pipeline, used for logging
+
+
+        Raises
+        ------
+        ValueError
+            If inp accepts more than one input
+
+        """
 
         # Types:
         if len(inp.in_types) > 1:
@@ -34,15 +64,16 @@ class Pipeline:
 
         # Options:
         self.store_intermediate_data = store_intermediate_data
+        self.store_optional_data = store_optional_data
 
         # Pipeline setup
         self.input_node = inp
         self.output_node = inp
         self.artifacts_folder = "pipe-artifacts"
-        self.nodes: Dict[str, Node] = {inp.name: inp}  # All Blocks in the pipeline
+        self.nodes: Dict[str, Node] = {inp.name: inp}  # All nodes in the pipeline
         self.execution_plan = [inp]
         self.graph: Dict[str, List[str]] = {inp.name: ["$input"]}  # Edges point towards data source
-        self.__must_cache_output: Set[str] = set()  # Set of blocks whose output should be cached
+        self.__must_cache_output: Set[str] = set()  # Set of nodes whose output should be cached
 
         # Misc
         self.name = name
@@ -50,13 +81,13 @@ class Pipeline:
 
     def attach_back(self, new_node: Node) -> "Pipeline":
         """
-        Attaches block to the end of the pipeline
-        ... -> [last_block] -> [new_block]
+        Attaches node to the end of the pipeline
+        ... -> [last_node] -> [new_node]
         """
 
         # Important checks
         if new_node.name in self.graph:
-            raise ValueError(f"Block with name '{new_node.name}' already exists in the pipeline")
+            raise ValueError(f"Node with name '{new_node.name}' already exists in the pipeline")
 
         # Current output node of the pipeline will provide input for the new node
         input_node = self.output_node
@@ -64,9 +95,9 @@ class Pipeline:
         # Check type compatibility
         input_type: type = input_node.out_type
         if not new_node.is_input_type_acceptable([input_type]):
-            raise TypeError(f"Pipeline's output type is not acceptable by the block that is being attached"
+            raise TypeError(f"Pipeline's output type is not acceptable by the node that is being attached"
                             f"\tPipeline's output type is \"{input_type}\" and "
-                            f"input type of the block \"{new_node.name}\" accepts \"{new_node.in_types}")
+                            f"input type of the node \"{new_node.name}\" accepts \"{new_node.in_types}")
 
         if input_node is not self.output_node:
             self.__must_cache_output |= {input_node.name}
@@ -81,18 +112,28 @@ class Pipeline:
         r"""
         Attaches new node to outputs of nodes already existing in the pipeline
 
+        Examples
+        --------
         pipeline.attach(new_node, "node1", "node2")
 
-        ... -> [node1] --\
-                         v
-                     [new_node]
-                         ^
-        ... -> [node2] --/
+         > Makes `new_node` a pipeline's output
+         > Makes outputs of blocks `node1` and `node2` inputs for the new node
+
+        Parameters
+        ----------
+        new_node : Node
+            A node to attach
+
+        *input_names : str
+            The names of the inputs for the new nodes
+            Number of names should be equal the number of inputs of the node
+            Types of outputs should be compatible with inputs of the node
+
         """
 
         # Important checks
         if new_node.name in self.graph:
-            raise ValueError(f"Block with name '{new_node.name}' already exists in the pipeline")
+            raise ValueError(f"Node with name '{new_node.name}' already exists in the pipeline")
 
         input_types: List[type] = []
         for name in input_names:
@@ -101,7 +142,7 @@ class Pipeline:
             elif name in self.nodes:
                 input_types.append(self.nodes[name].out_type)
             else:
-                raise ValueError(f"Block with name '{name}' does not exist in the pipeline")
+                raise ValueError(f"Node with name '{name}' does not exist in the pipeline")
 
         # Check type compatibility
         if not new_node.is_input_type_acceptable(input_types):
@@ -145,14 +186,19 @@ class Pipeline:
         new_node.logger = logging.getLogger(f"{self.logger.name}.<{new_node.name}>")
 
     def run(self, inp: Any = None) -> PipelineResult:
-        """
-        Accepts an input for the first node (must be a single value or None)
+        """Accepts an input for the first node (must be a single value or None)
 
-        :param inp: input
-        :return: tuple:
-                   - Primary output (output of the last node)
-                   - Pipeline History (dictionary that describes how data was saved)
-                   - Cached outputs of the blocks
+        Parameters
+        ----------
+        inp : Any, optional
+            Input for the pipeline
+            Must be provided if input node has one input
+            Shouldn't be provided if input node has zero inputs
+
+        Returns
+        -------
+        PipelineResult
+            Data accumulated from the pipeline run
         """
         typs = [type(inp)]
         if not self.input_node.is_input_type_acceptable(typs):
@@ -171,13 +217,22 @@ class Pipeline:
         finally:
             self.__save_history(beginning_time, history)
 
-    def resume(self, history_file_name: str, block_name: str) -> PipelineResult:
-        """
-        Resume pipeline run from the block name, load all cachable data in memory
+    def resume(self, history_file_name: str, node_name: str) -> PipelineResult:
+        """Resumes already finished execution from specified point
+        Loads all saved data into the cache, purges cache that should be in the future relative to the specified node
 
-        :param history_file_name: file that describes how data was saved
-        :param block_name: name of the block to resume from
-        :return: the
+        Parameters
+        ----------
+        history_file_name : str
+            file that describes how data was saved
+
+        node_name: str
+            name of the node to resume from
+
+        Returns
+        -------
+        PipelineResult
+            Data accumulated from the pipeline run, includes old data from previous run as a part of the resumed run
         """
         history_dir = os.path.dirname(history_file_name)
         history_dir = os.path.abspath(history_dir)
@@ -188,33 +243,33 @@ class Pipeline:
         # TODO: Add reachability check
         # TODO: Optimize excessive caching
 
-        if block_name not in history:
-            raise ValueError(f"f{block_name} isn't present in history file {history_file_name} [{history}]")
+        if node_name not in history:
+            raise ValueError(f"f{node_name} isn't present in history file {history_file_name} [{history}]")
 
         beginning_time = datetime.datetime.now()
-        self.logger.info(f"Resuming pipeline [at {beginning_time}] [from {block_name}]...")
+        self.logger.info(f"Resuming pipeline [at {beginning_time}] [from {node_name}]...")
 
         cached_data: Dict[str, Any] = dict()
 
         # Load in cache all cachable outputs that are present in the history
-        # and entry block itself
-        for cached_block_name in self.__must_cache_output | {block_name}:
-            if cached_block_name not in history or cached_block_name == "$input":
+        # and entry node itself
+        for cached_node_name in self.__must_cache_output | {node_name}:
+            if cached_node_name not in history or cached_node_name == "$input":
                 continue
 
-            dic_filename = history[cached_block_name]
+            dic_filename = history[cached_node_name]
             dic_filename = os.path.join(history_dir, dic_filename)
-            cached_data[cached_block_name] = self.__load_data(cached_block_name, dic_filename)
+            cached_data[cached_node_name] = self.__load_data(cached_node_name, dic_filename)
 
         # Load original $input:
         if "$input" in self.__must_cache_output:
             cached_data["$input"] = self.in_type(history["$input"])
 
         # Set `resume` input
-        inp = cached_data[block_name]
+        inp = cached_data[node_name]
 
         old_execution_plan = self.execution_plan
-        start_node_idx = self.execution_plan.index(self.nodes[block_name])
+        start_node_idx = self.execution_plan.index(self.nodes[node_name])
         self.execution_plan = self.execution_plan[start_node_idx + 1:]
 
         try:
@@ -226,11 +281,25 @@ class Pipeline:
             self.execution_plan = old_execution_plan  # restore execution order
 
     def set_artifacts_folder(self, artifacts_folder: str):
+        """Sets artifact folder for the pipeline and propagates it to all of its nodes
+
+        Parameters
+        ----------
+        artifacts_folder : str
+            path to the folder for the artifacts to be stored
+
+        Notes
+        -----
+        This setting is a preference and may be ignored by the nodes
+
+        """
         self.artifacts_folder = artifacts_folder
         for node in self.nodes.values():
             node.set_artifacts_folder(artifacts_folder)
 
     def __save_history(self, time: datetime.datetime, history: PipelineHistory):
+        """Saves history file to the disk
+        """
         if not self.store_intermediate_data:
             return
 
@@ -242,16 +311,33 @@ class Pipeline:
 
     @staticmethod
     def get_timestamp_str() -> str:
+        """Helper method to get current timestamp as a string suitable for use in file names"""
         return Pipeline.format_time(datetime.datetime.now())
 
     @staticmethod
     def format_time(time: datetime.datetime) -> str:
+        """Helper method to get a timestamp as a string suitable for use in file names"""
         return time.strftime("%Y-%m-%d.%H-%M-%S")
 
     def __run(self, _input: Any, history: Dict[str, str], cache: Dict[str, Any]) -> PipelineResult:
         """
-        Run the pipeline
-        :param history: dictionary where key is the name of the block and the value is name of the file with essential information
+        Actually runs the pipeline
+
+        Parameters
+        ----------
+        _input : Any
+            input data for the first node
+
+        history : Dict[str, str]
+            A dictionary that contains mapping (node-name) -> (pipe-file-path)
+
+        cache : Dict[str, Any]
+            A dictionary that contains mapping (node-name) -> (produced-data)
+            "$input" pseudo-node should be already in the cache
+
+        Returns
+        -------
+        PipelineResult
         """
         self.check_prerequisites()
 
@@ -265,7 +351,7 @@ class Pipeline:
 
         # Execution:
         for cur_node in self.execution_plan:
-            # Construct input for the current block
+            # Construct input for the current node
             source_names = self.graph[cur_node.name]
             cur_input_data = []
             for s_name in source_names:
@@ -292,8 +378,8 @@ class Pipeline:
 
                 # Save data to disk before resuming
                 cur_node_descriptor_start = time.time()
-                if self.store_intermediate_data and not cur_node.out_descriptor.is_optional():
-                    # TODO: Implement a way to force optional data to be saved
+                if (self.store_intermediate_data and
+                        (not cur_node.out_descriptor.is_optional() or self.store_optional_data)):
                     history[cur_node.name] = self.__store_data(cur_node, prev_output)
                 cur_node_descriptor_time = time.time() - cur_node_descriptor_start
 
@@ -310,18 +396,52 @@ class Pipeline:
         return PipelineResult(prev_output, history, cache, statistic_dic)
 
     def __store_data(self, node: Node, data: Any) -> str:
+        """Stores data of specific node to the disk
+        Creates and fills a file
+
+        Parameters
+        ----------
+        node : Node
+            The node whose data is to be stored
+
+        data: Any
+            Data to be stored
+            This data should be acceptable by the node's descriptor
+
+        Returns
+        -------
+        str
+            Path to the created file
+        """
         dic = node.out_descriptor.store(data)
         dic_name = f"pipe_{node.name}_{self.get_timestamp_str()}.json"
-        filename = os.path.abspath(os.path.join(self.artifacts_folder, dic_name))
-        with open(filename, "w") as file:
+        pipefile_path = os.path.abspath(os.path.join(self.artifacts_folder, dic_name))
+        with open(pipefile_path, "w") as file:
             dic_str = json.dumps(dic)
             file.write(dic_str)
 
-        return dic_name
+        return pipefile_path
 
-    def __load_data(self, block_name: str, dic_filename: str) -> Any:
-        node = self.nodes[block_name]
-        with open(dic_filename, "r") as file:
+    def __load_data(self, node_name: str, pipefile_path: str) -> Any:
+        """Loads data from the disk for the specified node
+
+        Parameters
+        ----------
+        node_name : str
+            Name of the node to load data for
+            node should be present in the pipeline
+
+        pipefile_path : str
+            Path to the file that holds the data
+            The file should be produced by the same data descriptor
+
+        Returns
+        -------
+        Any
+            Restored data
+        """
+        node = self.nodes[node_name]
+        with open(pipefile_path, "r") as file:
             dic_str = file.read()
 
         dic = json.loads(dic_str)
