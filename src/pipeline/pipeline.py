@@ -184,6 +184,73 @@ class Pipeline:
 
         return self
 
+    def replace_node(self, new_node: Node):
+        """Replaces already existing node.
+
+        Parameters
+        ----------
+        new_node : Node
+            The new node. ``new_node.name`` must evaluate to name of already exiting node in the pipeline.
+            The node must have the same input types as the node that is being replaced.
+            Node must have the same output type.
+
+        Raises
+        ------
+        ValueError
+            if there's no node with the name ``new_node.name``
+
+        TypeError
+            if input or output types are incompatible with the old ones
+
+
+        Examples
+        --------
+        You may need to replace the node to reuse some computations.
+        In this example we make a computation, replace node somewhere in the middle of the pipeline,
+        and restaring the computation with the new node
+
+        >>> pipeline = Pipeline(InpNode("inp_node"))
+        ... # Some nodes
+        ... pipeline.attach(SomeNode("the_node", param=126))
+        ... # More nodes
+        ... res1 = pipeline.run("Hello")
+        ... pipeline.replace_node(OtherNode("the_node"))
+        ... res2 = pipeline.resume_from_cache(res1, "the_node")
+
+        If you have parametrized node, you should just override the parameter, if possible
+
+        >>> pipeline = Pipeline(InpNode("inp_node"))
+        ... # Some nodes
+        ... pipeline.attach(SomeNode("the_node", param=126))
+        ... # More nodes
+        ... res1 = pipeline.run("Hello")
+        ... pipeline.nodes["the_node"].param=621
+        ... res2 = pipeline.resume_from_cache(res1, "the_node")
+
+        Notes
+        -----
+        Method makes basic checks for input/output types before replacing node in the pipeline.
+        Replacement process itself is very simple, as it just requires to replace value in ``self.nodes``
+        """
+
+        node_name = new_node.name
+        if node_name not in self.nodes:
+            raise ValueError(f"Pipeline has no node named {node_name}")
+
+        old_node = self.nodes[node_name]
+
+        if len(old_node.in_types) != len(new_node.in_types):
+            raise TypeError("Different input length")
+
+        for new_typ, old_typ in zip(new_node.in_types, old_node.in_types):
+            if not issubclass(old_typ, new_typ):
+                raise TypeError(f"Incompatible input types of old and new nodes: {old_node.in_types} vs {new_node.in_types}")
+
+        if not issubclass(new_node.out_type, old_node.out_type):
+            raise TypeError(f"Incompatible output types of old and new nodes: {old_node.out_type} vs {new_node.out_type}")
+
+        self.nodes[node_name] = new_node
+
     def force_caching(self, node_name: str) -> None:
         """
         Force caching of node's output during pipeline execution
@@ -273,15 +340,18 @@ class Pipeline:
 
         node_index = self.__default_execution_order.index(node_name)
         execution_order = self.__default_execution_order[node_index:]
+        previous_execution_order = self.__default_execution_order[:node_index]
 
+        # Copy history before target node
         history: Dict[str, str] = {
             k: pipeline_result.history[k]
-            for k in execution_order
+            for k in previous_execution_order
         }
 
+        # Copy cache of outputs produces before target node
         cache: Dict[str, Any] = {
             k: pipeline_result.cache[k]
-            for k in execution_order
+            for k in previous_execution_order
         }
 
         start_time = datetime.datetime.now()
