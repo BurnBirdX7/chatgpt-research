@@ -6,6 +6,9 @@ channels:
 dependencies:
   - python=3.9
   - pytorch
+  - torchvision
+  - torchaudio
+  - cpuonly
   - numpy
   - pandas
   - wikipedia-api
