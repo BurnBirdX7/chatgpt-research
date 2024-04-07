@@ -269,6 +269,15 @@ class Chain:
 
                 result_chains.append(backward_chain + forward_chain)
 
+            # Add uni-directional chains to the set
+            for chain in backward_chains:
+                if chain._end_skips > 0:
+                    chain.trim()
+
+            for chain in forward_chains:
+                if chain._begin_skips > 0:
+                    chain.trim()
+
             result_chains += backward_chains + forward_chains
 
         return result_chains

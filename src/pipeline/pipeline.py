@@ -89,7 +89,7 @@ class Pipeline:
 
     @property
     def default_execution_order(self) -> List[str]:
-        return self.__default_execution_order
+        return list(self.__default_execution_order)
 
     def attach_back(self, new_node: Node) -> "Pipeline":
         """Attaches node to the end of the pipeline (to the last attached node)
@@ -239,6 +239,7 @@ class Pipeline:
         PipelineResult
             Data accumulated from the pipeline run
         """
+
         history: Dict[str, str] = {"$input": inp}
         beginning_time = datetime.datetime.now()
         self.logger.info(f"Starting pipeline [at {beginning_time}]...")
@@ -246,7 +247,7 @@ class Pipeline:
         cache = {"$input": inp}
 
         try:
-            return self.__run(inp, history, cache)
+            return self.__run(inp, history, cache, self.default_execution_order)
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
@@ -262,7 +263,7 @@ class Pipeline:
             Result of previous execution
 
         node_name : str
-            Name of the node to be executed firts
+            Name of the node to be executed first
 
         Returns
         -------
@@ -293,14 +294,14 @@ class Pipeline:
         finally:
             self.__save_history(start_time, history)
 
-    def resume_from_disk(self, history_file_name: str, node_name: str) -> PipelineResult:
+    def resume_from_disk(self, historyfile_path: str, node_name: str) -> PipelineResult:
         """Resumes already finished execution from specified point
         Loads all saved data into the cache, purges cache that should be in the future relative to the specified node
 
         Parameters
         ----------
-        history_file_name : str
-            File that describes how data was saved
+        historyfile_path : str
+            Path to the file with history
 
         node_name: str
             Name of the node to be executed first
@@ -310,13 +311,14 @@ class Pipeline:
         PipelineResult
             Data accumulated from the pipeline run, includes old data from previous run as a part of the resumed run
         """
-        history_dir = os.path.dirname(history_file_name)
+
+        history_dir = os.path.dirname(historyfile_path)
         history_dir = os.path.abspath(history_dir)
-        with open(history_file_name, "r") as f:
+        with open(historyfile_path, "r") as f:
             history = json.loads(f.read())
 
         start_time = datetime.datetime.now()
-        self.logger.info(f"Resuming pipeline [at {start_time}] [from {node_name}]...")
+        self.logger.info(f"Resuming pipeline from disk [time: {start_time}] [file: {historyfile_path}] [node: {node_name}]...")
 
         cached_data: Dict[str, Any] = dict()
 
