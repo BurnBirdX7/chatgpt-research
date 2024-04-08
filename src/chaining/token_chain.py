@@ -14,10 +14,34 @@ class Chain:
     max_skips = 3
 
     def __init__(self, source: str,
-                 begin_pos: int,
+                 target_begin_pos: int,
+                 source_begin_pos: int,
                  all_likelihoods: Optional[List[float] | npt.NDArray[np.float64]] = None,
                  parent: Optional[Chain] = None):
-        self.begin_pos: int = begin_pos
+        """Create chain
+
+        Parameters
+        ----------
+        source : str
+            source associated with the chain, arbitrary string, generally URL
+
+        target_begin_pos : int
+            first token position of the chain in the target text
+
+        source_begin_pos : int
+            first token position of the chain in matched source text
+
+        all_likelihoods : List[float] or npt.NDArray[float], optional
+            All likelihoods of tokens from target text appearing in source text.
+            If no value is supplied, length of 0 is assumed
+
+        parent : Chain, optional
+            Parent chain, intended for debug purposes.
+            Generally is a chain that was reduced or transformed into this chain
+        """
+
+        self.target_begin_pos: int = target_begin_pos
+        self.source_begin_pos: int = source_begin_pos
         self.all_likelihoods = np.array([] if (all_likelihoods is None) else all_likelihoods)
         self.source = source
         self.parent = parent
@@ -26,11 +50,19 @@ class Chain:
         self._end_skips = 0
 
     @property
-    def end_pos(self) -> int:
-        return self.begin_pos + len(self)
+    def target_end_pos(self) -> int:
+        """Last (exclusive) token position of the chain in the target text"""
+        return self.target_begin_pos + len(self)
+
+    @property
+    def source_end_pos(self) -> int:
+        """Last (exclusive) token position of the chain in matched source text"""
+        return self.source_begin_pos + len(self)
 
     @property
     def likelihoods(self) -> npt.NDArray[np.float64]:
+        """Significant likelihoods
+        """
         return self.all_likelihoods[self.all_likelihoods >= Chain.likelihood_significance_threshold]
 
     def __eq__(self, other: Chain) -> bool:
@@ -38,24 +70,28 @@ class Chain:
             return False
 
         return (self.source == other.source and
-                self.begin_pos == other.begin_pos and
+                self.target_begin_pos == other.target_begin_pos and
+                self.source_begin_pos == other.source_begin_pos and
                 np.array_equal(self.all_likelihoods, other.all_likelihoods))
 
     def __len__(self) -> int:
+        """Length of the chain.
+        Amount of tokens covered by the chain in target and source texts
+        """
         return len(self.all_likelihoods)
 
     def __str__(self) -> str:
         if self.parent is None:
-            return f"Chain({self.begin_pos}..{self.end_pos}  '{self.source}' ~ {self.get_score()})"
+            return f"Chain({self.target_begin_pos}..{self.target_end_pos}  '{self.source}' ~ {self.get_score()})"
         else:
             return (f"Chain(\n"
-                    f"\t{self.begin_pos}..{self.end_pos}  '{self.source}' ~ {self.get_score()}\n"
+                    f"\t{self.target_begin_pos}..{self.target_end_pos}  '{self.source}' ~ {self.get_score()}\n"
                     f"\tparent: {self.parent!s}"
                     f")")
 
     def __repr__(self) -> str:
         return (f"Chain("
-                f"pos={self.begin_pos}, "
+                f"pos={self.target_begin_pos}, "
                 f"likelihoods={self.likelihoods!r}, "
                 f"all_likelihoods={self.all_likelihoods!r}"
                 f"source={self.source!r}, "
@@ -63,13 +99,27 @@ class Chain:
                 f")")
 
     def __add__(self, other: Chain) -> Chain:
+        """Adds 2 chains.
+        These chains must share the same token positions at the beginning and the end
+
+        Notes
+        -----
+        Chains must overlap.
+        That means that left chain's last token positions and likelihood must match
+        first token positions and likelihood of the right chain
+
+        Raises
+        ------
+        ValueError
+            if chains have different sources or couldn't be added due to not being neighbours
+        """
         if not isinstance(other, Chain):
             return NotImplemented
 
         if self.source != other.source:
             raise ValueError(f"Added chain must have same source, got: {self.source} and {other.source}")
 
-        if self.end_pos - 1 != other.begin_pos:
+        if (self.target_end_pos - 1 != other.target_begin_pos) or (self.source_end_pos - 1 != other.source_begin_pos):
             raise ValueError("Added chains must have one common position"
                              "on the end of left chain and beginning of the right chain. "
                              f"Got chains:\n{self}\nand\n{other}")
@@ -82,7 +132,8 @@ class Chain:
 
         chain = Chain(
             source=self.source,
-            begin_pos=self.begin_pos,
+            target_begin_pos=self.target_begin_pos,
+            source_begin_pos=self.source_begin_pos,
             all_likelihoods=np.concatenate([self.all_likelihoods[:-1], other.all_likelihoods])
         )
 
@@ -92,7 +143,8 @@ class Chain:
 
     def to_dict(self) -> dict:
         return {
-            "begin_pos": self.begin_pos,
+            "target_begin_pos": self.target_begin_pos,
+            "source_begin_pos": self.source_begin_pos,
             "likelihoods": self.likelihoods,
             "all_likelihoods": self.all_likelihoods,
             "source": self.source
@@ -101,16 +153,21 @@ class Chain:
     @staticmethod
     def from_dict(d: dict) -> "Chain":
         return Chain(
-            begin_pos=d["begin_pos"],
+            target_begin_pos=d["target_begin_pos"],
+            source_begin_pos=d["source_begin_pos"],
             all_likelihoods=d["all_likelihoods"],
             source=d["source"]
         )
 
     def append_end(self, likelihood: float) -> None:
+        """Appends significant likelihood to the chain
+        """
         self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
         self._end_skips = 0
 
     def skip_end(self, likelihood: float) -> None:
+        """Appends insignificant likelihood to the chain
+        """
         self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
         self._end_skips += 1
         if len(self) == 0:
@@ -119,33 +176,39 @@ class Chain:
     def reverse(self) -> Chain:
         rev_chain = Chain(
             source=self.source,
-            begin_pos=self.begin_pos - len(self) + 1,
+            target_begin_pos=self.target_begin_pos - len(self) + 1,
+            source_begin_pos=self.source_end_pos - len(self) + 1,
             all_likelihoods=np.flip(self.all_likelihoods),
             parent=self
         )
 
         rev_chain._begin_skips, rev_chain._end_skips = self._end_skips, self._begin_skips
 
-        assert rev_chain.end_pos == self.begin_pos + 1
+        assert rev_chain.target_end_pos == self.target_begin_pos + 1
         return rev_chain
 
     def trim(self):
-        """
-        Trims chain based on the meta information about skips
+        """Trims insignificant likelihoods from the chain
         """
         end_trim = len(self) - self._end_skips
         self.all_likelihoods = self.all_likelihoods[self._begin_skips:end_trim]
-        self.begin_pos += self._begin_skips
+        self.target_begin_pos += self._begin_skips
         self._begin_skips = 0
         self._end_skips = 0
 
     def trim_copy(self) -> Chain:
+        """Produces a chain without insignificant likelihoods on the ends
+        """
         obj = copy.deepcopy(self)
         obj.trim()
+        obj.parent = self
         return obj
 
-    def get_token_positions(self) -> Set[int]:
-        return set(range(self.begin_pos, self.end_pos))
+    def get_target_token_positions(self) -> Set[int]:
+        return set(range(self.target_begin_pos, self.target_end_pos))
+
+    def get_source_token_positions(self) -> Set[int]:
+        return set(range(self.source_begin_pos, self.source_end_pos))
 
     def get_score(self):
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
@@ -156,20 +219,29 @@ class Chain:
     @staticmethod
     def generate_chains(source_likelihoods: torch.Tensor, source_name: str,
                         target_token_ids: List[int], target_start_pos: int) -> List[Chain]:
-        """
-        Generates chains of tokens with the same source
+        """Generates chains of tokens with the same source
 
-        :param source_likelihoods: inferred from the source text likelihoods for the tokens
-        :param source_name: name of the source, doesn't affect generation, all produced chains will have this name
-        :param target_token_ids: token ids of the target text
-        :param target_start_pos: position from where to start building chains
+        Parameters
+        ----------
+        source_likelihoods : torch.Tensor
+            inferred from the source text likelihoods for the tokens
+
+        source_name : str
+            name of the source, doesn't affect generation, all produced chains will have this name
+
+        target_token_ids : List[int]
+            token ids of the target text
+
+        target_start_pos : int
+            position from where to start building chains
         """
+
         result_chains: List[Chain] = []
         source_len = len(source_likelihoods)
 
         for source_start_pos in range(0, source_len):
             # FORWARD CHAINING:
-            chain = Chain(source_name, target_start_pos)
+            chain = Chain(source_name, target_start_pos, source_start_pos)
             skips = 0
             shift_upper_bound = min(source_len - source_start_pos, len(target_token_ids) - target_start_pos)
             for shift in range(0, shift_upper_bound):
@@ -197,20 +269,28 @@ class Chain:
     @staticmethod
     def generate_chains_bidirectional(source_likelihoods: torch.Tensor, source_name: str,
                                       target_token_ids: List[int], target_start_pos: int) -> List[Chain]:
-        """
-        Generates chains of tokens with the same source
+        """Generates chains of tokens with the same source
 
-        :param source_likelihoods: inferred from the source text likelihoods for the tokens
-        :param source_name: name of the source, doesn't affect generation, all produced chains will have this name
-        :param target_token_ids: token ids of the target text
-        :param target_start_pos: position from where to start building chains
+        Parameters
+        ----------
+        source_likelihoods : torch.Tensor
+            inferred from the source text likelihoods for the tokens
+
+        source_name : str
+            name of the source, doesn't affect generation, all produced chains will have this name
+
+        target_token_ids : List[int]
+            token ids of the target text
+
+        target_start_pos : int
+            position from where to start building chains
         """
         result_chains: List[Chain] = []
         source_len = len(source_likelihoods)
 
         for source_start_pos in range(0, source_len):
             # FORWARD CHAINING:
-            forward_chain = Chain(source_name, target_start_pos)
+            forward_chain = Chain(source_name, target_start_pos, source_start_pos)
             forward_chains = []
             skips = 0
             shift_upper_bound = min(source_len - source_start_pos, len(target_token_ids) - target_start_pos)
@@ -235,7 +315,7 @@ class Chain:
                         forward_chains.append(copy.copy(forward_chain))
 
             # BACKWARD CHAINING:
-            backward_chain = Chain(source_name, target_start_pos)
+            backward_chain = Chain(source_name, target_start_pos, source_start_pos)
             backward_chains = []
             skips = 0
             shift_upper_bound = min(source_start_pos, target_start_pos)
@@ -259,7 +339,7 @@ class Chain:
                     if len(backward_chain) > 0:
                         backward_chains.append(backward_chain.reverse())
 
-            assert backward_chain.begin_pos == forward_chain.begin_pos
+            assert backward_chain.target_begin_pos == forward_chain.target_begin_pos
 
             # COMBINE CHAINS:
             for backward_chain, forward_chain in itertools.product(backward_chains, forward_chains):

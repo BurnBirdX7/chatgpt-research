@@ -59,7 +59,7 @@ class FilterChainsNode(BaseNode):
             if len(chain) < 2:
                 continue
 
-            positions = chain.get_token_positions()
+            positions = chain.get_target_token_positions()
             marked_positions_inside_chain = marked_positions.intersection(positions)
             if len(marked_positions_inside_chain) == 0:
                 marked_positions |= positions
@@ -80,7 +80,7 @@ class Pos2ChainMapNode(BaseNode):
     def process(self, chains: List[Chain]) -> Dict[int, Chain]:
         pos2chain: Dict[int, Chain] = {}
         for i, chain in enumerate(chains):
-            for pos in chain.get_token_positions():
+            for pos in chain.get_target_token_positions():
                 pos2chain[pos] = chain
 
         return pos2chain
