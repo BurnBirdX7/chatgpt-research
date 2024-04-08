@@ -10,13 +10,16 @@ from src.pipeline.data_descriptors import *
 def Int2Str(inp: int) -> str:
     return str(inp)
 
+
 @mapping_node(StrDescriptor())
 def ModifyString(inp: str) -> str:
     return inp + ".367"
 
+
 @mapping_node(FloatDescriptor())
 def Str2Float(inp: str) -> float:
     return float(inp)
+
 
 def test_simple_pipeline() -> None:
     pipeline = (Pipeline(Int2Str("i2s"))
@@ -25,6 +28,7 @@ def test_simple_pipeline() -> None:
 
     res = pipeline.run(18).last_node_result
     assert res == float(str(18) + '.367')
+
 
 class IntMod(BaseNode):
 
@@ -35,6 +39,7 @@ class IntMod(BaseNode):
     def process(self, inp: int) -> int:
         return self.operation(inp)
 
+
 class ConstantNode(BaseNode):
     def __init__(self, name: str, value: int):
         super().__init__(name, [type(None)], IntDescriptor())
@@ -42,6 +47,7 @@ class ConstantNode(BaseNode):
 
     def process(self, inp: None) -> int:
         return self.value
+
 
 def test_empty_input_pipeline() -> None:
     pipeline = (

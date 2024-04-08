@@ -10,6 +10,7 @@ import numpy as np
 
 from . import EmbeddingsBuilder
 from .pipeline import BaseDataDescriptor, base_data_descriptor, BaseNode, ListDescriptor
+from .pipeline.base_data_descriptor import ValueType
 from .source_mapping import SourceMapping
 
 __all__ = [
@@ -172,6 +173,9 @@ class IndexDescriptor(BaseDataDescriptor[Index]):
             threshold=float(threshold), # type: ignore
             faiss_use_gpu=bool(use_gpu),
         ))
+
+    def cleanup(self, dic: dict[str, ValueType]):
+        self.cleanup_files(dic['index_file'], dic['mapping_file'])
 
     def get_data_type(self) -> type:
         return Index

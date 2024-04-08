@@ -11,7 +11,6 @@ class SourceMapping:
     [0, x) -> v_x
     [x, y) -> v_y
     [y, z) -> v_z
-
     """
 
     def __init__(self: "SourceMapping") -> None:

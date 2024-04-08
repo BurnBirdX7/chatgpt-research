@@ -17,6 +17,7 @@ from .base_data_descriptor import BaseDataDescriptor, ValueType
 
 T = TypeVar('T')
 
+
 class EmptyDataDescriptor(BaseDataDescriptor[None]):
     @classmethod
     def get_data_type(cls) -> Type[None]:
@@ -98,9 +99,13 @@ class BytesDescriptor(BaseDataDescriptor[bytes]):
             data = file.read()
             return data
 
+    def cleanup(self, dic: dict[str, ValueType]):
+        self.cleanup_files(dic['filename'])
+
     @classmethod
     def get_data_type(cls) -> Type[bytes]:
         return bytes
+
 
 class DictDescriptor(BaseDataDescriptor[dict]):
     def store(self, data: dict) -> dict[str, ValueType]:
@@ -128,9 +133,13 @@ class ComplexListDescriptor(BaseDataDescriptor[List[T]]):
 
     def load(self, dic: dict[str, ValueType]) -> List[T]:
         lst = []
-        for dat in dic['data']:
-            lst.append(self.elem_descriptor.load(dat))
+        for elem in dic['data']:
+            lst.append(self.elem_descriptor.load(elem))
         return lst
+
+    def cleanup(self, dic: dict[str, ValueType]):
+        for elem in dic['data']:
+            self.elem_descriptor.cleanup(elem)
 
     def get_data_type(self) -> Type[list]:
         return list
@@ -158,6 +167,10 @@ class ComplexDictDescriptor(BaseDataDescriptor[Dict[str, T]]):
             dic[key] = self.elem_descriptor.load(dat)
 
         return dic
+
+    def cleanup(self, dic: dict[str, ValueType]):
+        for value in dic.values():
+            self.elem_descriptor.cleanup(value)
 
     def get_data_type(self) -> Type[dict]:
         return dict

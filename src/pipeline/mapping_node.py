@@ -50,7 +50,7 @@ def mapping_node(
         if 'return' not in type_hints:
             raise TypeError(f"Function {func.__name__} does not have a return type annotation")
 
-        if not issubclass(type_hints['return'], out_descriptor.get_data_type()):
+        if not out_descriptor.is_type_compatible(type_hints['return']):
             raise TypeError(f"Return type descriptor for function {func.__name__}"
                             f"is incompatible with its annotated return type")
 

@@ -3,13 +3,15 @@ from __future__ import annotations
 __all__ = ['BaseDataDescriptor', 'ValueType']
 
 import datetime
+import pathlib
 import random
 import string
 from typing import Generic, TypeVar, Union, List, Dict
 from abc import abstractmethod, ABC
 
 T = TypeVar('T')
-ValueType = Union[int, float, str, list, dict, List["ValueType"], Dict[str, "ValueType"]]
+ValueType = Union[int, float, str, List["ValueType"], Dict[str, "ValueType"]]
+
 
 class BaseDataDescriptor(Generic[T], ABC):
     def __init__(self):
@@ -29,23 +31,72 @@ class BaseDataDescriptor(Generic[T], ABC):
 
     @abstractmethod
     def store(self, data: T) -> dict[str, ValueType]:
+        """Method used to store data to the disk
+
+        Parameters
+        ----------
+        data : T
+            Data that should be stored on disk
+
+        Returns
+        -------
+        dict[str, ValueType]
+            Dictionary that contains arbitrary information that describes how to restore data.
+            MUST be acceptable by overloaded ``load`` method
+
+        Notes
+        -----
+        This method can and SHOULD (if possible) just convert data into the dictionary form and return it.
+
+        [!] You can write data to the file in this method, but if you create new files in this method,
+        report them in the returned dictionary and override ``cleanup`` method
+        to be able to remove unneeded files on request.
+        Check its default implementation.
         """
-        Method stores data to the disk,
-        and returns information crucial for its restoration as a dict
-        """
-        raise NotImplemented
 
     @abstractmethod
     def load(self, dic: dict[str, ValueType]) -> T:
+        """Restores data from disk and returns it.
+        Overload this method to implement loading saved data from the disk
+
+        Parameters
+        ----------
+        dic : dict[str, ValueType]
+            dictionary produced by `store` method of the same descriptor
+
+        Returns
+        -------
+        T
+            Data restored from disk, data should be as close as possible to what was stored
         """
-        Restores data from disk and returns it
+
+    @staticmethod
+    def cleanup_files(*filepath_list: str):
+        """Removes listed files, doesn't throw if files are missing
         """
-        raise NotImplemented
+        for filepath in filepath_list:
+            pathlib.Path.unlink(pathlib.Path(filepath), missing_ok=True)
+
+    def cleanup(self, dic: dict[str, ValueType]):
+        """Removes artifacts produces by this descriptor from the disk.
+        Overload this method if your descriptor places data on disks and not only in returned dictionary.
+        Use `cleanup_files` if possible.
+
+        Parameters
+        ----------
+        dic : dict[str, ValueType]
+            dictionary produced by `store` method of the same descriptor
+
+        See also
+        --------
+        ``data_descriptors.BytesNode`` : Node that stores byte-string to the disk.
+            Visit to see how file removal is handled there
+        """
 
     @abstractmethod
     def get_data_type(self) -> type[T]:
-        """
-        Returns type of the data
+        """Returns type of the data.
+        Used for typechecking pipeline links.
         """
         raise NotImplemented
 

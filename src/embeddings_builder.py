@@ -162,6 +162,9 @@ class NDArrayDescriptor(BaseDataDescriptor[np.ndarray]):
         with open(path, "rb") as f:  # type: ignore
             return np.load(f)
 
+    def cleanup(self, dic: dict[str, ValueType]):
+        self.cleanup_files(dic['path'])
+
     def get_data_type(self) -> type:
         return np.ndarray
 
@@ -177,6 +180,9 @@ class TensorDescriptor(BaseDataDescriptor[torch.Tensor]):
     def load(self, dic: dict[str, ValueType]) -> torch.Tensor:
         path = dic["path"]
         return torch.load(path)
+
+    def cleanup(self, dic: dict[str, ValueType]):
+        self.cleanup_files(dic['path'])
 
     def get_data_type(self) -> type[torch.Tensor]:
         return torch.Tensor

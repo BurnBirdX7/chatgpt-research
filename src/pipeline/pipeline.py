@@ -278,7 +278,8 @@ class Pipeline:
         errs = {}
         for node in self.nodes.values():
             r = node.prerequisite_check()
-            errs[node.name] = r
+            if r is not None:
+                errs[node.name] = r
 
         if len(errs) == 0:
             return None
