@@ -582,8 +582,7 @@ class Pipeline:
         If ``self.store_intermediate_data`` is `False` data won't be saved.
 
         Data won't be saved if it's optional and ``self.store_optional_data`` is `False`
-
-
+36
         Parameters
         ----------
         node : Node

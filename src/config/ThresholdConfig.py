@@ -1,12 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from .base_config import BaseConfig, DefaultValue
 from src.config import IndexConfig
 from typing import Dict
 
 
 @dataclass
 class ThresholdConfig(IndexConfig):
-    show_plot: bool = DefaultValue(True)                    # type: ignore
-    model_name: str = DefaultValue("roberta-large")         # type: ignore
-    data: Dict[str, str] = DefaultValue(dict())   # type: ignore
+    show_plot: bool = field(default=True)
+    model_name: str = field(default="roberta-large")
+    data: Dict[str, str] = field(default_factory=dict)

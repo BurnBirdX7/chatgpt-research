@@ -1,12 +1,15 @@
 
-from .base_config import BaseConfig, DefaultValue
-from dataclasses import dataclass
+from .base_config import BaseConfig
+from dataclasses import dataclass, field
+
 
 @dataclass
 class ColbertServerConfig(BaseConfig):
-    ip_address: str = DefaultValue('0.0.0.0')   # type: ignore
-    port: int = DefaultValue(5678)              # type: ignore
+    # Dataclass fields
+    ip_address: str = field(default='0.0.0.0')
+    port: int = field(default=5678)
 
+    # Class attributes
     api_search_path = "/api/search"
     api_ping_path = "/api/ping"
 

@@ -1,9 +1,9 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from .base_config import BaseConfig, DefaultValue
+from .base_config import BaseConfig
 
 
 @dataclass
 class LuceneConfig(BaseConfig):
-    index_path: str = DefaultValue(os.environ.get("LUCENE_INDEX_PATH"))  # type: ignore
+    index_path: str = field(default_factory=lambda: os.environ.get("LUCENE_INDEX_PATH"))

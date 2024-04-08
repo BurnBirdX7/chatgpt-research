@@ -18,3 +18,11 @@ class Roberta:
             return t, m
 
         return cls.static_storage[model_name]
+
+    @classmethod
+    def get_default_tokenizer(cls, model_name: str = "roberta-large"):
+        return cls.get_default(model_name)[0]
+
+    @classmethod
+    def get_default_model(cls, model_name: str = "roberta-large"):
+        return cls.get_default(model_name)[1]

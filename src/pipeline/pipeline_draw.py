@@ -38,11 +38,12 @@ def draw_network(pipeline: Pipeline,
 
 
 def draw_execution(pipeline: Pipeline, ax: Axes, g: nx.DiGraph, colors: List[str], exec_edges: List[Tuple[str, str]]):
-    node_count = len(pipeline.__default_execution_order)
+    exec_order = pipeline.default_execution_order
+    node_count = len(exec_order)
     distance = 2 / (node_count + 1)
     layout = {
-                 node.name: (-1 + (i + 1) * distance, 0)
-                 for i, node in enumerate(pipeline.__default_execution_order)
+                 node: (-1 + (i + 1) * distance, 0)
+                 for i, node in enumerate(exec_order)
              } | {"$input": (-1, 0), "$output": (+1, 0)}
 
     nx.draw(g,
@@ -66,8 +67,9 @@ def draw(pipeline: Pipeline, ax: Tuple[Axes, Axes, Axes]):
             colors.append("skyblue")
 
     exec_edges = [("$input", pipeline.input_node.name)]
-    for i in range(len(pipeline.__default_execution_order) - 1):
-        exec_edges.append((pipeline.__default_execution_order[i].name, pipeline.__default_execution_order[i + 1].name))
+    exec_order = pipeline.default_execution_order
+    for i in range(len(exec_order) - 1):
+        exec_edges.append((exec_order[i], exec_order[i + 1]))
     exec_edges.append((pipeline.output_node.name, "$output"))
 
     draw_network(pipeline, ax[0], ax[1], g, colors, exec_edges)
@@ -77,7 +79,7 @@ def draw(pipeline: Pipeline, ax: Tuple[Axes, Axes, Axes]):
     ax[2].set_title("Execution order")
 
 
-def show(pipeline: Pipeline):
+def show_pipeline(pipeline: Pipeline):
     fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(2, 2, figsize=(40, 24), height_ratios=[11.6, 0.4])
 
     gs = ax21.get_gridspec()
