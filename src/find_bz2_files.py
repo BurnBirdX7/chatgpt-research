@@ -2,12 +2,30 @@ import os
 import re
 
 from .wiki_data_file import ListWikiFileDescriptor, WikiDataFile
-from src.pipeline import map_block
+from src.pipeline import mapping_node
+
+__all__ = ['FindBz2Files']
 
 bz2_file_pattern = re.compile(r"^enwiki-(\d{8})-pages-articles-multistream(\d+).xml-p(\d+)p(\d+)\.bz2$")
 
-@map_block(ListWikiFileDescriptor())
+
+@mapping_node(out_descriptor=ListWikiFileDescriptor())
 def FindBz2Files(path: str) -> list:
+    """
+    Parameters
+    ----------
+        path : str
+            Path to the folder that contains bz2 wiki archives.
+            These archives must have names matchable by the ``bz2_file_pattern`` regex
+
+    Notes
+    -----
+    ``FindBz2Files`` is a subclass of Node class, not a function
+
+    See also
+    --------
+    mapping_node : Quick Node decorator
+    """
     dir_files = [
         file
         for file in os.listdir(path)

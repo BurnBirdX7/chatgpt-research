@@ -1,12 +1,12 @@
 import pytest
 
 from src.pipeline.nodes import BaseNode
-from src.pipeline.mapblock import map_block
+from src.pipeline.mapping_node import mapping_node
 from src.pipeline.data_descriptors import *
 
 
 def test_simple() -> None:
-    @map_block(IntDescriptor())
+    @mapping_node(IntDescriptor())
     def Mul2(a: int) -> int:
         return a * 2
 
@@ -18,34 +18,34 @@ def test_simple() -> None:
 def test_no_annotations_should_fail():
 
     with pytest.raises(TypeError):
-        @map_block(EmptyDataDescriptor())
+        @mapping_node(EmptyDataDescriptor())
         def no_annotations(a):
             return None
 
     with pytest.raises(TypeError):
-        @map_block(EmptyDataDescriptor())
+        @mapping_node(EmptyDataDescriptor())
         def no_return_annotation(a: int):
             return None
 
     with pytest.raises(TypeError):
-        @map_block(IntDescriptor())
+        @mapping_node(IntDescriptor())
         def no_param_annotation(a) -> int:
             return a * 2
 
 
 def test_wrong_descriptor_should_fail():
     with pytest.raises(TypeError):
-        @map_block(IntDescriptor())
+        @mapping_node(IntDescriptor())
         def float_ret(a: int) -> float:
             return float(a)
 
     with pytest.raises(TypeError):
-        @map_block(EmptyDataDescriptor())
+        @mapping_node(EmptyDataDescriptor())
         def int_ret(a: int) -> int:
             return a * 2
 
     with pytest.raises(TypeError):
-        @map_block(IntDescriptor())
+        @mapping_node(IntDescriptor())
         def none_ret(_: int) -> None:
             return
 
@@ -58,7 +58,7 @@ def test_node():
         def process(self, inp: int) -> int:
             return inp * 2
 
-    @map_block(IntDescriptor())
+    @mapping_node(IntDescriptor())
     def DecoMade(inp: int) -> int:
         return inp * 2
 
@@ -76,7 +76,7 @@ def test_node2():
         def process(self, a: int, b: int) -> int:
             return a + b
 
-    @map_block(IntDescriptor())
+    @mapping_node(IntDescriptor())
     def DecoMade(x: int, y: int) -> int:
         return x + y
 

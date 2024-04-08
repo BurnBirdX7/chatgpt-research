@@ -2,19 +2,19 @@ from typing import Callable
 
 import pytest
 
-from src.pipeline import BaseNode, map_block, Pipeline
+from src.pipeline import BaseNode, mapping_node, Pipeline
 from src.pipeline.data_descriptors import *
 
 
-@map_block(StrDescriptor())
+@mapping_node(StrDescriptor())
 def Int2Str(inp: int) -> str:
     return str(inp)
 
-@map_block(StrDescriptor())
+@mapping_node(StrDescriptor())
 def ModifyString(inp: str) -> str:
     return inp + ".367"
 
-@map_block(FloatDescriptor())
+@mapping_node(FloatDescriptor())
 def Str2Float(inp: str) -> float:
     return float(inp)
 
@@ -58,7 +58,7 @@ def test_diverging_paths():
     def concat(str1, str2):
         return f"{str1=} ... {str2=}"
 
-    @map_block(StrDescriptor())
+    @mapping_node(StrDescriptor())
     def ConcatBlock(a: str, b: str) -> str:
         return concat(a, b)
 

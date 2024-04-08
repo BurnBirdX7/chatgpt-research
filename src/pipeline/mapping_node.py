@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ["map_block"]
+__all__ = ["mapping_node"]
 
 import inspect
 from typing import Callable, TypeVar, List, cast, get_type_hints
@@ -11,20 +11,28 @@ from .nodes import Node, BaseNode
 OutT = TypeVar('OutT')
 
 
-def map_block(
+def mapping_node(
         out_descriptor: BaseDataDescriptor[OutT],
 ) -> Callable[[Callable], type[Node]]:
     r"""
-    Decorator that turns mapping function into Block for a pipeline
+    Parametrized decorator that turns mapping function into a Node for a pipeline
 
-    Usage:
-    @map_block(StrDescriptor())
-    def LongString(a: int) -> str:
-        return f'{a}{a}{a}'
+    Parameters
+    ----------
+    out_descriptor : BaseDataDescriptor
+        Data descriptor for result of the decorated function
 
+    Examples
+    --------
+    >>> @mapping_node(StrDescriptor())
+    ... def LongString(a: int) -> str:
+    ...     return f'{a}{a}{a}'
+
+    Notes
+    -----
     Decorated function MUST be annotated with *specific* types,
-        These types are used for type-checking in runtime
-        (Parametrized and generics won't work properly - use dict instead of dict[str, str])
+    These types are used for type-checking in runtime
+    (Parametrized and generics won't work properly - use dict instead of dict[str, str])
 
     You can provide type_hint for input type in @map_block(desc, in_type_hint)
     """
@@ -59,6 +67,8 @@ def map_block(
                 return self._wrapped(*inp)
 
         WrapperNode.__name__ = func.__name__
+        WrapperNode.__doc__ = f"Node subclass that wrapps a function. See, doc for the `process` method"
+        WrapperNode.process.__doc__ = func.__doc__
         return WrapperNode
 
     return cast(Callable, decorator)
