@@ -145,8 +145,7 @@ class Chain:
         return {
             "target_begin_pos": self.target_begin_pos,
             "source_begin_pos": self.source_begin_pos,
-            "likelihoods": self.likelihoods,
-            "all_likelihoods": self.all_likelihoods,
+            "all_likelihoods": self.all_likelihoods.tolist(),
             "source": self.source
         }
 
@@ -155,7 +154,7 @@ class Chain:
         return Chain(
             target_begin_pos=d["target_begin_pos"],
             source_begin_pos=d["source_begin_pos"],
-            all_likelihoods=d["all_likelihoods"],
+            all_likelihoods=np.array(d["all_likelihoods"]),
             source=d["source"]
         )
 
