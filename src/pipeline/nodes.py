@@ -18,9 +18,17 @@ class Node(ABC):
         if '$' in name:
             raise ValueError('Prohibited character `$` in block name')
 
-        self.logger = logging.getLogger(f"node.{self.__class__.__name__}.{name}")
+        self.__logger = logging.getLogger(f"node.{self.__class__.__name__}.{name}")
 
         self.__name = name
+
+    @property
+    def logger(self):
+        return self.__logger
+
+    @logger.setter
+    def logger(self, new_logger: logging.Logger):
+        self.__logger = new_logger
 
     @property
     def name(self) -> str:
@@ -89,6 +97,14 @@ class BaseNode(Node, ABC):
         out_descriptor.block_name = name
         self.__out_descriptor = out_descriptor
         self.__out_type = self.out_descriptor.get_data_type()
+
+        # Misc:
+        self.out_descriptor.logger = logging.getLogger(f"{self.logger.name}.{self.out_descriptor.__class__.__name__}")
+
+    @Node.logger.setter
+    def logger(self, new_logger):
+        Node.logger.fset(self, new_logger)
+        self.out_descriptor.logger = logging.getLogger(f"{self.logger.name}.{self.out_descriptor.__class__.__name__}")
 
     @property
     def in_types(self) -> List[type]:

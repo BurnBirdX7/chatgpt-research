@@ -482,9 +482,16 @@ class Pipeline:
             self.__save_history(start_time, history)
 
     def cleanup(self, history_dic: PipelineHistory):
+        self.logger.info("Cleanup")
+        self.logger.debug(history_dic)
+        self.logger.debug("NOTE: Some files may be removed but not reported, "
+                          "it depends on specific implementation of cleanup function")
         for node_name, path in history_dic.items():
             if node_name[0] == "$":
                 continue
+
+            if not os.path.isfile(path):
+                self.logger.debug(f".. {path} not found...")
 
             with open(path, 'r') as f:
                 self.nodes[node_name].out_descriptor.cleanup(json.load(f))
@@ -492,6 +499,11 @@ class Pipeline:
             pathlib.Path.unlink(pathlib.Path(path))
 
     def cleanup_file(self, history_file_path: str):
+        self.logger.debug(f'Cleaning up history provided from "{history_file_path}"...')
+        if not os.path.isfile(history_file_path):
+            self.logger.debug(f'File not found, nothing to clean up')
+            return
+
         with open(history_file_path, 'r') as f:
             text = f.read()
 

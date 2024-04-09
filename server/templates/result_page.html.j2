@@ -15,6 +15,7 @@
 {#
 results = [
     Result {
+        name = "string",
         sources = [
             Source{
                 link = "url",
@@ -39,24 +40,22 @@ results = [
 #}
 
 {% for result in results %}
-    <h3>Source list</h3>
-    {% for source in result.sources %}
-        <a href="{{ source.link }}" class="{{ source.color }}">{{ source.link }}</a><br/>
-    {% endfor %}
-    <h3>Colored text</h3>
+    <h3> {{ result.name }} </h3>
+    <h2>Source list</h2>
+    <ul>
+        {% for source in result.sources %}
+            <li><a href="{{ source.link }}" class="{{ source.color }}">{{ source.link }}</a></li>
+        {% endfor %}
+    </ul>
+    <h2>Colored text</h2>
     {% for coloring in result.token_coloring %}
-        {% if coloring.url is defined %}
-<a href="{{ coloring.link }}" class="{{ coloring.color }}" title="score: {{ coloring.score }}
+        {% if coloring.link is defined %}
+            <a href="{{ coloring.link }}" class="{{ coloring.color }}" title="score: {{ coloring.score }}
 chain: {{ coloring.chain }}">{{ coloring.token }}</a>
         {% else %}
-{{ coloring.token }}
+            {{ coloring.token }}
         {% endif %}
     {% endfor %}
 {% endfor %}
-
-<pre><b>Top paragraphs:</b></pre>
-{{ list_of_colors }}
-<pre><b>Result:</b></pre>
-{{ result }}
 </body>
 </html>

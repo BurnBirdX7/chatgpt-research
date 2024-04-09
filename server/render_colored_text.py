@@ -16,16 +16,14 @@ class Coloring:
 def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
     template_page = Template(open("server/templates/result_page.html.j2", "r").read())
 
-    color_num: int = 7
-    last_chain: Optional[Chain] = None
-
     result_list = []
 
     for coloring in colorings:
+        color_num: int = 7
+        last_chain: Optional[Chain] = None
 
         source_list = []
         token_list = []
-
         result_list.append({
             "sources": source_list,
             "token_coloring": token_list
