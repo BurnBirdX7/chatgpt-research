@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Set
 
+import numpy as np
 import torch
 
 from ..config import EmbeddingBuilderConfig
@@ -42,7 +43,7 @@ class ChainingNode(BaseNode):
                                   f"token id: {token_id}, "
                                   f"source: {source}")
 
-                result_chains += self.chaining_func(batched_likelihoods.reshape(-1), source, input_token_ids, token_pos)
+                result_chains += self.chaining_func(np.hstack(batched_likelihoods.numpy()), source, input_token_ids, token_pos)
 
         return result_chains
 

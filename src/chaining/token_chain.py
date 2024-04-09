@@ -267,13 +267,13 @@ class Chain:
         return result_chains
 
     @staticmethod
-    def generate_chains_bidirectional(source_likelihoods: torch.Tensor, source_name: str,
+    def generate_chains_bidirectional(source_likelihoods: npt.NDArray[np.float64], source_name: str,
                                       target_token_ids: List[int], target_start_pos: int) -> List[Chain]:
         """Generates chains of tokens with the same source
 
         Parameters
         ----------
-        source_likelihoods : torch.Tensor
+        source_likelihoods : npt.NDArray[np.float64]
             inferred from the source text likelihoods for the tokens
 
         source_name : str
