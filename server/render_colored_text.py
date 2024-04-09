@@ -1,4 +1,5 @@
 import dataclasses
+from collections import defaultdict
 from typing import Optional, List, Dict
 
 from jinja2 import Template
@@ -19,13 +20,13 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
     result_list = []
 
     for coloring in colorings:
-        color_num: int = 7
+        color_num: int = 1
         last_chain: Optional[Chain] = None
 
-        source_list = []
+        source_dict = defaultdict(lambda: 0)
         token_list = []
         result_list.append({
-            "sources": source_list,
+            "sources": source_dict,
             "token_coloring": token_list
         })
 
@@ -39,23 +40,24 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
 
                 if last_chain != chain:
                     last_chain = chain
-                    source_list.append({
-                        "link": source,
-                        "color": f"color{color_num}"
-                    })
-                    color_num += 1
+                    source_dict[source] += 1
+
+                    if color_num == 1:
+                        color_num = 2
+                    else:
+                        color_num = 1
 
                 token_list.append({
                     "link": source,
                     "score": score,
                     "chain": str(chain),
-                    "color": f"color{color_num}",
+                    "color": f"type_{color_num}",
                     "token": key
                 })
             else:
                 last_chain = None
                 token_list.append({
-                    "color": f"color{color_num}",
+                    "color": f"type_0",
                     "token": key
                 })
 

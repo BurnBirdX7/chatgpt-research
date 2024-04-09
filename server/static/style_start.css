@@ -2,6 +2,11 @@ h1 {
         text-align: center;
 }
 
+#center_table {
+        align-self: center;
+        margin: auto;
+}
+
 form {
         text-align: center;
 }

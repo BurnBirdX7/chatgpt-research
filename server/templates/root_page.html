@@ -1,23 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8">
     <title>FACT CHECKER</title>
     <link rel="stylesheet" type="text/css" href="../static/style_start.css">
-  </head>
-  <body>
-  <h1><b>FACT CHECKER</b></h1>
-    <form method="POST" action="/result">
-        <label for="user_input">
-            <textarea id="user_input" name="user_input" cols="100" rows="10">Insert your text here</textarea>
-        </label>
-        <label for="checkbox_store">
-            <input type="checkbox" id="checkbox_store" name="store" value="1"> Store datas
-        </label>
-        <br>
-        <input type="submit" value="Send">
-    </form>
-    <button formaction="/resume" formmethod="GET">Resume chaining</button>
+</head>
+<body>
+<h1><b>FACT CHECKER</b></h1>
 
-  </body>
+<form method="POST" action="/result">
+    <table id="center_table">
+        <tr>
+            <td colspan="2">
+                <label for="user_input">
+                    <textarea id="user_input" name="user_input" cols="80" rows="10">Insert your text here</textarea>
+                </label>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="checkbox_store">
+                    <input type="checkbox" id="checkbox_store" name="store" value="1">Save data for rerun
+                </label>
+            </td>
+            <td>
+                <input type="submit" value="Send">
+            </td>
+        </tr>
+    </table>
+</form>
+<hr>
+<a href="/resume">
+    <button>Partially redo last saved run</button>
+</a>
+</body>
 </html>

@@ -162,12 +162,12 @@ class ComplexDictDescriptor(BaseDataDescriptor[Dict[str, T]]):
 
         return dic
 
-    def load(self, dic: dict[str, ValueType]) -> Dict[str, T]:
-        dic = {}
-        for key, dat in dic.items():
-            dic[key] = self.elem_descriptor.load(dat)
+    def load(self, data_dict: dict[str, ValueType]) -> Dict[str, T]:
+        json_dic = {}
+        for key, dat in data_dict.items():
+            json_dic[key] = self.elem_descriptor.load(dat)
 
-        return dic
+        return json_dic
 
     def cleanup(self, dic: dict[str, ValueType]):
         for value in dic.values():

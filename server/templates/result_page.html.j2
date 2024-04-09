@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>Result</title>
-    <link rel="stylesheet" type="text/css" href="../static/style_result.css">
+    <link rel="stylesheet" type="text/css" href="/static/style_result.css">
 </head>
 <body>
 <h1>Result of research</h1>
 <h2>Input</h2>
-<pre>{{ input_text }}</pre>
+<p>{{ input_text }}</p>
 
 <h2>Results</h2>
 
@@ -28,7 +28,7 @@ results = [
                 link = "url",
                 score = "1.0",
                 chain = "chain sre representation",
-                color = "color_class",
+                color_num = 11,
                 token = "text"
             },
             ...
@@ -41,21 +41,31 @@ results = [
 
 {% for result in results %}
     <h3> {{ result.name }} </h3>
-    <h2>Source list</h2>
-    <ul>
-        {% for source in result.sources %}
-            <li><a href="{{ source.link }}" class="{{ source.color }}">{{ source.link }}</a></li>
-        {% endfor %}
-    </ul>
-    <h2>Colored text</h2>
-    {% for coloring in result.token_coloring %}
-        {% if coloring.link is defined %}
-            <a href="{{ coloring.link }}" class="{{ coloring.color }}" title="score: {{ coloring.score }}
-chain: {{ coloring.chain }}">{{ coloring.token }}</a>
-        {% else %}
-            {{ coloring.token }}
-        {% endif %}
-    {% endfor %}
+    <table>
+        <tr>
+            <th>Colored text</th>
+            <th>Sources</th>
+        </tr>
+        <tr>
+            <td>
+                {% for coloring in result.token_coloring %}
+                    {%- if coloring.link is defined -%}
+                        <span class="color{{ coloring.color }} src_text" title="{{ coloring.title|safe }}">{{ coloring.token }}</span>
+                    {% else -%}
+                        <span class="color{{ coloring.color }} src_text">{{ coloring.token }}</span>
+                    {%- endif -%}
+                {% endfor %}
+            </td>
+            <td>
+                <ul>
+                    {% for url, count in result.sources.items() %}
+                        <li><a href="{{ url }}" class="source_reference">{{ url }}</a> - {{ count }}</li>
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+    </table>
+
 {% endfor %}
 </body>
 </html>

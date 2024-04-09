@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import time
+from collections import OrderedDict
 from functools import lru_cache
 from typing import List, Tuple
 
@@ -20,69 +23,49 @@ coloring_pipeline.dont_timestamp_history = True
 
 logging.basicConfig(level=logging.DEBUG, format='[%(name)s]:%(levelname)s:%(message)s')
 
-
-@lru_cache(1)
-def color_text(text) -> List[Coloring]:
+@lru_cache(5)
+def color_text(text: str | None) -> Tuple[str, List[Coloring]]:
     coloring_variants = []
     start = time.time()
 
     all_chain_node: ChainingNode = coloring_pipeline.nodes["all-chains"]  # type: ignore
 
+    # UNIDIRECTIONAL
     all_chain_node.use_bidirectional_chaining = False
-    result = coloring_pipeline.run(text)
+    if text is None:
+        result = coloring_pipeline.resume_from_disk(coloring_pipeline.unstamped_history_filepath,
+                                                    "all-chains")
+    else:
+        result = coloring_pipeline.run(text)
     coloring_variants.append(Coloring(name="Unidirectional chaining",
                                       tokens=result.cache['input-tokenized'],
                                       pos2chain=result.last_node_result))
+    stats = OrderedDict()
+    stats['unidirecinal'] = result.statistics
 
+    # BIDIRECTIONAL
+    coloring_pipeline.store_intermediate_data = False
     all_chain_node.use_bidirectional_chaining = True
     result = coloring_pipeline.resume_from_cache(result, "all-chains")
     coloring_variants.append(Coloring(name="Unidirectional chaining",
                                       tokens=result.cache['input-tokenized'],
                                       pos2chain=result.last_node_result))
+    stats['bidirectional'] = result.statistics
+
+    # Preserve input
+    if text is None and '$input' in result.cache:
+        text = result.cache['$input']
+    del result
 
     seconds = time.time() - start
 
     print(f"Time taken to run: {datetime.timedelta(seconds=seconds)}")
+    for i, (name, stats) in enumerate(stats.items()):
+        print(f"Statistics (run {i+1}, {name})")
+        for _, stat in stats.items():
+            print(str(stat))
 
-    print("Statistics")
-    for _, stat in result.statistics.items():
-        print(str(stat))
-
-    return coloring_variants
-
-
-@lru_cache(1)
-def recolor_text() -> Tuple[str, List[Coloring]]:
-    """Tries to resume previously run pipeline.
-    Only chaining process will be rerun.
-    """
-
-    coloring_variants = []
-    start = time.time()
-
-    all_chain_node: ChainingNode = coloring_pipeline.nodes["all-chains"]  # type: ignore
-
-    all_chain_node.use_bidirectional_chaining = False
-    result = coloring_pipeline.resume_from_disk(coloring_pipeline.unstamped_history_filepath, "all-chains")
-    coloring_variants.append(Coloring(name="Unidirectional chaining",
-                                      tokens=result.cache['input-tokenized'],
-                                      pos2chain=result.last_node_result))
-
-    all_chain_node.use_bidirectional_chaining = True
-    result = coloring_pipeline.resume_from_cache(result, "all-chains")
-    coloring_variants.append(Coloring(name="Unidirectional chaining",
-                                      tokens=result.cache['input-tokenized'],
-                                      pos2chain=result.last_node_result))
-
-    seconds = time.time() - start
-
-    print(f"Time taken to run: {datetime.timedelta(seconds=seconds)}")
-
-    print("Statistics")
-    for _, stat in result.statistics.items():
-        print(str(stat))
-
-    return result.cache['$input'], coloring_variants
+    return text, coloring_variants
 
 
 @app.route("/", methods=['GET'])
@@ -98,15 +81,14 @@ def result_page():
     if store_data:
         coloring_pipeline.cleanup_file(coloring_pipeline.unstamped_history_filepath)
 
-    coloring_variants = color_text(user_input)
+    _, coloring_variants = color_text(user_input)
     return Response(render_colored_text(user_input, coloring_variants), mimetype='text/html')
 
 
 @app.route("/resume", methods=['GET'])
 def resume_page():
-    coloring_pipeline.store_intermediate_data = True
-
-    input_text, coloring_variants = recolor_text()
+    coloring_pipeline.store_intermediate_data = False
+    input_text, coloring_variants = color_text(None)
     return Response(render_colored_text(input_text, coloring_variants), mimetype='text/html')
 
 

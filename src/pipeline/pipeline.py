@@ -406,6 +406,9 @@ class Pipeline:
             Data accumulated from the pipeline run, includes old data from previous run as a part of the resumed run
         """
 
+        if pipeline_result.pipeline_name != self.name:
+            self.logger.warning(f"Resuming run of the pipeline with different name: \"{pipeline_result}\"")
+
         node_index = self.__default_execution_order.index(node_name)
         execution_order = self.__default_execution_order[node_index:]
         previous_execution_order = self.__default_execution_order[:node_index]
@@ -413,13 +416,15 @@ class Pipeline:
         # Copy history before target node
         history: Dict[str, str] = {
             k: pipeline_result.history[k]
-            for k in previous_execution_order
+            for k in ["$input"] + previous_execution_order
+            if k in pipeline_result.history
         }
 
         # Copy cache of outputs produces before target node
         cache: Dict[str, Any] = {
             k: pipeline_result.cache[k]
-            for k in previous_execution_order
+            for k in ["$input"] + previous_execution_order
+            if k in pipeline_result.cache
         }
 
         start_time = datetime.datetime.now()
@@ -458,24 +463,36 @@ class Pipeline:
 
         cached_data: Dict[str, Any] = dict()
 
+        node_index = self.__default_execution_order.index(node_name)
+        execution_order = self.__default_execution_order[node_index:]
+        pre_execution_order = self.__default_execution_order[:node_index]
+
         # Load in cache all cachable outputs that are present in the history
-        # and entry node itself
-        for cached_node_name in self.__must_cache_output | {node_name}:
-            if cached_node_name not in history or cached_node_name[0] != "$":
+        # and the outputs on which our starting node depends
+        names_to_load = (self.__must_cache_output | set(self.graph[node_name])).intersection(set(pre_execution_order))
+        statistic_dic = {}
+        for load_node_name in names_to_load:
+            if load_node_name not in history:
+                self.logger.warning(f"{load_node_name} is missing from history file, it may lead to crash")
                 continue
 
-            cached_data[cached_node_name] = self.__load_data(cached_node_name, history[cached_node_name])
+            if load_node_name[0] == "$":
+                continue
+
+            stat_track = NodeStatistics.start(load_node_name)
+            stat_track.descriptor_start()
+            cached_data[load_node_name] = self.__load_data(load_node_name, history[load_node_name])
+            stat_track.descriptor_end()
+            statistic_dic[load_node_name] = stat_track.get()
 
         # Load original $input:
         if "$input" in self.__must_cache_output:
             cached_data["$input"] = self.in_type(history["$input"])
 
-        # Set `resume` input
-        start_node_idx = self.__default_execution_order.index(node_name)
-        execution_order = self.__default_execution_order[start_node_idx:]
-
         try:
-            return self.__run(None, history, cached_data, execution_order)
+            res = self.__run(None, history, cached_data, execution_order)
+            res.statistics = statistic_dic | res.statistics
+            return res
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
@@ -569,10 +586,10 @@ class Pipeline:
             return
 
         if self.dont_timestamp_history:
+            pipeline_history_file = self.unstamped_history_filepath
+        else:
             pipeline_history_file = f"{self.name}-{Pipeline.format_time(time)}.pipeline.history.json"
             pipeline_history_file = os.path.abspath(os.path.join(self.artifacts_folder, pipeline_history_file))
-        else:
-            pipeline_history_file = self.unstamped_history_filepath
 
         self.logger.info(f"Saving history [path: {pipeline_history_file}]")
         with open(pipeline_history_file, "w") as file:
