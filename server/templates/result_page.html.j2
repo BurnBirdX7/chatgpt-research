@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Result</title>
+    <link rel="stylesheet" type="text/css" href="../static/style_result.css">
+</head>
+<body>
+<h1>Result of research</h1>
+<h2>Input</h2>
+<pre>{{ input_text }}</pre>
+
+<h2>Results</h2>
+
+{#
+results = [
+    Result {
+        sources = [
+            Source{
+                link = "url",
+                color = "color_class"
+            },
+            ...
+        ],
+        token_coloring = [
+            TokenColored {
+                link = "url",
+                score = "1.0",
+                chain = "chain sre representation",
+                color = "color_class",
+                token = "text"
+            },
+            ...
+        ]
+    },
+    ...
+]
+
+#}
+
+{% for result in results %}
+    <h3>Source list</h3>
+    {% for source in result.sources %}
+        <a href="{{ source.link }}" class="{{ source.color }}">{{ source.link }}</a><br/>
+    {% endfor %}
+    <h3>Colored text</h3>
+    {% for coloring in result.token_coloring %}
+        {% if coloring.url is defined %}
+<a href="{{ coloring.link }}" class="{{ coloring.color }}" title="score: {{ coloring.score }}
+chain: {{ coloring.chain }}">{{ coloring.token }}</a>
+        {% else %}
+{{ coloring.token }}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+
+<pre><b>Top paragraphs:</b></pre>
+{{ list_of_colors }}
+<pre><b>Result:</b></pre>
+{{ result }}
+</body>
+</html>

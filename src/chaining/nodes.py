@@ -18,10 +18,14 @@ class ChainingNode(BaseNode):
                  ):
         super().__init__(name, [str, list, dict], ChainListDescriptor())
         self.eb_config = embedding_builder_config
-        if use_bidirectional_chaining:
-            self.chaining_func = Chain.generate_chains_bidirectional
+        self.use_bidirectional_chaining = use_bidirectional_chaining
+
+    @property
+    def chaining_func(self):
+        if self.use_bidirectional_chaining:
+            return Chain.generate_chains_bidirectional
         else:
-            self.chaining_func = Chain.generate_chains
+            return Chain.generate_chains
 
     def process(self, input_text: str, sources: List[List[str]],
                 source_batched_likelihoods: Dict[str, torch.Tensor]) -> Any:

@@ -28,13 +28,13 @@ class NodeStatisticsCollector:
     def __init__(self, node_name: str):
         self.node_name = node_name
 
-        self.start_time = time.time()
-        self.end_time = 0
+        self.start_time: float = time.time()
+        self.end_time: float = 0
 
-        self.produce_start_time = 0
-        self.produce_end_time = 0
-        self.descriptor_start_time = 0
-        self.descriptor_end_time = 0
+        self.produce_start_time: float = 0
+        self.produce_end_time: float = 0
+        self.descriptor_start_time: float = 0
+        self.descriptor_end_time: float = 0
 
     def produce_start(self):
         self.produce_start_time = time.time()

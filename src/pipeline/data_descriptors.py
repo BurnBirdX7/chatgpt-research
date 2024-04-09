@@ -69,10 +69,11 @@ class StrDescriptor(InDictDescriptor[str]):
     def get_data_type(cls) -> Type[str]:
         return str
 
+
 class ListDescriptor(BaseDataDescriptor[List[T]]):
     def store(self, data: List[T]) -> Dict[str, ValueType]:
         return {
-            "list": data
+            "list": data  # type: ignore
         }
 
     def load(self, dic: Dict[str, ValueType]) -> List[T]:

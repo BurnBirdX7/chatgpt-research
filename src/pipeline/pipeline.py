@@ -4,6 +4,7 @@ import datetime
 import json
 import logging
 import os.path
+import pathlib
 import time
 from typing import Any, Dict, Set, List, Tuple
 
@@ -20,6 +21,53 @@ class PipelineError(RuntimeError):
 class Pipeline:
     """
     Class that helps streamline data processing pipelines
+
+    Parameters
+    ----------
+    inp : Node
+        The input node, this node accepts input that passed to the pipeline
+        This node can have one or zero inputs
+        Other nodes also can acquire input value by receiving "$input" input
+
+    store_intermediate_data : bool, default=True
+        Whether to store outputs of the nodes to disk
+
+    store_optional_data : bool, default=False
+        Whether to store optional data, ignored if store_intermediate_data is False
+
+    name : str, default="pipeline"
+        Name of the pipeline, used for logging
+
+    Attributes
+    ----------
+    store_intermediate_data : bool
+        Whether to store outputs of the nodes to disk
+
+    store_optional_data : bool
+        Whether to store optional data, ignored if store_intermediate_data is False
+
+    dont_timestamp_history : bool, default = False
+        Set it to `True` to create history file without timestamp
+
+    input_node : Node
+        The Node that accepts pipeline input, first node to be executed
+
+    output_node : Node
+        Last node to be executed, the node whose output is provided in PipelineResult
+
+    artifacts_folder : str
+        Folder where nodes SHOULD save their data
+
+    nodes : Dict[str, Node]
+        Dictionary that contains pairs [name] -> [node]
+
+    graph : Dict[str, List[str]]
+        Dictionary that represents node dependency graph
+
+    name : str
+        Name of the pipeline, used when logging
+
+    logger : logging.Logger
     """
 
     #
@@ -69,13 +117,14 @@ class Pipeline:
         # Options:
         self.store_intermediate_data = store_intermediate_data
         self.store_optional_data = store_optional_data
+        self.dont_timestamp_history = False
 
         # Pipeline setup
         self.input_node = inp
         self.output_node = inp
-        self.artifacts_folder = "pipe-artifacts"
         self.nodes: Dict[str, Node] = {inp.name: inp}  # All nodes in the pipeline
         self.graph: Dict[str, List[str]] = {inp.name: ["$input"]}  # Edges point towards data source
+        self.__artifacts_folder = "pipe-artifacts"
         self.__default_execution_order: List[str] = [inp.name]
         self.__must_cache_output: Set[str] = set()  # Set of nodes whose output should be cached
 
@@ -90,6 +139,24 @@ class Pipeline:
     @property
     def default_execution_order(self) -> List[str]:
         return list(self.__default_execution_order)
+
+    @property
+    def artifacts_folder(self) -> str:
+        return self.__artifacts_folder
+
+    @artifacts_folder.setter
+    def artifacts_folder(self, new_folder: str):
+        self.__artifacts_folder = new_folder
+        for node in self.nodes.values():
+            node.set_artifacts_folder(new_folder)
+
+    @property
+    def unstamped_history_filename(self) -> str:
+        return f"{self.name}.pipeline.history.json"
+
+    @property
+    def unstamped_history_filepath(self) -> str:
+        return os.path.abspath(os.path.join(self.artifacts_folder, self.unstamped_history_filename))
 
     def attach_back(self, new_node: Node) -> "Pipeline":
         """Attaches node to the end of the pipeline (to the last attached node)
@@ -383,8 +450,6 @@ class Pipeline:
             Data accumulated from the pipeline run, includes old data from previous run as a part of the resumed run
         """
 
-        history_dir = os.path.dirname(historyfile_path)
-        history_dir = os.path.abspath(history_dir)
         with open(historyfile_path, "r") as f:
             history = json.loads(f.read())
 
@@ -396,12 +461,10 @@ class Pipeline:
         # Load in cache all cachable outputs that are present in the history
         # and entry node itself
         for cached_node_name in self.__must_cache_output | {node_name}:
-            if cached_node_name not in history or cached_node_name == "$input":
+            if cached_node_name not in history or cached_node_name[0] != "$":
                 continue
 
-            dic_filename = history[cached_node_name]
-            dic_filename = os.path.join(history_dir, dic_filename)
-            cached_data[cached_node_name] = self.__load_data(cached_node_name, dic_filename)
+            cached_data[cached_node_name] = self.__load_data(cached_node_name, history[cached_node_name])
 
         # Load original $input:
         if "$input" in self.__must_cache_output:
@@ -418,22 +481,22 @@ class Pipeline:
         finally:
             self.__save_history(start_time, history)
 
-    def set_artifacts_folder(self, artifacts_folder: str):
-        """Sets artifact folder for the pipeline and propagates it to all of its nodes
+    def cleanup(self, history_dic: PipelineHistory):
+        for node_name, path in history_dic.items():
+            if node_name[0] == "$":
+                continue
 
-        Parameters
-        ----------
-        artifacts_folder : str
-            path to the folder for the artifacts to be stored
+            with open(path, 'r') as f:
+                self.nodes[node_name].out_descriptor.cleanup(json.load(f))
 
-        Notes
-        -----
-        This setting is a preference and may be ignored by the nodes
+            pathlib.Path.unlink(pathlib.Path(path))
 
-        """
-        self.artifacts_folder = artifacts_folder
-        for node in self.nodes.values():
-            node.set_artifacts_folder(artifacts_folder)
+    def cleanup_file(self, history_file_path: str):
+        with open(history_file_path, 'r') as f:
+            text = f.read()
+
+        self.cleanup(json.loads(text))
+        pathlib.Path.unlink(pathlib.Path(history_file_path))
 
     @staticmethod
     def get_timestamp_str() -> str:
@@ -493,9 +556,13 @@ class Pipeline:
         if not self.store_intermediate_data:
             return
 
-        pipeline_history_file = f"pipeline_{self.name}_{Pipeline.format_time(time)}.json"
-        pipeline_history_file = os.path.join(self.artifacts_folder, pipeline_history_file)
-        self.logger.info(f"Saving history [path: {os.path.abspath(pipeline_history_file)}]")
+        if self.dont_timestamp_history:
+            pipeline_history_file = f"{self.name}-{Pipeline.format_time(time)}.pipeline.history.json"
+            pipeline_history_file = os.path.abspath(os.path.join(self.artifacts_folder, pipeline_history_file))
+        else:
+            pipeline_history_file = self.unstamped_history_filepath
+
+        self.logger.info(f"Saving history [path: {pipeline_history_file}]")
         with open(pipeline_history_file, "w") as file:
             file.write(json.dumps(history))
 

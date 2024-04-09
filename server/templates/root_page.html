@@ -8,10 +8,16 @@
   <body>
   <h1><b>FACT CHECKER</b></h1>
     <form method="POST" action="/result">
-        <label>
-            <textarea name="user_input" cols="100" rows="10">Insert your text here</textarea>
+        <label for="user_input">
+            <textarea id="user_input" name="user_input" cols="100" rows="10">Insert your text here</textarea>
         </label>
+        <label for="checkbox_store">
+            <input type="checkbox" id="checkbox_store" name="store" value="1"> Store datas
+        </label>
+        <br>
         <input type="submit" value="Send">
     </form>
+    <button formaction="/resume" formmethod="POST">Resume chaining</button>
+
   </body>
 </html>
