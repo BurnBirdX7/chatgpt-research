@@ -1,17 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8">
     <title>FACT CHECKER</title>
     <link rel="stylesheet" type="text/css" href="../static/style_start.css">
-  </head>
-  <body>
-  <h1><b>FACT CHECKER</b></h1>
-    <form method="POST" action="/result">
-        <label>
-            <textarea name="user_input" cols="100" rows="10">Insert your text here</textarea>
-        </label>
-        <input type="submit" value="Send">
-    </form>
-  </body>
+</head>
+<body>
+<h1><b>FACT CHECKER</b></h1>
+
+<form method="POST" action="/result">
+    <table id="center_table">
+        <tr>
+            <td colspan="2">
+                <label for="user_input">
+                    <textarea id="user_input" name="user_input" cols="80" rows="10">Insert your text here</textarea>
+                </label>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label for="checkbox_store">
+                    <input type="checkbox" id="checkbox_store" name="store" value="1">Save data for rerun
+                </label>
+            </td>
+            <td>
+                <input type="submit" value="Run">
+            </td>
+        </tr>
+    </table>
+</form>
+<hr>
+<h2>Partially rerun</h2>
+<form action="/resume" method="GET">
+    <label for="resume_point">
+        Rerun point:
+        <input type="text" id="resume_point" name="resume_point" value="all-chains">
+    </label>
+
+    <button>Partially redo last saved run</button>
+</form>
+</body>
 </html>

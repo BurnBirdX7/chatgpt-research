@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Result</title>
+    <link rel="stylesheet" type="text/css" href="/static/style_result.css">
+</head>
+<body>
+<h1>Result of research</h1>
+<h2>Input</h2>
+<p>{{ input_text }}</p>
+
+<h2>Results</h2>
+
+{#
+results = [
+    Result {
+        name = "string",
+        sources = [
+            Source{
+                link = "url",
+                color = "color_class"
+            },
+            ...
+        ],
+        token_coloring = [
+            TokenColored {
+                link = "url",
+                score = "1.0",
+                chain = "chain sre representation",
+                color_num = 11,
+                token = "text"
+            },
+            ...
+        ]
+    },
+    ...
+]
+
+#}
+
+{% for result in results %}
+    <h3> {{ result.name }} </h3>
+    <table>
+        <tr>
+            <th>Colored text</th>
+            <th>Sources</th>
+        </tr>
+        <tr>
+            <td class="src_text_box">
+                {%- for coloring in result.token_coloring -%}
+                    {%- if coloring.link is defined -%}
+                        <span class="color{{ coloring.color_num }} src_text"
+                              data-chain="{{ coloring.chain|escape }}"
+                              data-source="{{ coloring.link }}"
+                              data-sourcetext="{{ coloring.source_text }}"
+                        >
+                            {{- coloring.token -}}
+                        </span>
+                    {%- else -%}
+                        <span class="color{{ coloring.color_num }}">{{ coloring.token }}</span>
+                    {%- endif -%}
+                {%- endfor -%}
+            </td>
+            <td class="src_link_box">
+                <ul>
+                    {% for url, color_nums in result.sources %}
+                        <li>
+                            <a href="{{ url }}" class="source_reference">{{ url }}</a>
+                            {% for num in color_nums %}
+                                <span class="color{{ num }}">⏺︎</span>
+                            {% endfor %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+    </table>
+
+{% endfor %}
+<script src="/static/hover.js"></script>
+</body>
+</html>

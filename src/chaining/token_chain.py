@@ -81,17 +81,19 @@ class Chain:
         return len(self.all_likelihoods)
 
     def __str__(self) -> str:
-        if self.parent is None:
-            return f"Chain({self.target_begin_pos}..{self.target_end_pos}  '{self.source}' ~ {self.get_score()})"
-        else:
-            return (f"Chain(\n"
-                    f"\t{self.target_begin_pos}..{self.target_end_pos}  '{self.source}' ~ {self.get_score()}\n"
-                    f"\tparent: {self.parent!s}"
-                    f")")
+        return (
+            f"Chain(\n"
+            f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
+            f"\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ \"{self.source}\"\n"
+            f"\tlen: {len(self)}\n"
+            f"\tparent: {self.parent!s}"
+            f")"
+        )
 
     def __repr__(self) -> str:
         return (f"Chain("
-                f"pos={self.target_begin_pos}, "
+                f"target_begin_pos={self.target_begin_pos}, "
+                f"source_begin_pos={self.source_begin_pos, }"
                 f"likelihoods={self.likelihoods!r}, "
                 f"all_likelihoods={self.all_likelihoods!r}"
                 f"source={self.source!r}, "
@@ -145,8 +147,7 @@ class Chain:
         return {
             "target_begin_pos": self.target_begin_pos,
             "source_begin_pos": self.source_begin_pos,
-            "likelihoods": self.likelihoods,
-            "all_likelihoods": self.all_likelihoods,
+            "all_likelihoods": self.all_likelihoods.tolist(),
             "source": self.source
         }
 
@@ -155,7 +156,7 @@ class Chain:
         return Chain(
             target_begin_pos=d["target_begin_pos"],
             source_begin_pos=d["source_begin_pos"],
-            all_likelihoods=d["all_likelihoods"],
+            all_likelihoods=np.array(d["all_likelihoods"]),
             source=d["source"]
         )
 
@@ -177,7 +178,7 @@ class Chain:
         rev_chain = Chain(
             source=self.source,
             target_begin_pos=self.target_begin_pos - len(self) + 1,
-            source_begin_pos=self.source_end_pos - len(self) + 1,
+            source_begin_pos=self.source_begin_pos - len(self) + 1,
             all_likelihoods=np.flip(self.all_likelihoods),
             parent=self
         )
@@ -267,13 +268,13 @@ class Chain:
         return result_chains
 
     @staticmethod
-    def generate_chains_bidirectional(source_likelihoods: torch.Tensor, source_name: str,
+    def generate_chains_bidirectional(source_likelihoods: npt.NDArray[np.float64], source_name: str,
                                       target_token_ids: List[int], target_start_pos: int) -> List[Chain]:
         """Generates chains of tokens with the same source
 
         Parameters
         ----------
-        source_likelihoods : torch.Tensor
+        source_likelihoods : npt.NDArray[np.float64]
             inferred from the source text likelihoods for the tokens
 
         source_name : str

@@ -3,6 +3,7 @@ from __future__ import annotations
 __all__ = ['BaseDataDescriptor', 'ValueType']
 
 import datetime
+import logging
 import pathlib
 import random
 import string
@@ -17,6 +18,15 @@ class BaseDataDescriptor(Generic[T], ABC):
     def __init__(self):
         self.artifacts_folder = "pipe-artifacts"
         self.block_name = "unnamed"
+        self.__logger = logging.getLogger(__name__)
+
+    @property
+    def logger(self) -> logging.Logger:
+        return self.__logger
+
+    @logger.setter
+    def logger(self, new_logger: logging.Logger) -> None:
+        self.__logger = new_logger
 
     def __repr__(self) -> str:
         return f"<Descriptor:{self.__class__.__name__}>"
@@ -70,11 +80,11 @@ class BaseDataDescriptor(Generic[T], ABC):
             Data restored from disk, data should be as close as possible to what was stored
         """
 
-    @staticmethod
-    def cleanup_files(*filepath_list: str):
+    def cleanup_files(self, *filepath_list: str):
         """Removes listed files, doesn't throw if files are missing
         """
         for filepath in filepath_list:
+            self.logger.debug(f"Removing file \"{filepath}\"...")
             pathlib.Path.unlink(pathlib.Path(filepath), missing_ok=True)
 
     def cleanup(self, dic: dict[str, ValueType]):

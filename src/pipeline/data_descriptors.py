@@ -9,6 +9,7 @@ __all__ = ['EmptyDataDescriptor',
            'ListDescriptor',
            'DictDescriptor']
 
+import logging
 import os.path
 from abc import ABC
 from typing import TypeVar, cast, List, Dict, Type
@@ -69,10 +70,11 @@ class StrDescriptor(InDictDescriptor[str]):
     def get_data_type(cls) -> Type[str]:
         return str
 
+
 class ListDescriptor(BaseDataDescriptor[List[T]]):
     def store(self, data: List[T]) -> Dict[str, ValueType]:
         return {
-            "list": data
+            "list": data  # type: ignore
         }
 
     def load(self, dic: Dict[str, ValueType]) -> List[T]:
@@ -153,6 +155,12 @@ class ComplexDictDescriptor(BaseDataDescriptor[Dict[str, T]]):
     def __init__(self, elem_descriptor: BaseDataDescriptor[T]):
         super().__init__()
         self.elem_descriptor = elem_descriptor
+        self.elem_descriptor.logger = self.logger
+
+    @BaseDataDescriptor.logger.setter
+    def logger(self, new_logger: logging.Logger):
+        BaseDataDescriptor.logger.fset(self, new_logger)
+        self.elem_descriptor.logger = new_logger
 
     def store(self, data: Dict[str, T]) -> dict[str, ValueType]:
         dic = {}
@@ -161,12 +169,12 @@ class ComplexDictDescriptor(BaseDataDescriptor[Dict[str, T]]):
 
         return dic
 
-    def load(self, dic: dict[str, ValueType]) -> Dict[str, T]:
-        dic = {}
-        for key, dat in dic.items():
-            dic[key] = self.elem_descriptor.load(dat)
+    def load(self, data_dict: dict[str, ValueType]) -> Dict[str, T]:
+        json_dic = {}
+        for key, dat in data_dict.items():
+            json_dic[key] = self.elem_descriptor.load(dat)
 
-        return dic
+        return json_dic
 
     def cleanup(self, dic: dict[str, ValueType]):
         for value in dic.values():

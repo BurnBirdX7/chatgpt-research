@@ -28,13 +28,13 @@ class NodeStatisticsCollector:
     def __init__(self, node_name: str):
         self.node_name = node_name
 
-        self.start_time = time.time()
-        self.end_time = 0
+        self.start_time: float = time.time()
+        self.end_time: float = 0
 
-        self.produce_start_time = 0
-        self.produce_end_time = 0
-        self.descriptor_start_time = 0
-        self.descriptor_end_time = 0
+        self.produce_start_time: float = 0
+        self.produce_end_time: float = 0
+        self.descriptor_start_time: float = 0
+        self.descriptor_end_time: float = 0
 
     def produce_start(self):
         self.produce_start_time = time.time()
@@ -72,18 +72,38 @@ class NodeStatistics:
     other_seconds: float
 
     def __str__(self) -> str:
-        return (
-            f"NodeStatistics(\"{self.name}\", "
-            f"time: {datetime.timedelta(seconds=self.node_seconds)}, "
-            f"descriptor time: {datetime.timedelta(seconds=self.descriptor_seconds)}, "
-            f"other time: {datetime.timedelta(seconds=self.other_seconds)})"
-        )
+
+        time_ = []
+        if self.node_seconds > 0:
+            time_.append(f"time: {datetime.timedelta(seconds=self.node_seconds)}")
+        if self.descriptor_seconds > 0:
+            time_.append(f"descriptor time: {datetime.timedelta(seconds=self.descriptor_seconds)}")
+        if self.other_seconds > 0:
+            time_.append(f"other time: {datetime.timedelta(seconds=self.other_seconds)})")
+
+        s = ", ".join(time_)
+
+        return f"NodeStatistics(\"{self.name}\", {s})"
 
     @staticmethod
     def start(name: str) -> NodeStatisticsCollector:
         """Convenience method for creating node statistics collector
         """
         return NodeStatisticsCollector(name)
+
+    def __add__(self, other: NodeStatistics):
+        if not isinstance(other, NodeStatistics):
+            return NotImplemented
+
+        if self.name != other.name:
+            raise ValueError("Adding statistics with different names")
+
+        return NodeStatistics(
+            name=self.name,
+            node_seconds=self.node_seconds + other.node_seconds,
+            descriptor_seconds=self.descriptor_seconds + other.descriptor_seconds,
+            other_seconds=self.other_seconds + other.other_seconds
+        )
 
 
 @dataclass

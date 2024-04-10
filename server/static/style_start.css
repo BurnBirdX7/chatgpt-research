@@ -1,5 +1,10 @@
-h1 {
+h1, h2, h3 {
         text-align: center;
+}
+
+#center_table {
+        align-self: center;
+        margin: auto;
 }
 
 form {
