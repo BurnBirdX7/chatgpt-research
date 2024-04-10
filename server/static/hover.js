@@ -9,20 +9,30 @@ const timer = clearTimeout(12)
 
 let popupFixated = false
 
-function updatePopup(target) {
+function updatePopup(event, target) {
         const source_url = target.getAttribute('data-source')
         const chain_text = target.getAttribute('data-chain')
         const source_text = target.getAttribute('data-sourcetext')
+        let color_class = 'color0'
+        target.classList.forEach((cls) => {
+            if (cls.startsWith('color')) {
+                color_class = cls
+            }
+        })
 
         popup.innerHTML = `
-        <button id="popup_close">Close</button><br>
-        Source URL: <a href="${source_url}">${source_url}</a><br>
-        Chain: <pre>${chain_text}</pre><br>
-        Matched source text: "${source_text}"
+        <span class="${color_class}">⏺</span>
+        <a href="${source_url}" target="_blank" class="source_reference">${source_url}</a><br>
+        <table>
+        <tr><td><b>This text</b></td><td>${target.innerText}</td></tr>
+        <tr><td><b>Matched text</b></td><td>${source_text}</td></tr>    
+        </table>
+        <pre>${chain_text}</pre><br>
+        <button id="popup_close">Close</button>
         `
         popup.style.display = 'block'
         popup.style.left = (event.pageX + 10) + 'px'
-        popup.style.top = (event.pageY + 10) + 'px'
+        popup.style.top = (event.pageY + 10 - popup.offsetHeight) + 'px'
         popup.querySelector("#popup_close").addEventListener("click", () => {
             popupFixated = false
             popup.style.display = 'none'
@@ -35,11 +45,11 @@ source_texts.forEach(span => {
             return
         }
 
-        updatePopup(event.target)
+        updatePopup(event, event.target)
     })
 
     span.addEventListener('click', (event) => {
-        updatePopup(event.target)
+        updatePopup(event, event.target)
         popupFixated = true
     })
 })

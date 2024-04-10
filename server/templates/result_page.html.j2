@@ -66,7 +66,7 @@ results = [
                 <ul>
                     {% for url, color_nums in result.sources %}
                         <li>
-                            <a href="{{ url }}" class="source_reference">{{ url }}</a>
+                            <a href="{{ url }}" class="source_reference" target="_blank">{{ url }}</a>
                             {% for num in color_nums %}
                                 <span class="color{{ num }}">⏺︎</span>
                             {% endfor %}

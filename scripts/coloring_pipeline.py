@@ -1,14 +1,15 @@
 import copy
 import itertools
+from typing import Any, List, Dict
 
 from transformers import RobertaForMaskedLM
 
-from src import QueryColbertServer
+from src import QueryColbertServer, Chain
 from src.chaining import ChainingNode, FilterChainsNode, Pos2ChainMapNode
 from src.chaining.descriptors import ChainListDescriptor
 from src.embeddings_builder import EmbeddingsFromTextNode, TokenizeTextNode, LikelihoodsForMultipleSources
 from src.index import IndexFromSourcesNode, SearchIndexNode
-from src.pipeline import Pipeline, mapping_node, DictDescriptor, ListDescriptor, ComplexDictDescriptor
+from src.pipeline import Pipeline, mapping_node, DictDescriptor, ListDescriptor, ComplexDictDescriptor, BaseNode
 from src.config import ColbertServerConfig, EmbeddingBuilderConfig
 from src.pipeline.wrapper_nodes import DictWrapperNode
 from src.text_processing import TextProcessingNode, remove_punctuation
@@ -24,24 +25,30 @@ def FilterDict(dict_: dict, keys: list) -> dict:
     }
 
 
-@mapping_node(out_descriptor=ChainListDescriptor())
-def AddMatchedText(chains: list, source_tokens_dict: dict) -> list:
-    """
-    Parameters
-    ----------
-    chains : List[Chain]
-    source_tokens_dict : Dict[str, List[str]]
+class AddMatchedText(BaseNode):
 
-    Returns
-    -------
-    List[Chain]
-    """
-    chains = copy.deepcopy(chains)
+    def __init__(self, name: str):
+        super().__init__(name, [list, dict], ChainListDescriptor())
 
-    for chain in chains:
-        chain.matched_source_text = "".join(source_tokens_dict[chain.source][chain.source_begin_pos:chain.source_end_pos])
+    def process(self, chains: List[Chain], source_tokens_dict: Dict[str, List[str]]) -> Any:
+        """
+        Parameters
+        ----------
+        chains : List[Chain]
+        source_tokens_dict : Dict[str, List[str]]
 
-    return chains
+        Returns
+        -------
+        List[Chain]
+        """
+        chains = copy.deepcopy(chains)
+
+        for chain in chains:
+            source_tokens = source_tokens_dict[chain.source]
+            text = "".join(source_tokens[chain.source_begin_pos:chain.source_end_pos])
+            chain.matched_source_text = text
+
+        return chains
 
 
 def get_coloring_pipeline() -> Pipeline:

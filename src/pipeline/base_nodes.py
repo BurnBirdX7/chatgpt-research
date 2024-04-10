@@ -19,7 +19,6 @@ class Node(ABC):
             raise ValueError('Prohibited character `$` in block name')
 
         self.__logger = logging.getLogger(f"node.{self.__class__.__name__}.{name}")
-
         self.__name = name
 
     @property

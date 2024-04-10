@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 from collections import defaultdict
 from typing import Optional, List, Dict
@@ -20,38 +22,55 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
     result_list = []
 
     for coloring in colorings:
-        color_num: int = 0
-        last_chain: Optional[Chain] = None
+
+        def get_chain(pos: int) -> Chain | None:
+            if pos not in coloring.pos2chain:
+                return None
+            return coloring.pos2chain[pos]
 
         source_dict = defaultdict(list)
         token_list = []
 
-        for i, key in enumerate(coloring.tokens):
-            key: str
+        # Track progress
+        accumulated = ""
+        color_num: int = 1
+        last_chain: Optional[Chain] = None
 
-            if i in coloring.pos2chain:
-                chain = coloring.pos2chain[i]
-                source = chain.source
-                score = chain.get_score()
-
-                if last_chain != chain:
-                    last_chain = chain
-                    color_num += 1
-                    source_dict[source].append(color_num)
-
-                token_list.append({
-                    "link": source,
-                    "score": score,
-                    "chain": str(chain),
-                    "color_num": color_num,
-                    "token": key
-                })
-            else:
-                last_chain = None
+        def push_text():
+            nonlocal color_num
+            if last_chain is None:
                 token_list.append({
                     "color_num": 0,
-                    "token": key
+                    "token": accumulated
                 })
+            else:
+                token_list.append({
+                    "link": last_chain.source,
+                    "score": last_chain.get_score(),
+                    "chain": str(last_chain),
+                    "color_num": color_num,
+                    "token": accumulated,
+                    "source_text": last_chain.matched_source_text
+                })
+
+                color_num += 1
+                source_dict[last_chain.source].append(color_num)
+
+        for pos, token in enumerate(coloring.tokens):
+            token: str
+
+            chain = get_chain(pos)
+
+            if chain == last_chain:
+                accumulated += token
+                continue
+
+            push_text()
+
+            last_chain = chain
+            accumulated = token
+
+        push_text()
 
         source_list = list(sorted(source_dict.items(), key=lambda item: len(item[1]), reverse=True))
 
