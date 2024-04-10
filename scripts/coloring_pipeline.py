@@ -1,13 +1,16 @@
+import copy
 import itertools
 
 from transformers import RobertaForMaskedLM
 
 from src import QueryColbertServer
 from src.chaining import ChainingNode, FilterChainsNode, Pos2ChainMapNode
+from src.chaining.descriptors import ChainListDescriptor
 from src.embeddings_builder import EmbeddingsFromTextNode, TokenizeTextNode, LikelihoodsForMultipleSources
 from src.index import IndexFromSourcesNode, SearchIndexNode
-from src.pipeline import Pipeline, mapping_node, DictDescriptor
+from src.pipeline import Pipeline, mapping_node, DictDescriptor, ListDescriptor, ComplexDictDescriptor
 from src.config import ColbertServerConfig, EmbeddingBuilderConfig
+from src.pipeline.wrapper_nodes import DictWrapperNode
 from src.text_processing import TextProcessingNode, remove_punctuation
 
 
@@ -19,6 +22,26 @@ def FilterDict(dict_: dict, keys: list) -> dict:
         k: dict_[k]
         for k in unique_keys
     }
+
+
+@mapping_node(out_descriptor=ChainListDescriptor())
+def AddMatchedText(chains: list, source_tokens_dict: dict) -> list:
+    """
+    Parameters
+    ----------
+    chains : List[Chain]
+    source_tokens_dict : Dict[str, List[str]]
+
+    Returns
+    -------
+    List[Chain]
+    """
+    chains = copy.deepcopy(chains)
+
+    for chain in chains:
+        chain.matched_source_text = "".join(source_tokens_dict[chain.source][chain.source_begin_pos:chain.source_end_pos])
+
+    return chains
 
 
 def get_coloring_pipeline() -> Pipeline:
@@ -62,16 +85,24 @@ def get_coloring_pipeline() -> Pipeline:
     # Get likelihoods for all token-positions for given sources
     pipeline.attach_back(LikelihoodsForMultipleSources("source-likelihoods", chaining_eb_config))
 
-
+    # (MISC) Split source texts into tokens
+    pipeline.attach(
+        DictWrapperNode("narrowed-sources-dict-tokenized",
+                        TokenizeTextNode("source-tokenized", text_eb_config)),
+        "narrowed-sources-dict"
+    )
 
     # Build high-likelihood chains
     pipeline.attach(
         ChainingNode("all-chains", chaining_eb_config, True),
-        "input-stripped", "narrowed-sources", "source-likelihoods"
+        "input-stripped", "narrowed-sources-list", "source-likelihoods"
     )
 
     # Filter overlapping chains out
     pipeline.attach_back(FilterChainsNode("filtered-chains"))
+
+    # Add matched source texts to filetered chains
+    pipeline.attach(AddMatchedText("chains-with-text"), "filtered-chains", "narrowed-sources-dict-tokenized")
     
     # Map every token-position onto corresponding chain
     pipeline.attach_back(Pos2ChainMapNode("token2chain"))
