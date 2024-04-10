@@ -1,6 +1,6 @@
 import pytest
 
-from src.pipeline.nodes import BaseNode
+from src.pipeline.base_nodes import BaseNode
 from src.pipeline.mapping_node import mapping_node
 from src.pipeline.data_descriptors import *
 

@@ -9,7 +9,7 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, Set, List, Tuple
 
-from src.pipeline.nodes import Node
+from src.pipeline.base_nodes import Node
 from .pipeline_result import PipelineResult, PipelineHistory, NodeStatistics
 
 

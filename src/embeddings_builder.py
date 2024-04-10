@@ -225,19 +225,17 @@ class TokenizeTextNode(BaseNode):
 class LikelihoodsForMultipleSources(BaseNode):
 
     def __init__(self, name, embeddings_builder_config: EmbeddingBuilderConfig):
-        super().__init__(name, [list, dict], ComplexDictDescriptor(TensorDescriptor()))
+        super().__init__(name, [dict], ComplexDictDescriptor(TensorDescriptor()))
         self.eb_config = embeddings_builder_config
 
-    def process(self, sources: List[List[str]], sources_data: Dict[str, str]) -> Dict[str, torch.Tensor]:
+    def process(self, sources_data: Dict[str, str]) -> Dict[str, torch.Tensor]:
         tokenizer = self.eb_config.tokenizer
         model = self.eb_config.model
 
-        unique_sources = set(itertools.chain.from_iterable(sources))
         source_batched_likelihoods = {}  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
 
-        for i, source in enumerate(unique_sources):
-            self.logger.debug(f"Generating likelihoods for source {i + 1}/{len(unique_sources)}: \"{source}\"")
-            source_text = sources_data[source]
+        for i, (source_name, source_text) in enumerate(sources_data.items()):
+            self.logger.debug(f"Generating likelihoods for source {i + 1}/{len(sources_data)}: \"{source_name}\"")
             tokenizer_output = tokenizer(text=source_text, add_special_tokens=False,
                                          return_tensors='pt', return_attention_mask=True,
                                          padding=True, pad_to_multiple_of=tokenizer.model_max_length)
@@ -250,7 +248,8 @@ class LikelihoodsForMultipleSources(BaseNode):
             with torch.no_grad():
                 # Logits have dimensions: (passage, position, vocab)
                 batched_logits = model(source_token_id_batch, attention_mask=source_attention_mask).logits
+
             batched_likelihoods = torch.nn.functional.softmax(batched_logits, dim=2)
-            source_batched_likelihoods[source] = batched_likelihoods.cpu()
+            source_batched_likelihoods[source_name] = batched_likelihoods.cpu()
 
         return source_batched_likelihoods
