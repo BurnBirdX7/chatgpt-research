@@ -19,7 +19,6 @@ class Node(ABC):
             raise ValueError('Prohibited character `$` in block name')
 
         self.__logger = logging.getLogger(f"node.{self.__class__.__name__}.{name}")
-
         self.__name = name
 
     @property
@@ -147,7 +146,7 @@ class BaseNode(Node, ABC):
         """
 
 
-class ConstantNode(BaseNode, ABC):
+class ConstantNode(BaseNode):
     def __init__(self, name: str, value: Any, out_descriptor: BaseDataDescriptor):
         super().__init__(name, [], out_descriptor)
         self.value = value

@@ -6,7 +6,7 @@ import inspect
 from typing import Callable, TypeVar, List, cast, get_type_hints
 
 from .base_data_descriptor import BaseDataDescriptor
-from .nodes import Node, BaseNode
+from .base_nodes import Node, BaseNode
 
 OutT = TypeVar('OutT')
 

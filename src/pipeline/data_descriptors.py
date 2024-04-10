@@ -7,7 +7,9 @@ __all__ = ['EmptyDataDescriptor',
            'BytesDescriptor',
            'StrDescriptor',
            'ListDescriptor',
-           'DictDescriptor']
+           'DictDescriptor',
+           'ComplexDictDescriptor',
+           'ComplexListDescriptor']
 
 import logging
 import os.path

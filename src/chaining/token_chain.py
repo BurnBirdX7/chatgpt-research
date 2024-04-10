@@ -45,6 +45,7 @@ class Chain:
         self.all_likelihoods = np.array([] if (all_likelihoods is None) else all_likelihoods)
         self.source = source
         self.parent = parent
+        self.matched_source_text: str | None = None
 
         self._begin_skips = 0
         self._end_skips = 0
