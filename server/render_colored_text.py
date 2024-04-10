@@ -20,15 +20,11 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
     result_list = []
 
     for coloring in colorings:
-        color_num: int = 1
+        color_num: int = 0
         last_chain: Optional[Chain] = None
 
-        source_dict = defaultdict(lambda: 0)
+        source_dict = defaultdict(list)
         token_list = []
-        result_list.append({
-            "sources": source_dict,
-            "token_coloring": token_list
-        })
 
         for i, key in enumerate(coloring.tokens):
             key: str
@@ -40,25 +36,28 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
 
                 if last_chain != chain:
                     last_chain = chain
-                    source_dict[source] += 1
-
-                    if color_num == 1:
-                        color_num = 2
-                    else:
-                        color_num = 1
+                    color_num += 1
+                    source_dict[source].append(color_num)
 
                 token_list.append({
                     "link": source,
                     "score": score,
                     "chain": str(chain),
-                    "color": f"type_{color_num}",
+                    "color_num": color_num,
                     "token": key
                 })
             else:
                 last_chain = None
                 token_list.append({
-                    "color": f"type_0",
+                    "color_num": 0,
                     "token": key
                 })
 
+        source_list = list(sorted(source_dict.items(), key=lambda item: len(item[1]), reverse=True))
+
+        result_list.append({
+            "name": coloring.name,
+            "sources": source_list,
+            "token_coloring": token_list
+        })
     return template_page.render(input_text=input_text, results=result_list)

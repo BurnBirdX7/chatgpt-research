@@ -18,13 +18,17 @@ app = Flask(__name__)
 coloring_pipeline = get_coloring_pipeline()
 coloring_pipeline.assert_prerequisites()
 coloring_pipeline.force_caching("input-tokenized")
+coloring_pipeline.force_caching("$input")
 coloring_pipeline.store_optional_data = True
 coloring_pipeline.dont_timestamp_history = True
 
 logging.basicConfig(level=logging.DEBUG, format='[%(name)s]:%(levelname)s:%(message)s')
 
 @lru_cache(5)
-def color_text(text: str | None) -> Tuple[str, List[Coloring]]:
+def color_text(text: str | None, resume_node: str = "all-chains") -> Tuple[str, List[Coloring]]:
+    if text is not None and coloring_pipeline.store_optional_data:
+        coloring_pipeline.cleanup_file(coloring_pipeline.unstamped_history_filepath)
+
     coloring_variants = []
     start = time.time()
 
@@ -34,26 +38,26 @@ def color_text(text: str | None) -> Tuple[str, List[Coloring]]:
     all_chain_node.use_bidirectional_chaining = False
     if text is None:
         result = coloring_pipeline.resume_from_disk(coloring_pipeline.unstamped_history_filepath,
-                                                    "all-chains")
+                                                    resume_node)
     else:
         result = coloring_pipeline.run(text)
     coloring_variants.append(Coloring(name="Unidirectional chaining",
                                       tokens=result.cache['input-tokenized'],
                                       pos2chain=result.last_node_result))
     stats = OrderedDict()
-    stats['unidirecinal'] = result.statistics
+    stats['unidirectional'] = result.statistics
 
     # BIDIRECTIONAL
     coloring_pipeline.store_intermediate_data = False
     all_chain_node.use_bidirectional_chaining = True
-    result = coloring_pipeline.resume_from_cache(result, "all-chains")
-    coloring_variants.append(Coloring(name="Unidirectional chaining",
+    result = coloring_pipeline.resume_from_cache(result, resume_node)
+    coloring_variants.append(Coloring(name="Bidirectional chaining",
                                       tokens=result.cache['input-tokenized'],
                                       pos2chain=result.last_node_result))
     stats['bidirectional'] = result.statistics
 
     # Preserve input
-    if text is None and '$input' in result.cache:
+    if text is None:
         text = result.cache['$input']
     del result
 
@@ -78,8 +82,6 @@ def result_page():
     user_input = request.form['user_input']
     store_data = 'store' in request.form
     coloring_pipeline.store_intermediate_data = store_data
-    if store_data:
-        coloring_pipeline.cleanup_file(coloring_pipeline.unstamped_history_filepath)
 
     _, coloring_variants = color_text(user_input)
     return Response(render_colored_text(user_input, coloring_variants), mimetype='text/html')
@@ -87,8 +89,13 @@ def result_page():
 
 @app.route("/resume", methods=['GET'])
 def resume_page():
+    if 'resume_point' not in request.args:
+        resume_point = 'all-chains'
+    else:
+        resume_point = request.args['resume_point']
+
     coloring_pipeline.store_intermediate_data = False
-    input_text, coloring_variants = color_text(None)
+    input_text, coloring_variants = color_text(None, resume_node=resume_point)
     return Response(render_colored_text(input_text, coloring_variants), mimetype='text/html')
 
 

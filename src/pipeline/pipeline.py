@@ -6,6 +6,7 @@ import logging
 import os.path
 import pathlib
 import time
+from collections import defaultdict
 from typing import Any, Dict, Set, List, Tuple
 
 from src.pipeline.nodes import Node
@@ -127,6 +128,7 @@ class Pipeline:
         self.__artifacts_folder = "pipe-artifacts"
         self.__default_execution_order: List[str] = [inp.name]
         self.__must_cache_output: Set[str] = set()  # Set of nodes whose output should be cached
+        self.__must_load_output: Set[str] = set()  # Set of nodes that must be loaded into cache when resuming
 
         # Misc
         self.name = name
@@ -149,6 +151,18 @@ class Pipeline:
         self.__artifacts_folder = new_folder
         for node in self.nodes.values():
             node.set_artifacts_folder(new_folder)
+
+    @property
+    def source_graph(self) -> Dict[str, List[str]]:
+        rev_graph = defaultdict(set)
+        for u, vs in self.graph.items():
+            for v in vs:
+                rev_graph[v].add(u)
+
+        return {
+            k: list(s)
+            for k, s in rev_graph.items()
+        }
 
     @property
     def unstamped_history_filename(self) -> str:
@@ -328,8 +342,11 @@ class Pipeline:
         node_name : str
             Name of the node whose output should be cached
         """
-        if node_name in self.nodes:
+        if node_name in self.nodes or node_name == "$input":
             self.__must_cache_output.add(node_name)
+            self.__must_load_output.add(node_name)
+        else:
+            self.logger.warning(f"Unknown node name \"{node_name}\"")
 
     def prerequisites_check(self) -> Dict[str, str] | None:
         """
@@ -469,7 +486,15 @@ class Pipeline:
 
         # Load in cache all cachable outputs that are present in the history
         # and the outputs on which our starting node depends
-        names_to_load = (self.__must_cache_output | set(self.graph[node_name])).intersection(set(pre_execution_order))
+
+        names_to_load = {
+            to_load_name
+            for future_task_name in execution_order
+            for to_load_name in self.graph[future_task_name]
+            if (to_load_name in pre_execution_order) or (to_load_name[0] == "$")
+        } | self.__must_load_output
+
+        self.logger.info(f"Loading node outputs for these nodes: {names_to_load}")
         statistic_dic = {}
         for load_node_name in names_to_load:
             if load_node_name not in history:
@@ -486,7 +511,7 @@ class Pipeline:
             statistic_dic[load_node_name] = stat_track.get()
 
         # Load original $input:
-        if "$input" in self.__must_cache_output:
+        if "$input" in (self.__must_load_output | self.__must_cache_output):
             cached_data["$input"] = self.in_type(history["$input"])
 
         try:

@@ -24,14 +24,20 @@
                 </label>
             </td>
             <td>
-                <input type="submit" value="Send">
+                <input type="submit" value="Run">
             </td>
         </tr>
     </table>
 </form>
 <hr>
-<a href="/resume">
+<h2>Partially rerun</h2>
+<form action="/resume" method="GET">
+    <label for="resume_point">
+        Rerun point:
+        <input type="text" id="resume_point" name="resume_point" value="all-chains">
+    </label>
+
     <button>Partially redo last saved run</button>
-</a>
+</form>
 </body>
 </html>

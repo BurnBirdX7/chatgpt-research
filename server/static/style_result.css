@@ -131,11 +131,34 @@
     text-decoration: underline;
 }
 
+.popup {
+    position: absolute;
+    padding: 10pt;
+    background: whitesmoke;
+    border-radius: 0 10pt 10pt 10pt;
+    border: 1px solid lightgray;
+    display: none;
+    z-index: 5;
+}
+
+table {
+    border: black 1px dashed;
+    padding: 10pt;
+}
+
 a {
     text-decoration-line: none
 }
 
+.src_text_box {
+    width: 55%;
+}
 
-h1 {
+.src_link_box {
+    width: 45%;
+}
+
+
+h1, h2, h3 {
     text-align: center;
 }

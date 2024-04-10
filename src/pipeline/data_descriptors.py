@@ -9,6 +9,7 @@ __all__ = ['EmptyDataDescriptor',
            'ListDescriptor',
            'DictDescriptor']
 
+import logging
 import os.path
 from abc import ABC
 from typing import TypeVar, cast, List, Dict, Type
@@ -154,6 +155,12 @@ class ComplexDictDescriptor(BaseDataDescriptor[Dict[str, T]]):
     def __init__(self, elem_descriptor: BaseDataDescriptor[T]):
         super().__init__()
         self.elem_descriptor = elem_descriptor
+        self.elem_descriptor.logger = self.logger
+
+    @BaseDataDescriptor.logger.setter
+    def logger(self, new_logger: logging.Logger):
+        BaseDataDescriptor.logger.fset(self, new_logger)
+        self.elem_descriptor.logger = new_logger
 
     def store(self, data: Dict[str, T]) -> dict[str, ValueType]:
         dic = {}

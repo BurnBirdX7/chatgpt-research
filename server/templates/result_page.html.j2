@@ -47,19 +47,30 @@ results = [
             <th>Sources</th>
         </tr>
         <tr>
-            <td>
-                {% for coloring in result.token_coloring %}
+            <td class="src_text_box">
+                {%- for coloring in result.token_coloring -%}
                     {%- if coloring.link is defined -%}
-                        <span class="color{{ coloring.color }} src_text" title="{{ coloring.title|safe }}">{{ coloring.token }}</span>
-                    {% else -%}
-                        <span class="color{{ coloring.color }} src_text">{{ coloring.token }}</span>
+                        <span class="color{{ coloring.color_num }} src_text"
+                              data-chain="{{ coloring.chain|escape }}"
+                              data-source="{{ coloring.link }}"
+                              data-sourcetext="{{ coloring.source_text }}"
+                        >
+                            {{- coloring.token -}}
+                        </span>
+                    {%- else -%}
+                        <span class="color{{ coloring.color_num }}">{{ coloring.token }}</span>
                     {%- endif -%}
-                {% endfor %}
+                {%- endfor -%}
             </td>
-            <td>
+            <td class="src_link_box">
                 <ul>
-                    {% for url, count in result.sources.items() %}
-                        <li><a href="{{ url }}" class="source_reference">{{ url }}</a> - {{ count }}</li>
+                    {% for url, color_nums in result.sources %}
+                        <li>
+                            <a href="{{ url }}" class="source_reference">{{ url }}</a>
+                            {% for num in color_nums %}
+                                <span class="color{{ num }}">⏺︎</span>
+                            {% endfor %}
+                        </li>
                     {% endfor %}
                 </ul>
             </td>
@@ -67,5 +78,6 @@ results = [
     </table>
 
 {% endfor %}
+<script src="/static/hover.js"></script>
 </body>
 </html>

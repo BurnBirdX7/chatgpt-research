@@ -18,7 +18,15 @@ class BaseDataDescriptor(Generic[T], ABC):
     def __init__(self):
         self.artifacts_folder = "pipe-artifacts"
         self.block_name = "unnamed"
-        self.logger = logging.getLogger(__name__)
+        self.__logger = logging.getLogger(__name__)
+
+    @property
+    def logger(self) -> logging.Logger:
+        return self.__logger
+
+    @logger.setter
+    def logger(self, new_logger: logging.Logger) -> None:
+        self.__logger = new_logger
 
     def __repr__(self) -> str:
         return f"<Descriptor:{self.__class__.__name__}>"
