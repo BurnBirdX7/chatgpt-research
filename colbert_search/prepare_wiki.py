@@ -224,7 +224,7 @@ def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[
 class PrepareWiki(BaseNode):
 
     def __init__(self, name: str, output_dir: str):
-        super().__init__(name, list, ListDescriptor())
+        super().__init__(name, [list], ListDescriptor())
         self.output_dir = output_dir
 
     def process(self, inp: list[WikiDataFile]) -> list[str]:

@@ -1,24 +1,76 @@
-# ChatGPT Research
+# Fact-checking for LLM's Output 
 
 ## Setup
 
-Use [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)
+[conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) is required.
 
-CPU Environment:
+Create environment:
 ```shell
-conda env create --file env-cpu.yml
-conda activate gpt-cpu
+conda env create --file fact-checking-env.yml
 ```
 
-GPU Environment:
+Or a CPU-only environment:
 ```shell
-conda env create --file env-gpu.yml
-conda activate gpt-gpu
+conda env create --file fact-checking-env-cpu.yml
 ```
 
-Or the same commands using `conda`.
+Activate:
+```shell
+conda activate factcheck
+```
+
+## Modules
+
+* `src` - resusable code
+* `scripts` - scripts created to do something specific, although functions can be reused
+* `colbert_search` - scripts focused around ColBERT, require different environment
+  * provides `colbert_server`
+    * To use it, you need to create index of all sources you want to consider during the analysis
+    * `colbert_search.wiki_pipeline` is a script that can create ColBERT indexes from wikipedia dumps
+      (multistream divided into multiple archives)
+* `server` - web server that provides GUI for possible sources search, requires running `colbert_server` to run
+* `test` - unit tests for some features, use `pytest` to run them
+* `search` - old, unmaintained search, that was preforming the same role as `colbert_search`
+  but based on Lucene full-text search.
+   * [PyLucene](#pylucene) is required to use it,
+  it has no integration in the current process, and also you'd need to compile Lucene index
+  of all the sources you want to consider a possibility in the analysis 
+
+
+
+## Run scripts
+
+All tasks are a part of `scripts` or `colbert_search` module, and shouldn't be run directly.
+
+When environment is activated you can run python scripts in this project.
+To run scripts use:
+```shell
+# in project root
+python -m <module-name> <script-name> [scipt-args...]
+```
+
+### Scripts
+
+Scripts aren't systematized, you'd need to check docstring inside each one to understand what they are doing.
+
+Most important scripts are:
+ * `scripts` module:
+   * `coloring_pipeline` - is not a script,
+     it provides a single function - `get_coloring_pipeline` that currently represents all the analysis
+   * `estimate_centroid` - text embeddings are often skewed from 0 coordinates, compute centroid to offset them back,
+      and to improve cosine distance comparison quality.
+   * `estimate_thresholds` - computes cosine distance thresholds that we can use to reject unrelated 
+     embeddings when performing knn
+ * `colbert_search`
+   * `wiki_pipeline` is a script that can create ColBERT indexes from wikipedia dumps
+     (multistream divided into multiple archives)
+   * `colbert_server` server that provides ColBERT full-text search on-demand and on multiple ColBERT Indexes
+   * `prepare_wiki` script that converts wikitext into ColBERT-readable passages, part of `wiki_pipeline`
 
 ## PyLucene
+
+[!] _Unmaintained section_
+
 To run `build_index_from_potential_sources` script you need [PyLucene](https://lucene.apache.org/pylucene/) installed in the environment.
 To do it you need to build PyLucene.
 
@@ -50,110 +102,3 @@ _Instruction is close to [this one](https://lucene.apache.org/pylucene/install.h
 * Build: `make`
 * Run tests: `make test`, should be no errors
 * Install: `make install` (**without sudo**). 
-
-## config.py
-
-### Used variables
-#### Misc
- * `model_name` : `roberta-base`|`roberta-large` - defines model
- * `faiss_use_gpu`: bool - use GPU when building FAISS index or not
- * `show_plot`: bool - show plot after estimation script run
- * `threshold`: float - Lowest acceptable cosine distance, when comparing embeddings
-
-#### Files
- * `artifacts_folder`: string - folder that contains all the artifacts -
-                         files that can be loaded by scripts, and files produced by the scripts
- * `embeddings_file`: string - where embeddings should be saved _\[Not Used\]_
- * `mapping_file`: string - where mapping of embedding index to source is saved (CSV)
- * `index_file`: string - where FAISS index is saved (faiss format)
- * `centroid_file`: sting - where embeddings centroid is saved (Numpy's NPY file)
- * `temp_index_file`: string - where temporary index built from query text is written
- * `source_index_path`: string - where Lucene source index is located 
-
-#### Wiki Articles
- * `page_names`: list\[string\] - list of Wikipedia articles on _target topic_
- * `unrelated_page_names`: list\[string\] - list of Wikipedia articles not on _target topic_,
-   * used when estimating thresholds and centroid
- * `unrelated_page_names_2`: list\[string\] - large list of Wikipedia articles not on _target topic_,
-   * used for centroid estimation
-
-### Loading from environment
-
-You can set variable as `None` and in this case Config will try to load it from environment.
-For example `source_index_path` is set to None and value will be acquired from `SOURCE_INDEX_PATH` environment variable.
-
-### Paths and files
-
-Variable that has `file` or `path` at the end of the name:
- * Must contain path
- * If it's not an absolute path, it must be a path relative to **artifacts folder**
-
-## Run scripts
-
-All runnable scripts placed in `scripts` folder.
-
-When environment is activated you can run python scripts in this project.
-To run scripts use:
-```shell
-# in project root
-python -m scripts <script-name> [scipt-args...]
-```
-
-### Scripts
-
-and their vague description...
-
- * `build_index` - builds embedding index from wiki articles
- * `collect_pop_quiz` - surveys ChatGPT for answers on quiz
-   * Quiz name should be supplied as first parameter `python -m scripts collect_pop_quiz test_quiz`
-   * See details in top comment in the file
-   * Requires environment variable `OPENAI_API_KEY` to be set
- * `estimate_centroid` - collects large amount of embeddings from wiki articles and computes centroid estimation
- * `estimate_thresholds` - collects data on related and unrelated topics and estimates threshold
- * `filter_answers` - filters correct answers provided by ChatGPT
-   * See details in top comment in the file
- * `format_questions` - Formats quiz _\[ Deprecated \]_
- * `model_of_GPT` - ??? Ask Misha
- * `print_answers` - Prints incorrect answers given by ChatGPT _\[ Deprecated \]_
- * `survey`
-   * See details in top comment in the file
-
-
- ## Architecture
- ### Architecture in general
-![arch](https://github.com/BurnBirdX7/chatgpt-research/assets/55112338/068cca63-25e1-45f2-b0d0-0b3a87449ff3)
- ### Sequence diagram
-![ARCH_GPT](https://github.com/BurnBirdX7/chatgpt-research/assets/55112338/a2f35b2e-b925-4837-9cf2-0c23c4b8aa11)
-
-
-## Buisness domain and subdomains
-Business Domain: сервис/инструмент позволяющий получить первоначальные
-источники информации, которая включена в ответ gpt. Абсолютно новый подход
-в данной сфере. Например по полученным ссылкам можно судить насколько
-правдив ответ gpt, насколько мы можем ему доверять. Можем также узнать
-дополнительную информацию из первоначальных источников, которая поможет
-сделать/изменить новый вывод о полученном ответе. Данный инструмент может
-выступать в роли fact checking, также опираясь и анализируя ресурсы, делать
-вывод.
-### Core subdomains:
-- раскраска (это новый разработанный подход для определения источников,
-агрегированию информации и финальному присвоению ссылок на источники).
-### Generic subdomains:
-- инструмент для хранение информации из источников (потому что используем
-готовый open source инструмент);
-- языковая модель (потому что используем готовую open source модель);
-- инструмент для поиска (потому что используем готовый open source
-инструмент);
-- инструмент для полнотекстового поиска (потому что используем готовый open
-source инструмент);
-- сервис аутентификации (потому что используем готовый open source сервис);
-- сервис оплаты (потому что используем готовый open source сервис).
-### Supporting subdomains:
-- web-ui интерфейс (так как разработать ui интерфейс не составляет очень
-большого труда).
-
-## Context map
-  ![BC](https://github.com/BurnBirdX7/chatgpt-research/assets/55112338/242c69de-fbbd-4d51-94a6-dcce403b1806)
-
-## Layered architecture 
- ![LA](https://github.com/BurnBirdX7/chatgpt-research/assets/55112338/b248b669-9e7d-4e85-bb82-ae6e01877dbe)

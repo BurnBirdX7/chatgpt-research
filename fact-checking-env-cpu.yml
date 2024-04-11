@@ -1,7 +1,6 @@
-name: gpt-gpu
+name: factcheck
 channels:
   - pytorch
-  - nvidia
   - conda-forge
   - defaults
 dependencies:
@@ -9,13 +8,12 @@ dependencies:
   - pytorch
   - torchvision
   - torchaudio
-  - scipy
-  - pytorch-cuda=11.8
+  - cpuonly
   - numpy
   - pandas
   - wikipedia-api
   - transformers
-  - faiss-gpu
+  - faiss
   - progress
   - matplotlib
   - flake8

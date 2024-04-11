@@ -114,3 +114,7 @@ def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
     pipeline.attach_back(Pos2ChainMapNode("token2chain"))
 
     return pipeline
+
+
+if __name__ == '__main__':
+    print("This scripts isn't runnable, it provides `get_coloring_pipeline` function")
