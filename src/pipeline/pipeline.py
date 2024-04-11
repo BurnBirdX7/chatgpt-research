@@ -534,6 +534,7 @@ class Pipeline:
 
             if not os.path.isfile(path):
                 self.logger.debug(f".. {path} not found...")
+                continue
 
             with open(path, 'r') as f:
                 self.nodes[node_name].out_descriptor.cleanup(json.load(f))
@@ -721,6 +722,8 @@ class Pipeline:
         if (not self.store_intermediate_data and
                 (node.out_descriptor.is_optional() or not self.store_optional_data)):
             return
+
+        self.logger.debug(f'Storing data for node: {node.name}')
 
         dic = node.out_descriptor.store(data)
         dic_name = f"pipe_{node.name}_{self.get_timestamp_str()}.json"

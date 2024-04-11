@@ -51,7 +51,7 @@ class AddMatchedText(BaseNode):
         return chains
 
 
-def get_coloring_pipeline() -> Pipeline:
+def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
     # Configs:
     colbert_cfg = ColbertServerConfig.load_from_env()
     text_eb_config = EmbeddingBuilderConfig(
@@ -66,7 +66,7 @@ def get_coloring_pipeline() -> Pipeline:
     # == Pipeline ==
 
     # First node strips input of punctuation
-    pipeline = Pipeline(TextProcessingNode.new("input-stripped", remove_punctuation), name="text-coloring")
+    pipeline = Pipeline(TextProcessingNode.new("input-stripped", remove_punctuation), name=name)
 
     # Node queries all sources that might contain similar text from ColBERT
     pipeline.attach_back(QueryColbertServer("all-sources-dict-raw", colbert_cfg))
@@ -94,8 +94,7 @@ def get_coloring_pipeline() -> Pipeline:
 
     # (MISC) Split source texts into tokens
     pipeline.attach(
-        DictWrapperNode("narrowed-sources-dict-tokenized",
-                        TokenizeTextNode("source-tokenized", text_eb_config)),
+        DictWrapperNode(TokenizeTextNode("narrowed-sources-dict-tokenized", text_eb_config)),
         "narrowed-sources-dict"
     )
 

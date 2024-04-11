@@ -198,7 +198,7 @@ class EmbeddingsFromTextNode(BaseNode):
         self.eb_config = config
 
     def process(self, text: str) -> np.ndarray:
-        eb = EmbeddingsBuilder(self.eb_config, logging.getLogger(f"{self.logger.name}.{EmbeddingsBuilder}"))
+        eb = EmbeddingsBuilder(self.eb_config, logging.getLogger(f"{self.logger.name}.EmbeddingsBuilder"))
         return eb.tensor_from_text(text).cpu().numpy()
 
     def prerequisite_check(self) -> str | None:

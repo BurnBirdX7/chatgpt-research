@@ -11,7 +11,7 @@ from typing import Optional, List, Set
 
 class Chain:
     likelihood_significance_threshold = 1e-5
-    max_skips = 3
+    max_skips = 2
 
     def __init__(self, source: str,
                  target_begin_pos: int,
@@ -141,6 +141,8 @@ class Chain:
         )
 
         assert len(chain) == (len(self) + len(other) - 1)
+        chain._begin_skips = self._begin_skips
+        chain._end_skips = self._end_skips
 
         return chain
 
@@ -215,7 +217,7 @@ class Chain:
     def get_score(self):
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
         l = np.exp(np.log(self.likelihoods).mean())
-        score = l * (len(self.likelihoods)**2)
+        score = l * (len(self)**2)
         return score
 
     @staticmethod

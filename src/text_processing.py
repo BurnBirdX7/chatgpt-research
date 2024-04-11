@@ -10,7 +10,11 @@ from .pipeline import BaseNode, BaseDataDescriptor, StrDescriptor, ListDescripto
 
 def remove_punctuation(text: str) -> str:
     def pred(i: int):
-        cat = unicodedata.category(chr(i))
+        ch = chr(i)
+        allowed = "!%'.:;?"
+        if ch in allowed:
+            return False
+        cat = unicodedata.category(ch)
         return cat.startswith('P')
 
     transform_table = {
