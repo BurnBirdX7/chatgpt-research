@@ -3,7 +3,7 @@ from typing import Callable
 import pytest
 
 from src.pipeline import BaseNode, mapping_node, Pipeline
-from src.pipeline.data_descriptors import *
+from src.pipeline.data_descriptors import StrDescriptor, FloatDescriptor, IntDescriptor
 
 
 @mapping_node(StrDescriptor())

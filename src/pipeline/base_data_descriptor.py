@@ -107,7 +107,6 @@ class BaseDataDescriptor(Generic[T], ABC):
         """Returns type of the data.
         Used for typechecking pipeline links.
         """
-        raise NotImplemented
 
     # Helpers
     @staticmethod

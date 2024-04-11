@@ -69,7 +69,7 @@ class EmbeddingsBuilder:
         for i in window_steps:
             # Create tensor with acceptable dimensions:
             input_ids_tensor = torch.tensor(
-                input_ids[i : i + sequence_length]
+                input_ids[i: i + sequence_length]
             ).unsqueeze(0)
 
             # Moves tensor to model's device

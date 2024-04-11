@@ -87,13 +87,13 @@ class Chat:
                     reduced_length = True
                 elif reduced_length and not self.suppress_output:
                     print(f"Error text: {err.error}", file=sys.stderr)
-                    print(f"Context reduction did not resolve the problem. Stopping...")
+                    print("Context reduction did not resolve the problem. Stopping...")
                     break
 
                 if not self.suppress_output:
                     print(f"Error text: {err.error}", file=sys.stderr)
                     print(
-                        f"[assumed] Hit context length limit. Context was reduced. Retrying..."
+                        "[assumed] Hit context length limit. Context was reduced. Retrying..."
                     )
 
                 continue

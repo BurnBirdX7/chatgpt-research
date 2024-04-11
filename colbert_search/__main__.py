@@ -4,7 +4,7 @@ import os
 
 colbert_rooted_scripts = ["create_index", "fever_server", "colbert_server"]
 """
-These scripts must be launched with 'colbert' conda environment active 
+These scripts must be launched with 'colbert' conda environment active
 """
 
 

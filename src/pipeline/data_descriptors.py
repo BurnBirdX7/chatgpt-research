@@ -157,7 +157,7 @@ class ComplexDictDescriptor(BaseDataDescriptor[Dict[str, T]]):
 
     @BaseDataDescriptor.logger.setter  # type: ignore
     def logger(self, new_logger: logging.Logger):
-        BaseDataDescriptor.logger.fset(self, new_logger)    # type: ignore
+        BaseDataDescriptor.logger.fset(self, new_logger)  # type: ignore
         self.elem_descriptor.logger = new_logger
 
     def store(self, data: Dict[str, T]) -> dict:

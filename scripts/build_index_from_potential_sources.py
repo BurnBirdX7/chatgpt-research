@@ -34,7 +34,7 @@ def build_index_from_potential_sources(
         print("Creating query")
         for window_size in range(1, 6):
             for i in range(len(tokens) - window_size + 1):
-                window = tokens[i : i + window_size]
+                window = tokens[i: i + window_size]
                 searcher.add_clause(window)
 
         print("Searching...")

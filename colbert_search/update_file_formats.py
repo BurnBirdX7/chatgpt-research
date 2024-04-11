@@ -24,7 +24,7 @@ def find_matches(
         print("file:", w.path)
 
         pattern_str = rf"^wiki-{w.num}-{w.p_first}_(\w+)_(\d+).tsv$"
-        print(f" ~~~ pattern:", pattern_str)
+        print(" ~~~ pattern:", pattern_str)
 
         pattern = re.compile(pattern_str)
         for filename in files:

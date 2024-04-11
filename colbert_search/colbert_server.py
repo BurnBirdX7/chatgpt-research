@@ -23,7 +23,7 @@ def init_searchers(dir_path: str) -> List[Tuple[Searcher, SourceMapping]]:
     print(f"Looking for indexes in {dir_path}")
     lst: list[Tuple[Searcher, SourceMapping]] = []
     dirs = [d[0] for d in os.walk(INDEX_ROOT)][1:]
-    print(f"Dirs:", dirs)
+    print("Dirs:", dirs)
 
     # format wiki-{wiki_partition_num}-p{start_page}-p{end_page}_passages_{colbert_partition_num}:
     index_pattern = re.compile(r"^wiki-(\d+)-p(\d+)-p(\d+)_passages_(\d+)$")

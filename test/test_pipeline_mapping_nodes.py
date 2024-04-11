@@ -2,7 +2,7 @@ import pytest
 
 from src.pipeline.base_nodes import BaseNode
 from src.pipeline.mapping_node import mapping_node
-from src.pipeline.data_descriptors import *
+from src.pipeline.data_descriptors import IntDescriptor, EmptyDataDescriptor
 
 
 def test_simple() -> None:

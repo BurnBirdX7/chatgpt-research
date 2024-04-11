@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import pprint
 import time
 from dataclasses import dataclass
 from typing import Callable
@@ -89,7 +88,7 @@ def estimate():
     # Sample passages
     all_passages = pd.read_csv("passages.csv")
     pos_passages = all_passages[all_passages["supported"]].sample(100)
-    neg_passages = all_passages[all_passages["supported"] == False].sample(100)
+    neg_passages = all_passages[~all_passages["supported"]].sample(100)
     passages = pd.concat([pos_passages, neg_passages], ignore_index=True)
 
     stats = {f.__name__: Stat() for f in incremental}

@@ -574,7 +574,7 @@ class Pipeline:
     def cleanup_file(self, history_file_path: str):
         self.logger.debug(f'Cleaning up history provided from "{history_file_path}"...')
         if not os.path.isfile(history_file_path):
-            self.logger.debug(f"File not found, nothing to clean up")
+            self.logger.debug("File not found, nothing to clean up")
             return
 
         with open(history_file_path, "r") as f:
@@ -589,9 +589,9 @@ class Pipeline:
         return Pipeline.format_time(datetime.datetime.now())
 
     @staticmethod
-    def format_time(time: datetime.datetime) -> str:
+    def format_time(time_: datetime.datetime) -> str:
         """Helper method to get a timestamp as a string suitable for use in file names"""
-        return time.strftime("%Y-%m-%d.%H-%M-%S")
+        return time_.strftime("%Y-%m-%d.%H-%M-%S")
 
     #
     # PRIVATE METHODS
@@ -625,13 +625,13 @@ class Pipeline:
         # Inject logger
         new_node.logger = logging.getLogger(f"{self.logger.name}.<{new_node.name}>")
 
-    def __save_history(self, time: datetime.datetime, history: PipelineHistory):
+    def __save_history(self, time_: datetime.datetime, history: PipelineHistory):
         """Saves history file to the disk
         Does nothing if ``self.store_intermediate_data`` is set to `False`
 
         Parameters
         ----------
-        time : datetime.datetime
+        time_ : datetime.datetime
             Time that used to timestamp the history files
 
         history: PipelineHistory
@@ -645,7 +645,7 @@ class Pipeline:
             pipeline_history_file = self.unstamped_history_filepath
         else:
             pipeline_history_file = (
-                f"{self.name}-{Pipeline.format_time(time)}.pipeline.history.json"
+                f"{self.name}-{Pipeline.format_time(time_)}.pipeline.history.json"
             )
             pipeline_history_file = os.path.abspath(
                 os.path.join(self.artifacts_folder, pipeline_history_file)

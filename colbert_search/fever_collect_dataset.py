@@ -118,7 +118,7 @@ def fever_process_dataset():
     supporting_dict = get_sources(random.choices(supporting_sources, k=1000))
 
     print("Query not-supporting sources")
-    not_supporting_dict = get_sources(random.choices(not_supporting_sources, k=1000))
+    get_sources(random.choices(not_supporting_sources, k=1000))
 
     # Save to disk
     save_sources(

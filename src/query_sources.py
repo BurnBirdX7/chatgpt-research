@@ -47,7 +47,7 @@ class QueryColbertServer(BaseNode):
         accumulated_sources: Dict[str, str] = {}
         for start_pos in range(0, len(words), 50):
             req_lst: List[Dict[str, str]] = self.request(
-                conn, " ".join(words[start_pos : start_pos + 100])
+                conn, " ".join(words[start_pos: start_pos + 100])
             )
             accumulated_sources.update(
                 {dic["source_url"]: dic["text"] for dic in req_lst}
@@ -68,7 +68,7 @@ class QueryColbertServer(BaseNode):
 
         except Exception as e:
             return (
-                f"Couldn't make a request to colbert server, cfg: {self.server_config}"
+                f"Couldn't make a request to colbert server, cfg: {self.server_config}, exception: {str(e)}"
             )
 
         finally:

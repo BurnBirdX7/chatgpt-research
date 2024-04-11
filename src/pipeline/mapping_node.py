@@ -74,7 +74,7 @@ def mapping_node(
 
         WrapperNode.__name__ = func.__name__
         WrapperNode.__doc__ = (
-            f"Node subclass that wrapps a function. See, doc for the `process` method"
+            "Node subclass that wrapps a function. See, doc for the `process` method"
         )
         WrapperNode.process.__doc__ = func.__doc__
         return WrapperNode

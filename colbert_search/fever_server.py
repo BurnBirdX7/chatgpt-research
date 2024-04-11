@@ -51,7 +51,6 @@ def api_search_query(query, k):
     k = min(int(k), 100)
     pids, ranks, scores = searcher.search(query, k=100)
     pids, ranks, scores = pids[:k], ranks[:k], scores[:k]
-    passages = [searcher.collection[pid] for pid in pids]
     probs = [math.exp(score) for score in scores]
     probs = [prob / sum(probs) for prob in probs]
     topk = []

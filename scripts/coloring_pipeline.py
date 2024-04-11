@@ -55,7 +55,7 @@ class AddMatchedText(BaseNode):
 
         for chain in chains:
             source_tokens = source_tokens_dict[chain.source]
-            text = "".join(source_tokens[chain.source_begin_pos : chain.source_end_pos])
+            text = "".join(source_tokens[chain.source_begin_pos: chain.source_end_pos])
             chain.matched_source_text = text
 
         return chains

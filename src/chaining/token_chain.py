@@ -218,7 +218,7 @@ class Chain:
     def trim(self):
         """Trims insignificant likelihoods from the chain"""
         end_trim = len(self) - self._end_skips
-        self.all_likelihoods = self.all_likelihoods[self._begin_skips : end_trim]
+        self.all_likelihoods = self.all_likelihoods[self._begin_skips: end_trim]
         self.target_begin_pos += self._begin_skips
         self._begin_skips = 0
         self._end_skips = 0
@@ -238,8 +238,8 @@ class Chain:
 
     def get_score(self):
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
-        l = np.exp(np.log(self.likelihoods).mean())
-        score = l * (len(self) ** 2)
+        g_mean = np.exp(np.log(self.likelihoods).mean())
+        score = g_mean * (len(self) ** 2)
         return score
 
     @staticmethod
