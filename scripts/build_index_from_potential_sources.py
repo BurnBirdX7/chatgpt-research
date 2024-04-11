@@ -17,10 +17,11 @@ from src import EmbeddingsBuilder, Index
 from src.config import EmbeddingBuilderConfig, IndexConfig, LuceneConfig
 
 
-def build_index_from_potential_sources(text: str,
-                                       index_config: IndexConfig,
-                                       lucene_config: LuceneConfig,
-                                       ) -> Index:
+def build_index_from_potential_sources(
+    text: str,
+    index_config: IndexConfig,
+    lucene_config: LuceneConfig,
+) -> Index:
     """
     Builds Index from potential sources, Lucene Index is used to search for potential sources
     IndexConfig is used to generate new Index object, so only faiss_use_gpu parameter matters at the moment
@@ -33,7 +34,7 @@ def build_index_from_potential_sources(text: str,
         print("Creating query")
         for window_size in range(1, 6):
             for i in range(len(tokens) - window_size + 1):
-                window = tokens[i: i + window_size]
+                window = tokens[i : i + window_size]
                 searcher.add_clause(window)
 
         print("Searching...")
@@ -52,7 +53,7 @@ def build_index_from_potential_sources(text: str,
     return Index.from_embeddings(embeddings, mapping, index_config)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Supply text to analyze as first argument")
 
@@ -63,10 +64,6 @@ if __name__ == '__main__':
 
     luceneCfg = LuceneConfig()
 
-    index = build_index_from_potential_sources(
-        sys.argv[1],
-        indexCfg,
-        luceneCfg
-    )
+    index = build_index_from_potential_sources(sys.argv[1], indexCfg, luceneCfg)
 
     index.save()

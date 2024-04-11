@@ -6,16 +6,11 @@ from .token_chain import Chain
 class ChainListDescriptor(BaseDataDescriptor):
 
     def store(self, data: List[Chain]) -> dict[str, base_data_descriptor.ValueType]:
-        return {
-            "chains": [
-                chain.to_dict()
-                for chain in data
-            ]
-        }
+        return {"chains": [chain.to_dict() for chain in data]}
 
     def load(self, dic: dict[str, base_data_descriptor.ValueType]) -> List[Chain]:
         return [
-            Chain.from_dict(d)      # type: ignore
+            Chain.from_dict(d)  # type: ignore
             for d in dic["chains"]  # type: ignore
         ]
 
@@ -25,11 +20,10 @@ class ChainListDescriptor(BaseDataDescriptor):
 
 class Pos2ChainMappingDescriptor(BaseDataDescriptor[Dict[int, Chain]]):
 
-    def store(self, data: Dict[int, Chain]) -> dict[str, base_data_descriptor.ValueType]:
-        return {
-            str(pos): chain.to_dict()
-            for pos, chain in data.items()
-        }
+    def store(
+        self, data: Dict[int, Chain]
+    ) -> dict[str, base_data_descriptor.ValueType]:
+        return {str(pos): chain.to_dict() for pos, chain in data.items()}
 
     def load(self, dic: dict[str, base_data_descriptor.ValueType]) -> Dict[int, Chain]:
         return {

@@ -22,12 +22,14 @@ def Str2Float(inp: str) -> float:
 
 
 def test_simple_pipeline() -> None:
-    pipeline = (Pipeline(Int2Str("i2s"))
-                .attach_back(ModifyString("modStr"))
-                .attach_back(Str2Float("s2f")))
+    pipeline = (
+        Pipeline(Int2Str("i2s"))
+        .attach_back(ModifyString("modStr"))
+        .attach_back(Str2Float("s2f"))
+    )
 
     res = pipeline.run(18).last_node_result
-    assert res == float(str(18) + '.367')
+    assert res == float(str(18) + ".367")
 
 
 class IntMod(BaseNode):

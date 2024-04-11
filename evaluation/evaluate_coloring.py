@@ -11,8 +11,10 @@ import torch.cuda
 from src.chaining import Chain
 from scripts.coloring_pipeline import get_coloring_pipeline
 
+
 def majority_label(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
     return len(pos2chain) >= 0.5 * len(tokens)
+
 
 def percent_label(percent: float) -> callable:
     def __func(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
@@ -20,6 +22,7 @@ def percent_label(percent: float) -> callable:
 
     __func.__name__ = f"{percent}_percent_label"
     return __func
+
 
 def longest_chain_percent_label(percent: float) -> callable:
     def __func(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
@@ -30,9 +33,12 @@ def longest_chain_percent_label(percent: float) -> callable:
     return __func
 
 
-incremental = ([majority_label] +
-               [percent_label(x) for x in range(10, 91, 10)] +
-               [longest_chain_percent_label(x) for x in range(10, 91, 10)])
+incremental = (
+    [majority_label]
+    + [percent_label(x) for x in range(10, 91, 10)]
+    + [longest_chain_percent_label(x) for x in range(10, 91, 10)]
+)
+
 
 @dataclass
 class Stat:
@@ -80,21 +86,18 @@ def estimate():
     start_time = time.time()
 
     # Sample passages
-    all_passages = pd.read_csv('passages.csv')
-    pos_passages = all_passages[all_passages['supported']].sample(100)
-    neg_passages = all_passages[all_passages['supported'] == False].sample(100)
+    all_passages = pd.read_csv("passages.csv")
+    pos_passages = all_passages[all_passages["supported"]].sample(100)
+    neg_passages = all_passages[all_passages["supported"] == False].sample(100)
     passages = pd.concat([pos_passages, neg_passages], ignore_index=True)
 
-    stats = {
-        f.__name__: Stat()
-        for f in incremental
-    }
+    stats = {f.__name__: Stat() for f in incremental}
 
     print(f"{stats.keys()=}")
 
     for i, passage, supported in passages.itertuples():
         result = pipeline.run(passage)
-        tokens = result.cache['input-tokenized']
+        tokens = result.cache["input-tokenized"]
 
         for f in incremental:
             pred = f(tokens, result.last_node_result)
@@ -133,7 +136,7 @@ def estimate():
     return False
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run = True
     while run:
         try:

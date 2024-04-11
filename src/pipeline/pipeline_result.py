@@ -6,11 +6,7 @@ import time
 from dataclasses import dataclass
 from typing import Dict, Any
 
-__all__ = [
-    'PipelineHistory',
-    'PipelineResult',
-    'NodeStatistics'
-]
+__all__ = ["PipelineHistory", "PipelineResult", "NodeStatistics"]
 
 PipelineHistory = Dict[str, str]
 """
@@ -58,14 +54,16 @@ class NodeStatisticsCollector:
             name=self.node_name,
             node_seconds=node_sec,
             descriptor_seconds=desc_sec,
-            other_seconds=all_time - node_sec - desc_sec
+            other_seconds=all_time - node_sec - desc_sec,
         )
+
 
 @dataclass
 class NodeStatistics:
     """
     Time statistics of each node that was called during the pipeline run
     """
+
     name: str
     node_seconds: float
     descriptor_seconds: float
@@ -77,18 +75,21 @@ class NodeStatistics:
         if self.node_seconds > 0:
             time_.append(f"time: {datetime.timedelta(seconds=self.node_seconds)}")
         if self.descriptor_seconds > 0:
-            time_.append(f"descriptor time: {datetime.timedelta(seconds=self.descriptor_seconds)}")
+            time_.append(
+                f"descriptor time: {datetime.timedelta(seconds=self.descriptor_seconds)}"
+            )
         if self.other_seconds > 0:
-            time_.append(f"other time: {datetime.timedelta(seconds=self.other_seconds)})")
+            time_.append(
+                f"other time: {datetime.timedelta(seconds=self.other_seconds)})"
+            )
 
         s = ", ".join(time_)
 
-        return f"NodeStatistics(\"{self.name}\", {s})"
+        return f'NodeStatistics("{self.name}", {s})'
 
     @staticmethod
     def start(name: str) -> NodeStatisticsCollector:
-        """Convenience method for creating node statistics collector
-        """
+        """Convenience method for creating node statistics collector"""
         return NodeStatisticsCollector(name)
 
     def __add__(self, other: NodeStatistics):
@@ -102,7 +103,7 @@ class NodeStatistics:
             name=self.name,
             node_seconds=self.node_seconds + other.node_seconds,
             descriptor_seconds=self.descriptor_seconds + other.descriptor_seconds,
-            other_seconds=self.other_seconds + other.other_seconds
+            other_seconds=self.other_seconds + other.other_seconds,
         )
 
 

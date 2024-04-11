@@ -74,7 +74,9 @@ class Searcher:
         return arr
 
     def add_clause(self, terms: List[str]):
-        query = self._phrase_query_builder.createPhraseQuery(self.body_name, ' '.join(terms))
+        query = self._phrase_query_builder.createPhraseQuery(
+            self.body_name, " ".join(terms)
+        )
         self._bool_query_builder.add(query, BooleanClause.Occur.SHOULD)
 
     def search(self) -> List[Source]:

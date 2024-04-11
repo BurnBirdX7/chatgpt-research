@@ -19,7 +19,7 @@ def create_index(collection_name: str):
         indexer.index(name=collection_name, collection=collection_file, overwrite=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python -m colbert_search create_index <collection_name>")
         print("Example: python -m colbert_search create_index fever")

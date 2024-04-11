@@ -8,11 +8,8 @@ from typing import Optional, List, Dict
 
 from progress.bar import Bar, Progress  # type: ignore
 
-__all__ = [
-    'Dialogue',
-    'Chat',
-    'Question'
-]
+__all__ = ["Dialogue", "Chat", "Question"]
+
 
 class Dialogue:
     def __init__(self: "Dialogue"):
@@ -26,14 +23,13 @@ class Dialogue:
         self.history.append(msg)
 
     def add_user_msg(self, text: str):
-        if self.user_messages == 0 or (self.limit_user_messages and self.user_messages >= self.limit_user_messages):
+        if self.user_messages == 0 or (
+            self.limit_user_messages and self.user_messages >= self.limit_user_messages
+        ):
             self.reset_dialog()
 
         self.user_messages += 1
-        self.history.append({
-            "role": "user",
-            "content": text
-        })
+        self.history.append({"role": "user", "content": text})
 
     def set_system_prompt(self, text: str):
         self.system_prompt = text
@@ -42,14 +38,11 @@ class Dialogue:
     def reset_dialog(self):
         self.old_history += self.history
         self.history = []
-        self.add_msg({
-            "role": "system",
-            "content": self.system_prompt
-        })
+        self.add_msg({"role": "system", "content": self.system_prompt})
 
     def dump(self, filename: str):
         all_history = self.old_history + self.history
-        json.dump(all_history, open(filename, 'w'), indent=2)
+        json.dump(all_history, open(filename, "w"), indent=2)
 
 
 class Chat:
@@ -66,16 +59,20 @@ class Chat:
         self.dialogue.add_user_msg(text)
         while True:
             try:
-                chat_completion = openai.ChatCompletion.create(model=self.model_name,
-                                                               messages=self.dialogue.history,
-                                                               temperature=0.7)
+                chat_completion = openai.ChatCompletion.create(
+                    model=self.model_name,
+                    messages=self.dialogue.history,
+                    temperature=0.7,
+                )
 
             except openai.error.Timeout as err:
                 if timed_out < max_timeout:
                     timed_out += 1
                     if not self.suppress_output:
                         print(err.error, file=sys.stderr)
-                        print(f"Connection timed out... Trying again ({timed_out}/{max_timeout})")
+                        print(
+                            f"Connection timed out... Trying again ({timed_out}/{max_timeout})"
+                        )
                     continue
 
                 if not self.suppress_output:
@@ -95,7 +92,9 @@ class Chat:
 
                 if not self.suppress_output:
                     print(f"Error text: {err.error}", file=sys.stderr)
-                    print(f"[assumed] Hit context length limit. Context was reduced. Retrying...")
+                    print(
+                        f"[assumed] Hit context length limit. Context was reduced. Retrying..."
+                    )
 
                 continue
 
@@ -163,16 +162,16 @@ class Question:
         l: List["Question"] = []
 
         for q in j:
-            q_text = q['question']
-            q_ans = q['answers']
-            q_corr = q['correct']
+            q_text = q["question"]
+            q_ans = q["answers"]
+            q_corr = q["correct"]
             question = Question(q_text, q_ans, q_corr)
-            if 'source' in q:
-                question.source = q['source']
-            if 'no-open' in q:
-                question.no_open = q['no-open']
-            if 'given-answers' in q:
-                question.given_answers = q['given-answers']
+            if "source" in q:
+                question.source = q["source"]
+            if "no-open" in q:
+                question.no_open = q["no-open"]
+            if "given-answers" in q:
+                question.given_answers = q["given-answers"]
             l.append(question)
 
         return l
@@ -180,23 +179,25 @@ class Question:
     def __str__(self) -> str:
         s = f"Q: {self.question}\n"
         for letter, answer in zip(string.ascii_lowercase, self.answers):
-            s += f'\t{letter}) {answer}\n'
+            s += f"\t{letter}) {answer}\n"
 
         return s
 
     def get_dict(self):
-        dic = {"question": self.question,
-               "answers": self.answers,
-               "correct": self.correct_answer}
+        dic = {
+            "question": self.question,
+            "answers": self.answers,
+            "correct": self.correct_answer,
+        }
 
         if self.source is not None:
             dic["source"] = self.source
 
         if self.no_open:
-            dic['no-open'] = True
+            dic["no-open"] = True
 
         if len(self.given_answers) > 0:
-            dic['given-answers'] = self.given_answers
+            dic["given-answers"] = self.given_answers
 
         return dic
 
@@ -206,4 +207,4 @@ class Question:
 
     @staticmethod
     def save_json(question_list: List["Question"], filename: str) -> None:
-        json.dump(Question.get_dicts(question_list), open(filename, 'w'), indent=2)
+        json.dump(Question.get_dicts(question_list), open(filename, "w"), indent=2)

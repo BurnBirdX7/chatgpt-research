@@ -13,13 +13,13 @@ def main():
     args = [sys.executable, script, *sys.argv[2:]]
 
     env = os.environ.copy()
-    if 'PYHTONPATH' in env:
-        env['PYTHONPATH'] += f";{project_root}"
+    if "PYHTONPATH" in env:
+        env["PYTHONPATH"] += f";{project_root}"
     else:
-        env['PYTHONPATH'] = project_root
+        env["PYTHONPATH"] = project_root
 
     subprocess.run(args, cwd=project_root, env=env)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

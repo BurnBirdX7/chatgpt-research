@@ -20,7 +20,7 @@ root = os.path.dirname(os.path.abspath(__file__))
 INDEX_NAME = "fever"
 INDEX_ROOT = os.path.join(root, "wiki/indexes")
 
-fever_map = pd.read_csv(os.path.join(root, "collections/fever_map.tsv"), delimiter='\t')
+fever_map = pd.read_csv(os.path.join(root, "collections/fever_map.tsv"), delimiter="\t")
 
 
 def get_fever_data(pid: int) -> Tuple[bool, List[str]]:
@@ -60,18 +60,18 @@ def api_search_query(query, k):
         is_supported, urls = get_fever_data(pid)
 
         d = {
-            'text': text,
-            'pid': pid,
-            'rank': rank,
-            'score': score,
-            'prob': prob,
-            'urls': urls,
-            'is_supported': str(is_supported).lower()
+            "text": text,
+            "pid": pid,
+            "rank": rank,
+            "score": score,
+            "prob": prob,
+            "urls": urls,
+            "is_supported": str(is_supported).lower(),
         }
 
         topk.append(d)
-    topk = list(sorted(topk, key=lambda p: (-1 * p['score'], p['pid'])))
-    return {"query" : query, "topk": topk}
+    topk = list(sorted(topk, key=lambda p: (-1 * p["score"], p["pid"])))
+    return {"query": query, "topk": topk}
 
 
 @app.route("/api/search", methods=["GET"])
@@ -81,7 +81,7 @@ def api_search():
         print("API request count:", counter["api"])
         return api_search_query(request.args.get("query"), request.args.get("k"))
     else:
-        return '', 405
+        return "", 405
 
 
 if __name__ == "__main__":

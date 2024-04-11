@@ -8,7 +8,9 @@ import re
 from src import Question, Config
 
 
-def is_incorrect(answer: str, correct_answer: str, delimiter: str = "#", threshold: float = 0.30) -> bool:
+def is_incorrect(
+    answer: str, correct_answer: str, delimiter: str = "#", threshold: float = 0.30
+) -> bool:
     short: str
     if "#" not in answer:
         short = answer
@@ -34,7 +36,9 @@ def main(quiz_name: str):
     questions = Question.load_json(filename)
 
     for q in questions:
-        q.given_answers = list(filter(lambda ans: is_incorrect(ans, q.correct_answer), q.given_answers))
+        q.given_answers = list(
+            filter(lambda ans: is_incorrect(ans, q.correct_answer), q.given_answers)
+        )
 
     questions = list(filter(lambda qu: len(qu.given_answers) > 0, questions))
 
@@ -42,7 +46,7 @@ def main(quiz_name: str):
     Question.save_json(questions, out_filename)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) != 2:
         raise ValueError("Incorrect number of supplied parameters")
     main(sys.argv[1])

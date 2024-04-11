@@ -1,17 +1,15 @@
-
-
 elvis_related_articles = [
-            "Elvis_Presley",
-            "List_of_songs_recorded_by_Elvis_Presley_on_the_Sun_label",
-            "Cultural_impact_of_Elvis_Presley",
-            "Cultural_depictions_of_Elvis_Presley",
-            "Elvis_has_left_the_building",
-            "Elvis_Presley_on_film_and_television",
-            "Love_Me_Tender_(film)",
-            "Memphis,_Tennessee",
-            "Heartbreak_Hotel",
-            "Jailhouse_Rock_(film)",
-            "Blue_Hawaii"
+    "Elvis_Presley",
+    "List_of_songs_recorded_by_Elvis_Presley_on_the_Sun_label",
+    "Cultural_impact_of_Elvis_Presley",
+    "Cultural_depictions_of_Elvis_Presley",
+    "Elvis_has_left_the_building",
+    "Elvis_Presley_on_film_and_television",
+    "Love_Me_Tender_(film)",
+    "Memphis,_Tennessee",
+    "Heartbreak_Hotel",
+    "Jailhouse_Rock_(film)",
+    "Blue_Hawaii",
 ]
 
 elvis_unrelated_articles = [
@@ -21,7 +19,7 @@ elvis_unrelated_articles = [
     "(We_All_Are)_Looking_for_Home",
     "Computer_science",
     "3D_printing",
-    "Thermoplastic"
+    "Thermoplastic",
 ]
 
 elvis_unrelated_articles_large = elvis_unrelated_articles + [
@@ -51,5 +49,5 @@ elvis_unrelated_articles_large = elvis_unrelated_articles + [
     "Tiare_Aguilera_Hey",
     "Apna_Bombay_Talkies",
     "Battle_of_Cravant",
-    "So_This_Is_Paris_(1926_film)"
+    "So_This_Is_Paris_(1926_film)",
 ]

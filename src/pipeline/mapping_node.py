@@ -8,11 +8,11 @@ from typing import Callable, TypeVar, List, cast, get_type_hints
 from .base_data_descriptor import BaseDataDescriptor
 from .base_nodes import Node, BaseNode
 
-OutT = TypeVar('OutT')
+OutT = TypeVar("OutT")
 
 
 def mapping_node(
-        out_descriptor: BaseDataDescriptor[OutT],
+    out_descriptor: BaseDataDescriptor[OutT],
 ) -> Callable[[Callable], type[Node]]:
     r"""
     Parametrized decorator that turns mapping function into a Node for a pipeline
@@ -44,15 +44,21 @@ def mapping_node(
         in_types: List[type] = []
         for param in sig.parameters.keys():
             if param not in type_hints:
-                raise TypeError(f"Parameter {param} of function {func.__name__} doesn't have a type hint")
+                raise TypeError(
+                    f"Parameter {param} of function {func.__name__} doesn't have a type hint"
+                )
             in_types.append(type_hints[param])
 
-        if 'return' not in type_hints:
-            raise TypeError(f"Function {func.__name__} does not have a return type annotation")
+        if "return" not in type_hints:
+            raise TypeError(
+                f"Function {func.__name__} does not have a return type annotation"
+            )
 
-        if not out_descriptor.is_type_compatible(type_hints['return']):
-            raise TypeError(f"Return type descriptor for function {func.__name__}"
-                            f"is incompatible with its annotated return type")
+        if not out_descriptor.is_type_compatible(type_hints["return"]):
+            raise TypeError(
+                f"Return type descriptor for function {func.__name__}"
+                f"is incompatible with its annotated return type"
+            )
 
         for typ in in_types:
             if not isinstance(typ, type):
@@ -67,7 +73,9 @@ def mapping_node(
                 return self._wrapped(*inp)
 
         WrapperNode.__name__ = func.__name__
-        WrapperNode.__doc__ = f"Node subclass that wrapps a function. See, doc for the `process` method"
+        WrapperNode.__doc__ = (
+            f"Node subclass that wrapps a function. See, doc for the `process` method"
+        )
         WrapperNode.process.__doc__ = func.__doc__
         return WrapperNode
 

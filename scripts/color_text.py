@@ -1,7 +1,9 @@
 import collections
 
 from scripts.model_of_GPT import build_page_template
-from scripts.build_index_from_potential_sources import build_index_from_potential_sources
+from scripts.build_index_from_potential_sources import (
+    build_index_from_potential_sources,
+)
 
 from src import EmbeddingsBuilder, Index, Roberta
 from typing import Dict, List, Optional
@@ -24,14 +26,16 @@ childhood_url = "https://en.wikipedia.org/wiki/Elvis_Presley#Childhood_in_Tupelo
 def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
     filtered_links = [link for link in links if link is not None]
     dictionary_of_links = dict(collections.Counter(filtered_links))
-    sorted_dict = dict(sorted(dictionary_of_links.items(), key=lambda x: x[1], reverse=True))
+    sorted_dict = dict(
+        sorted(dictionary_of_links.items(), key=lambda x: x[1], reverse=True)
+    )
     links_with_uniq_colors = dict(list(sorted_dict.items())[:uniq_color])
     uniq_color_dict = {
-        'Fuchsia': 'color1',
-        'MediumPurple': 'color2',
-        'DarkViolet': 'color3',
-        'DarkMagenta': 'color4',
-        'Indigo': 'color5'
+        "Fuchsia": "color1",
+        "MediumPurple": "color2",
+        "DarkViolet": "color3",
+        "DarkMagenta": "color4",
+        "Indigo": "color5",
     }
 
     for link, (_, color_hex) in zip(links_with_uniq_colors, uniq_color_dict.items()):
@@ -40,9 +44,12 @@ def build_dict_for_color(links: list[str], uniq_color: int) -> Dict[str, str]:
     return links_with_uniq_colors
 
 
-def prob_test_wiki_with_colored(index: Index, text: str, expected_url: str,
-                                uniq_color: int) -> tuple[str, str, str]:
-    embeddings = EmbeddingsBuilder(EmbeddingBuilderConfig(normalize=True)).from_text(text)
+def prob_test_wiki_with_colored(
+    index: Index, text: str, expected_url: str, uniq_color: int
+) -> tuple[str, str, str]:
+    embeddings = EmbeddingsBuilder(EmbeddingBuilderConfig(normalize=True)).from_text(
+        text
+    )
 
     result_sources, result_dists = index.get_embeddings_source(embeddings)
     expected_count: int = 0
@@ -76,7 +83,7 @@ def color_text(user_input: str) -> tuple[str, str, str]:
 
     index: Index
     if read_index:
-        print("Readings index... ", end='')
+        print("Readings index... ", end="")
         index = Index.load(IndexConfig())
         print("Done")
     else:

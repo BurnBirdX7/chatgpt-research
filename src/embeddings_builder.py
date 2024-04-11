@@ -20,10 +20,14 @@ from .pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor, ListDe
 
 
 class EmbeddingsBuilder:
-    def __init__(self, config: EmbeddingBuilderConfig, logger: logging.Logger = logging.getLogger(__name__)) -> None:
+    def __init__(
+        self,
+        config: EmbeddingBuilderConfig,
+        logger: logging.Logger = logging.getLogger(__name__),
+    ) -> None:
         self.logger = logger
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.tokenizer = config.tokenizer
         self.model = config.model
 
@@ -32,17 +36,19 @@ class EmbeddingsBuilder:
 
         self.embedding_length = self.model.config.hidden_size
         self.normalize = config.normalize
-        self.logger.debug(f"EmbeddingsBuilder: Embedding normalization: {self.normalize}")
+        self.logger.debug(
+            f"EmbeddingsBuilder: Embedding normalization: {self.normalize}"
+        )
 
         self.suppress_progress_report = False
 
         if config.centroid_file is not None:
             self.centroid = np.load(config.centroid_file)
             self.logger.debug(f'Centroid loaded from file "{config.centroid_file}"')
-            self.logger.debug(f'Centroid {self.centroid}')
+            self.logger.debug(f"Centroid {self.centroid}")
         else:
             self.centroid = np.zeros(self.embedding_length)
-            self.logger.debug('Using default centroid')
+            self.logger.debug("Using default centroid")
 
     def from_ids(self, input_ids: List[int]) -> np.ndarray:
         """
@@ -58,18 +64,22 @@ class EmbeddingsBuilder:
 
         window_steps = range(0, len(input_ids), window_step)
         if not self.suppress_progress_report:
-            window_steps = ChargingBar('Embeddings').iter(window_steps)
+            window_steps = ChargingBar("Embeddings").iter(window_steps)
 
         for i in window_steps:
             # Create tensor with acceptable dimensions:
-            input_ids_tensor = torch.tensor(input_ids[i: i + sequence_length]).unsqueeze(0)
+            input_ids_tensor = torch.tensor(
+                input_ids[i : i + sequence_length]
+            ).unsqueeze(0)
 
             # Moves tensor to model's device
             input_ids_tensor = input_ids_tensor.to(self.model.device)
 
             with torch.no_grad():
                 output = self.model(input_ids_tensor)
-            seq_embeddings = output.last_hidden_state.squeeze(0).cpu().numpy().astype(np.float32)
+            seq_embeddings = (
+                output.last_hidden_state.squeeze(0).cpu().numpy().astype(np.float32)
+            )
 
             if previous_half is not None:
                 # Get mean value of 2 halves (prev[:t] and curr[t:])
@@ -94,12 +104,23 @@ class EmbeddingsBuilder:
         return embeddings
 
     def tensor_from_text(self, text: str) -> torch.Tensor:
-        tokenizer_output = self.tokenizer(text, return_tensors='pt', return_attention_mask=True,
-                                          add_special_tokens=False,
-                                          padding=True, pad_to_multiple_of=self.max_model_input_length)
+        tokenizer_output = self.tokenizer(
+            text,
+            return_tensors="pt",
+            return_attention_mask=True,
+            add_special_tokens=False,
+            padding=True,
+            pad_to_multiple_of=self.max_model_input_length,
+        )
 
-        input_ids = tokenizer_output['input_ids'].reshape((-1, self.max_model_input_length)).to(self.device)
-        attention_mask = tokenizer_output['attention_mask'].reshape(input_ids.shape).to(self.device)
+        input_ids = (
+            tokenizer_output["input_ids"]
+            .reshape((-1, self.max_model_input_length))
+            .to(self.device)
+        )
+        attention_mask = (
+            tokenizer_output["attention_mask"].reshape(input_ids.shape).to(self.device)
+        )
         with torch.no_grad():
             output = self.model(input_ids, attention_mask=attention_mask)
 
@@ -114,8 +135,9 @@ class EmbeddingsBuilder:
         input_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(text))
         return self.from_ids(input_ids)
 
-    def from_sources(self, source_list: List[str], source_provider: Callable[[str], Dict[str, str]])\
-            -> Tuple[np.ndarray, SourceMapping]:
+    def from_sources(
+        self, source_list: List[str], source_provider: Callable[[str], Dict[str, str]]
+    ) -> Tuple[np.ndarray, SourceMapping]:
         """
         Computes embeddings for online Wikipedia
         Target pages are specified via config variable `page_names`
@@ -153,9 +175,7 @@ class NDArrayDescriptor(BaseDataDescriptor[np.ndarray]):
         with open(path, "wb") as f:
             np.save(f, data)
 
-        return {
-            "path": os.path.abspath(path)
-        }
+        return {"path": os.path.abspath(path)}
 
     def load(self, dic: Dict[str, base_data_descriptor.ValueType]) -> np.ndarray:
         path = dic["path"]
@@ -163,7 +183,7 @@ class NDArrayDescriptor(BaseDataDescriptor[np.ndarray]):
             return np.load(f)
 
     def cleanup(self, dic: dict[str, ValueType]):
-        self.cleanup_files(dic['path'])
+        self.cleanup_files(dic["path"])
 
     def get_data_type(self) -> type:
         return np.ndarray
@@ -182,7 +202,7 @@ class TensorDescriptor(BaseDataDescriptor[torch.Tensor]):
         return torch.load(path)
 
     def cleanup(self, dic: dict[str, ValueType]):
-        self.cleanup_files(dic['path'])
+        self.cleanup_files(dic["path"])
 
     def get_data_type(self) -> type[torch.Tensor]:
         return torch.Tensor
@@ -198,14 +218,16 @@ class EmbeddingsFromTextNode(BaseNode):
         self.eb_config = config
 
     def process(self, text: str) -> np.ndarray:
-        eb = EmbeddingsBuilder(self.eb_config, logging.getLogger(f"{self.logger.name}.EmbeddingsBuilder"))
+        eb = EmbeddingsBuilder(
+            self.eb_config, logging.getLogger(f"{self.logger.name}.EmbeddingsBuilder")
+        )
         return eb.tensor_from_text(text).cpu().numpy()
 
     def prerequisite_check(self) -> str | None:
         centroid_file = self.eb_config.centroid_file
         if centroid_file is not None:
             if not os.path.exists(centroid_file):
-                return f"Centroid file \"{self.eb_config.centroid_file}\" is specified but doesn't exist"
+                return f'Centroid file "{self.eb_config.centroid_file}" is specified but doesn\'t exist'
 
         return None
 
@@ -218,7 +240,9 @@ class TokenizeTextNode(BaseNode):
     def process(self, text: str, *ignore) -> List[str]:
         tokenizer = self.eb_config.tokenizer
         tokens = tokenizer.tokenize(text)
-        readable_tokens = list(map(lambda s: tokenizer.convert_tokens_to_string([s]), tokens))
+        readable_tokens = list(
+            map(lambda s: tokenizer.convert_tokens_to_string([s]), tokens)
+        )
         return readable_tokens
 
 
@@ -232,22 +256,33 @@ class LikelihoodsForMultipleSources(BaseNode):
         tokenizer = self.eb_config.tokenizer
         model = self.eb_config.model
 
-        source_batched_likelihoods = {}  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
+        source_batched_likelihoods = (
+            {}
+        )  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
 
         for i, (source_name, source_text) in enumerate(sources_data.items()):
-            self.logger.debug(f"Generating likelihoods for source {i + 1}/{len(sources_data)}: \"{source_name}\"")
-            tokenizer_output = tokenizer(text=source_text, add_special_tokens=False,
-                                         return_tensors='pt', return_attention_mask=True,
-                                         padding=True, pad_to_multiple_of=tokenizer.model_max_length)
+            self.logger.debug(
+                f'Generating likelihoods for source {i + 1}/{len(sources_data)}: "{source_name}"'
+            )
+            tokenizer_output = tokenizer(
+                text=source_text,
+                add_special_tokens=False,
+                return_tensors="pt",
+                return_attention_mask=True,
+                padding=True,
+                pad_to_multiple_of=tokenizer.model_max_length,
+            )
 
             def make_batch(tensor: torch.Tensor) -> torch.Tensor:
                 return tensor.reshape((-1, tokenizer.model_max_length)).to(model.device)
 
-            source_attention_mask = make_batch(tokenizer_output['attention_mask'])
-            source_token_id_batch = make_batch(tokenizer_output['input_ids'])
+            source_attention_mask = make_batch(tokenizer_output["attention_mask"])
+            source_token_id_batch = make_batch(tokenizer_output["input_ids"])
             with torch.no_grad():
                 # Logits have dimensions: (passage, position, vocab)
-                batched_logits = model(source_token_id_batch, attention_mask=source_attention_mask).logits
+                batched_logits = model(
+                    source_token_id_batch, attention_mask=source_attention_mask
+                ).logits
 
             batched_likelihoods = torch.nn.functional.softmax(batched_logits, dim=2)
             source_batched_likelihoods[source_name] = batched_likelihoods.cpu()

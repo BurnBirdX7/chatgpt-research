@@ -1,4 +1,3 @@
-
 from .base_config import BaseConfig
 from .embeddings_config import EmbeddingBuilderConfig
 from .index_config import IndexConfig

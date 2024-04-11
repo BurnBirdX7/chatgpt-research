@@ -13,11 +13,13 @@ from src import Chat, Dialogue, Question, Config
 
 gpt_model: str = "gpt-3.5-turbo"
 
-sys_prompt = ("You're answering pop quiz questions. "
-              "Select only one option from the list for each question. "
-              "Print chosen option. Then place the delimiter: `##` (who hash symbols). "
-              "After the delimiter provide a long and detailed explanation why given answer is correct. "
-              "Explanation must consist of short and coherent sentences. ")
+sys_prompt = (
+    "You're answering pop quiz questions. "
+    "Select only one option from the list for each question. "
+    "Print chosen option. Then place the delimiter: `##` (who hash symbols). "
+    "After the delimiter provide a long and detailed explanation why given answer is correct. "
+    "Explanation must consist of short and coherent sentences. "
+)
 
 
 def main(quiz_name: str) -> None:
@@ -52,7 +54,7 @@ def main(quiz_name: str) -> None:
     chat.dialogue.dump(chat_filename)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) != 2:
         raise ValueError("Incorrect number of supplied parameters")
     main(sys.argv[1])

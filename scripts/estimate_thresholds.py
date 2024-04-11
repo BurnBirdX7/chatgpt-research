@@ -13,10 +13,12 @@ from src.online_wiki import OnlineWiki
 from src.config import EmbeddingBuilderConfig, ThresholdConfig
 
 
-def estimate_thresholds_on_index(index: Index,
-                                 tokenizer: RobertaTokenizer,
-                                 model: RobertaModel,
-                                 config: ThresholdConfig) -> Tuple[float, float]:
+def estimate_thresholds_on_index(
+    index: Index,
+    tokenizer: RobertaTokenizer,
+    model: RobertaModel,
+    config: ThresholdConfig,
+) -> Tuple[float, float]:
     """
     Estimates thresholds based on provided data
 
@@ -27,7 +29,9 @@ def estimate_thresholds_on_index(index: Index,
 
     count = len(config.data) // 10
     pages = random.choices(list(config.data.items()), k=count)
-    embedding_builder = EmbeddingsBuilder(EmbeddingBuilderConfig(tokenizer, model, normalize=True))
+    embedding_builder = EmbeddingsBuilder(
+        EmbeddingBuilderConfig(tokenizer, model, normalize=True)
+    )
     embedding_builder.suppress_progress_report = True
 
     positives = []
@@ -46,13 +50,13 @@ def estimate_thresholds_on_index(index: Index,
     neg_mean = statistics.mean(negatives)
 
     if config.show_plot:
-        plt.hist(positives, bins=50, alpha=0.5, label='Positives')
-        plt.hist(negatives, bins=50, alpha=0.5, label='Negatives')
-        plt.axvline(pos_mean, color='blue', label=f'Positive Mean = {pos_mean:.4f}')
-        plt.axvline(neg_mean, color='red', label=f'Negative Mean = {neg_mean:.4f}')
+        plt.hist(positives, bins=50, alpha=0.5, label="Positives")
+        plt.hist(negatives, bins=50, alpha=0.5, label="Negatives")
+        plt.axvline(pos_mean, color="blue", label=f"Positive Mean = {pos_mean:.4f}")
+        plt.axvline(neg_mean, color="red", label=f"Negative Mean = {neg_mean:.4f}")
         plt.legend()
-        plt.xlabel('Cos Distance')
-        plt.ylabel('Count')
+        plt.xlabel("Cos Distance")
+        plt.ylabel("Count")
         plt.show()
 
     return pos_mean, neg_mean
@@ -61,13 +65,13 @@ def estimate_thresholds_on_index(index: Index,
 def estimate_thresholds(config: ThresholdConfig):
     tm = Roberta.get_default()
 
-    print('Reading index...', end='')
+    print("Reading index...", end="")
     index = Index.load(config)
-    print('Done')
+    print("Done")
 
     p, n = estimate_thresholds_on_index(index, tm[0], tm[1], config)
-    print(f'Positive threshold: {p}')
-    print(f'Negative threshold: {n}')
+    print(f"Positive threshold: {p}")
+    print(f"Negative threshold: {n}")
 
 
 def estimate_thresholds_for_elvis():
@@ -75,11 +79,13 @@ def estimate_thresholds_for_elvis():
     for page in ChargingBar("Loading related articles").iter(elvis_related_articles):
         data |= OnlineWiki.get_sections(page)
 
-    for page in ChargingBar("Loading unrelated articles").iter(elvis_unrelated_articles):
+    for page in ChargingBar("Loading unrelated articles").iter(
+        elvis_unrelated_articles
+    ):
         data |= OnlineWiki.get_sections(page)
 
     estimate_thresholds(ThresholdConfig(data=data))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     estimate_thresholds_for_elvis()

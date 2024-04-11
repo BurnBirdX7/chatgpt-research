@@ -18,6 +18,7 @@ load_dotenv()
 ROOT = os.path.dirname(os.path.abspath(__file__))
 INDEX_ROOT = os.path.join(ROOT, "wiki/indexes")
 
+
 def init_searchers(dir_path: str) -> List[Tuple[Searcher, SourceMapping]]:
     print(f"Looking for indexes in {dir_path}")
     lst: list[Tuple[Searcher, SourceMapping]] = []
@@ -36,7 +37,7 @@ def init_searchers(dir_path: str) -> List[Tuple[Searcher, SourceMapping]]:
             collection_path = s.config.collection.path
             source_path = os.path.join(
                 os.path.dirname(collection_path),
-                f"wiki-{g[0]}-p{g[1]}-p{g[2]}_sources_{g[3]}.csv"
+                f"wiki-{g[0]}-p{g[1]}-p{g[2]}_sources_{g[3]}.csv",
             )
             mapping = SourceMapping.read_csv(source_path)
 
@@ -53,7 +54,9 @@ searchers: List[Tuple[Searcher, SourceMapping]] = []
 counter = {"api_calls": 0}
 
 
-def search(searcher: Searcher, source_mapping: SourceMapping, query: str, k: int) -> list[dict[str, Any]]:
+def search(
+    searcher: Searcher, source_mapping: SourceMapping, query: str, k: int
+) -> list[dict[str, Any]]:
     pids, ranks, scores = searcher.search(query, k=100)
     pids, ranks, scores = pids[:k], ranks[:k], scores[:k]
 
@@ -68,13 +71,13 @@ def search(searcher: Searcher, source_mapping: SourceMapping, query: str, k: int
                 paragraphs.append(searcher.collection[paragraph_pid])
 
             topk_dict[url] = {
-                'text': "\n".join(paragraphs),
-                'source_url': url,
-                'score': score
+                "text": "\n".join(paragraphs),
+                "source_url": url,
+                "score": score,
             }
         else:
-            old_score = topk_dict[url]['score']
-            topk_dict[url]['score'] = max(score, old_score)
+            old_score = topk_dict[url]["score"]
+            topk_dict[url]["score"] = max(score, old_score)
 
     return list(topk_dict.values())
 
@@ -92,8 +95,8 @@ def api_search_query(query: str, k_str: str | None):
     for searcher, sources in searchers:
         topk += search(searcher, sources, query, k)
 
-    topk = list(sorted(topk, key=lambda x: x['score'], reverse=True))
-    return {"query" : query, "topk": topk[:100]}
+    topk = list(sorted(topk, key=lambda x: x["score"], reverse=True))
+    return {"query": query, "topk": topk[:100]}
 
 
 def colbert_server(config: ColbertServerConfig):

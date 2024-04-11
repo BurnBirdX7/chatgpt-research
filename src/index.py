@@ -13,12 +13,7 @@ from .pipeline import BaseDataDescriptor, base_data_descriptor, BaseNode, ListDe
 from .pipeline.base_data_descriptor import ValueType
 from .source_mapping import SourceMapping
 
-__all__ = [
-    'Index',
-    'IndexDescriptor',
-    'IndexFromSourcesNode',
-    'SearchIndexNode'
-]
+__all__ = ["Index", "IndexDescriptor", "IndexFromSourcesNode", "SearchIndexNode"]
 
 from .config import IndexConfig, EmbeddingBuilderConfig
 
@@ -36,7 +31,9 @@ class Index:
         """
         faiss_index = faiss.read_index(config.index_file)
         if config.faiss_use_gpu:
-            faiss_index = faiss.index_cpu_to_gpu(faiss.StandardGpuResources(), 0, faiss_index)
+            faiss_index = faiss.index_cpu_to_gpu(
+                faiss.StandardGpuResources(), 0, faiss_index
+            )
 
         mapping = SourceMapping.read_csv(config.mapping_file)
         return Index(faiss_index, mapping, config)
@@ -46,9 +43,11 @@ class Index:
         self.mapping.to_csv(self.config.mapping_file)
 
     @staticmethod
-    def from_embeddings(embeddings: Union[np.ndarray, pd.DataFrame],
-                        mapping: SourceMapping,
-                        config: IndexConfig) -> "Index":
+    def from_embeddings(
+        embeddings: Union[np.ndarray, pd.DataFrame],
+        mapping: SourceMapping,
+        config: IndexConfig,
+    ) -> "Index":
         """
         Builds index from provided embeddings
         :param embeddings: data to build the index
@@ -57,7 +56,7 @@ class Index:
         :return: IndexFlatIP, or GpuIndexFlatIP id use_gpu is True
         """
         # C-contiguous order and np.float32 type are required
-        if isinstance(embeddings, np.ndarray) and embeddings.flags['C_CONTIGUOUS']:
+        if isinstance(embeddings, np.ndarray) and embeddings.flags["C_CONTIGUOUS"]:
             data = embeddings.astype(np.float32)
         else:
             data = np.array(embeddings, order="C", dtype=np.float32)
@@ -144,8 +143,12 @@ class IndexDescriptor(BaseDataDescriptor[Index]):
         output_folder = self.artifacts_folder
         time_str = self.get_timestamp_str()
         rand_str = self.get_random_string(2)
-        index_file_name = os.path.join(output_folder, f'{time_str}-{rand_str}.faiss_index')
-        mapping_file_name = os.path.join(output_folder, f'{time_str}-{rand_str}.mapping.csv')
+        index_file_name = os.path.join(
+            output_folder, f"{time_str}-{rand_str}.faiss_index"
+        )
+        mapping_file_name = os.path.join(
+            output_folder, f"{time_str}-{rand_str}.mapping.csv"
+        )
 
         # Replace current config names with the generated
         data.config.index_file = index_file_name
@@ -156,26 +159,28 @@ class IndexDescriptor(BaseDataDescriptor[Index]):
 
         # Return data
         return {
-            'index_file': os.path.abspath(index_file_name),
-            'mapping_file': os.path.abspath(mapping_file_name),
-            'threshold': data.config.threshold,
-            'use_gpu': str(data.config.faiss_use_gpu),
+            "index_file": os.path.abspath(index_file_name),
+            "mapping_file": os.path.abspath(mapping_file_name),
+            "threshold": data.config.threshold,
+            "use_gpu": str(data.config.faiss_use_gpu),
         }
 
     def load(self, dic: Dict[str, base_data_descriptor.ValueType]) -> Index:
-        index_file = dic['index_file']
-        mapping_file = dic['mapping_file']
-        threshold = dic['threshold']
-        use_gpu = dic['use_gpu']
-        return Index.load(IndexConfig(
-            index_file=str(index_file),
-            mapping_file=str(mapping_file),
-            threshold=float(threshold), # type: ignore
-            faiss_use_gpu=bool(use_gpu),
-        ))
+        index_file = dic["index_file"]
+        mapping_file = dic["mapping_file"]
+        threshold = dic["threshold"]
+        use_gpu = dic["use_gpu"]
+        return Index.load(
+            IndexConfig(
+                index_file=str(index_file),
+                mapping_file=str(mapping_file),
+                threshold=float(threshold),  # type: ignore
+                faiss_use_gpu=bool(use_gpu),
+            )
+        )
 
     def cleanup(self, dic: dict[str, ValueType]):
-        self.cleanup_files(dic['index_file'], dic['mapping_file'])
+        self.cleanup_files(dic["index_file"], dic["mapping_file"])
 
     def get_data_type(self) -> type:
         return Index
@@ -187,9 +192,7 @@ class IndexFromSourcesNode(BaseNode):
     """
 
     def __init__(self, name: str, embedding_builder_config: EmbeddingBuilderConfig):
-        super().__init__(name,
-                         [dict],
-                         IndexDescriptor())
+        super().__init__(name, [dict], IndexDescriptor())
         self.eb_config = embedding_builder_config
 
     def process(self, source_dict: Dict[str, str], *ignore) -> Index:

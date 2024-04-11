@@ -3,6 +3,7 @@ Base Config and help classes
 
 Idea: https://stackoverflow.com/a/58081120
 """
+
 from __future__ import annotations
 
 __all__ = ["BaseConfig"]
@@ -23,7 +24,9 @@ class BaseConfig:
         return isinstance(self, cls)
 
     @classmethod
-    def load_from_env(cls: Type["BaseConfig"], use_defaults: bool = True, prefix: str | None = None) -> "BaseConfig":
+    def load_from_env(
+        cls: Type["BaseConfig"], use_defaults: bool = True, prefix: str | None = None
+    ) -> "BaseConfig":
         """
         Loads config fields from environment variables
 
@@ -55,7 +58,9 @@ class BaseConfig:
             env_name = prefix + "_" + field.name.upper()
             if env_name not in os.environ:
                 if not use_defaults:
-                    raise ValueError(f"Environment variable {env_name} is required but not set")
+                    raise ValueError(
+                        f"Environment variable {env_name} is required but not set"
+                    )
             else:
                 d[field.name] = os.environ[env_name]
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ['BaseNode', 'Node']
+__all__ = ["BaseNode", "Node"]
 
 import logging
 from abc import ABC, abstractmethod
@@ -15,8 +15,8 @@ class Node(ABC):
     """
 
     def __init__(self, name: str):
-        if '$' in name:
-            raise ValueError('Prohibited character `$` in block name')
+        if "$" in name:
+            raise ValueError("Prohibited character `$` in block name")
 
         self.__logger = logging.getLogger(f"node.{self.__class__.__name__}.{name}")
         self.__name = name
@@ -35,42 +35,33 @@ class Node(ABC):
 
     @property
     @abstractmethod
-    def in_types(self) -> List[type]:
-        ...
+    def in_types(self) -> List[type]: ...
 
     @property
     @abstractmethod
-    def out_type(self) -> type:
-        ...
+    def out_type(self) -> type: ...
 
     @property
     @abstractmethod
-    def out_descriptor(self) -> BaseDataDescriptor:
-        ...
+    def out_descriptor(self) -> BaseDataDescriptor: ...
 
     @abstractmethod
-    def set_artifacts_folder(self, artifacts_folder: str):
-        ...
+    def set_artifacts_folder(self, artifacts_folder: str): ...
 
     @abstractmethod
-    def is_type_acceptable(self, input_num: int, typ: type) -> bool:
-        ...
+    def is_type_acceptable(self, input_num: int, typ: type) -> bool: ...
 
     @abstractmethod
-    def is_value_acceptable(self, input_num: int, value: Any) -> bool:
-        ...
+    def is_value_acceptable(self, input_num: int, value: Any) -> bool: ...
 
     @abstractmethod
-    def is_input_type_acceptable(self, typs: List[type] | Tuple[type]) -> bool:
-        ...
+    def is_input_type_acceptable(self, typs: List[type] | Tuple[type]) -> bool: ...
 
     @abstractmethod
-    def __repr__(self):
-        ...
+    def __repr__(self): ...
 
     @abstractmethod
-    def process(self, *inp) -> Any:
-        ...
+    def process(self, *inp) -> Any: ...
 
     def prerequisite_check(self) -> str | None:
         """
@@ -83,10 +74,12 @@ class Node(ABC):
 
 class BaseNode(Node, ABC):
 
-    def __init__(self,
-                 name: str,
-                 in_types: List[type] | Tuple[type],
-                 out_descriptor: BaseDataDescriptor):
+    def __init__(
+        self,
+        name: str,
+        in_types: List[type] | Tuple[type],
+        out_descriptor: BaseDataDescriptor,
+    ):
         super().__init__(name)
 
         # Input:
@@ -98,12 +91,16 @@ class BaseNode(Node, ABC):
         self.__out_type = self.out_descriptor.get_data_type()
 
         # Misc:
-        self.out_descriptor.logger = logging.getLogger(f"{self.logger.name}.{self.out_descriptor.__class__.__name__}")
+        self.out_descriptor.logger = logging.getLogger(
+            f"{self.logger.name}.{self.out_descriptor.__class__.__name__}"
+        )
 
     @Node.logger.setter
     def logger(self, new_logger):
         Node.logger.fset(self, new_logger)
-        self.out_descriptor.logger = logging.getLogger(f"{self.logger.name}.{self.out_descriptor.__class__.__name__}")
+        self.out_descriptor.logger = logging.getLogger(
+            f"{self.logger.name}.{self.out_descriptor.__class__.__name__}"
+        )
 
     @property
     def in_types(self) -> List[type]:
@@ -136,8 +133,8 @@ class BaseNode(Node, ABC):
         return True
 
     def __repr__(self):
-        typs = ','.join([typ.__name__ for typ in self.in_types])
-        return f'{self.__class__.__name__}(\"{self.name}\" [({typs}) -> {self.out_type.__name__}])'
+        typs = ",".join([typ.__name__ for typ in self.in_types])
+        return f'{self.__class__.__name__}("{self.name}" [({typs}) -> {self.out_type.__name__}])'
 
     @abstractmethod
     def process(self, *inp) -> Any:
@@ -151,8 +148,9 @@ class ConstantNode(BaseNode):
         super().__init__(name, [], out_descriptor)
         self.value = value
         if not out_descriptor.is_type_compatible(type(value)):
-            raise TypeError(f"Value {value} of type {type(value)} is not compatible with descriptor {out_descriptor!r}")
+            raise TypeError(
+                f"Value {value} of type {type(value)} is not compatible with descriptor {out_descriptor!r}"
+            )
 
     def process(self, *ignored) -> Any:
         return self.value
-

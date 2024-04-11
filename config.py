@@ -1,4 +1,3 @@
-
 # Misc
 model_name: str = "roberta-large"
 faiss_use_gpu: bool = False
@@ -27,7 +26,7 @@ page_names: list[str] = [
     "Memphis,_Tennessee",
     "Heartbreak_Hotel",
     "Jailhouse_Rock_(film)",
-    "Blue_Hawaii"
+    "Blue_Hawaii",
 ]
 
 unrelated_page_names: list[str] = [
@@ -37,7 +36,7 @@ unrelated_page_names: list[str] = [
     "(We_All_Are)_Looking_for_Home",
     "Computer_science",
     "3D_printing",
-    "Thermoplastic"
+    "Thermoplastic",
 ]
 
 unrelated_page_names_2: list[str] = [
@@ -67,5 +66,5 @@ unrelated_page_names_2: list[str] = [
     "Tiare_Aguilera_Hey",
     "Apna_Bombay_Talkies",
     "Battle_of_Cravant",
-    "So_This_Is_Paris_(1926_film)"
+    "So_This_Is_Paris_(1926_film)",
 ]

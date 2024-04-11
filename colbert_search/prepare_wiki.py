@@ -11,8 +11,13 @@ from src.pipeline import BaseNode, ListDescriptor
 from src import WikiDataFile, SourceMapping
 
 banned_title_prefixes: list[str] = [
-    "Category:", "File:", "See also", "References", "External links"
+    "Category:",
+    "File:",
+    "See also",
+    "References",
+    "External links",
 ]
+
 
 def is_title_banned(title: str) -> bool:
     for banned in banned_title_prefixes:
@@ -46,7 +51,11 @@ class WikiParseContext:
         """
         Pushes data from text representation of wikipedia article into file and mapping structures
         """
-        if not self.should_parse or self.current_page is None or self.current_title is None:
+        if (
+            not self.should_parse
+            or self.current_page is None
+            or self.current_title is None
+        ):
             return
 
         self.pushed += 1
@@ -55,18 +64,20 @@ class WikiParseContext:
                 continue
 
             start_pid = self.pid
-            for paragraph in section.split('\n'):
+            for paragraph in section.split("\n"):
                 stripped_paragraph = paragraph.strip()
                 if len(stripped_paragraph) > 0:
-                    stripped_paragraph = stripped_paragraph.replace('\t', ' ')  # make tsv-safe
+                    stripped_paragraph = stripped_paragraph.replace(
+                        "\t", " "
+                    )  # make tsv-safe
                     self.passage_file.write(f"{self.pid}\t{stripped_paragraph}\n")
                     self.pid += 1
 
-            clean_title = self.current_title.replace(' ', '_')
-            clean_header = heading.replace(' ', '_').replace('\t', '_').replace('\'', '')
-            if '\n' in clean_header:
+            clean_title = self.current_title.replace(" ", "_")
+            clean_header = heading.replace(" ", "_").replace("\t", "_").replace("'", "")
+            if "\n" in clean_header:
                 # Header is malformed, remove part of it
-                clean_header = clean_header.split('\n', maxsplit=1)[0]
+                clean_header = clean_header.split("\n", maxsplit=1)[0]
             url = f"https://en.wikipedia.org/wiki/{clean_title}#{clean_header}"
             self.source_mapping.append_interval(self.pid - start_pid, url)
 
@@ -90,10 +101,14 @@ class WikiParseContext:
         if self.passage_file is not None:
             self.passage_file.close()
 
-        self.source_mapping_path = os.path.join(self.output_dir, f"{self.collection_name}_sources_{num}.tsv")
+        self.source_mapping_path = os.path.join(
+            self.output_dir, f"{self.collection_name}_sources_{num}.tsv"
+        )
         self.source_mapping = SourceMapping()
 
-        self.passage_file_path = os.path.join(self.output_dir, f"{self.collection_name}_passages_{num}.csv")
+        self.passage_file_path = os.path.join(
+            self.output_dir, f"{self.collection_name}_passages_{num}.csv"
+        )
         self.passage_file = open(self.passage_file_path, "w")
 
         self.pid = 0
@@ -148,7 +163,7 @@ def parse_wikitext(text: str) -> Dict[str, str]:
         text = section.strip_code(normalize=True)
         if len(headings) == 1:
             heading = headings[0].title.strip_code().strip()
-            split_text = text.split('\n', 1)
+            split_text = text.split("\n", 1)
             if len(split_text) == 1:
                 continue
             text = split_text[1]  # Remove heading
@@ -175,7 +190,7 @@ class PageReporter:
         if page % 2500 == 0:
             print(f"{page:6d}")
         elif page % 100 == 0:
-            print(f"{page:6d}", end='.')
+            print(f"{page:6d}", end=".")
 
 
 def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[str]:
@@ -188,38 +203,45 @@ def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[
     ctx.output_dir = output_dir
     passage_files: List[str] = [ctx.reset(file_num)]
 
-    for (event, elem) in ET.iterparse(wiki_path, events=("start", "start-ns", "end")):
+    for event, elem in ET.iterparse(wiki_path, events=("start", "start-ns", "end")):
         if event == "start-ns":
             print("new namespace", elem)
-            if elem[0] == '':
+            if elem[0] == "":
                 print(f"set namespace from {ctx.namespace} to {elem[1]}")
                 ctx.namespace = elem[1]
             continue
 
         if elem.tag == ctx.page_tag:
-            if event == 'start':
+            if event == "start":
                 ctx.new_page()
                 PageReporter.report(ctx.pushed)
         elif elem.tag == ctx.ns_tag:
-            if event == 'end' and elem.text != '0':
+            if event == "end" and elem.text != "0":
                 ctx.should_parse = False
         elif elem.tag == ctx.redirect_tag:
             ctx.should_parse = False
         elif elem.tag == ctx.title_tag:
-            if event == 'end':
+            if event == "end":
                 ctx.current_title = elem.text
         elif elem.tag == ctx.text_tag:
-            if event == 'end' and ctx.should_parse and not is_title_banned(ctx.current_title):
+            if (
+                event == "end"
+                and ctx.should_parse
+                and not is_title_banned(ctx.current_title)
+            ):
                 ctx.current_page = parse_wikitext(elem.text)
 
         if ctx.pushed > 25000:
-            print(f"==== pushed {ctx.pushed} passages, creating new file ====", flush=True)
+            print(
+                f"==== pushed {ctx.pushed} passages, creating new file ====", flush=True
+            )
             file_num += 1
             passage_files.append(ctx.reset(file_num))
 
     ctx.push()
     ctx.flush()
     return passage_files
+
 
 class PrepareWiki(BaseNode):
 
@@ -233,16 +255,18 @@ class PrepareWiki(BaseNode):
             pf = prepare_wiki(
                 f"wiki-{file.num}-p{file.p_first}-p{file.p_last}",
                 file.path,
-                self.output_dir
+                self.output_dir,
             )
             passage_files += pf
 
         return passage_files
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print('Usage: python -m colbert_search prepare_wiki [collection_name] [wiki_file] [output_dir]')
+        print(
+            "Usage: python -m colbert_search prepare_wiki [collection_name] [wiki_file] [output_dir]"
+        )
         exit(1)
 
     prepare_wiki(*sys.argv[1:])

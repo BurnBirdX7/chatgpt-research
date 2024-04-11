@@ -8,15 +8,16 @@ from ..pipeline import BaseNode
 from .descriptors import ChainListDescriptor, Pos2ChainMappingDescriptor
 from .token_chain import Chain
 
-__all__ = ['ChainingNode', 'FilterChainsNode', 'Pos2ChainMapNode']
+__all__ = ["ChainingNode", "FilterChainsNode", "Pos2ChainMapNode"]
 
 
 class ChainingNode(BaseNode):
-    def __init__(self,
-                 name: str,
-                 embedding_builder_config: EmbeddingBuilderConfig,
-                 use_bidirectional_chaining: bool = False
-                 ):
+    def __init__(
+        self,
+        name: str,
+        embedding_builder_config: EmbeddingBuilderConfig,
+        use_bidirectional_chaining: bool = False,
+    ):
         super().__init__(name, [str, list, dict], ChainListDescriptor())
         self.eb_config = embedding_builder_config
         self.use_bidirectional_chaining = use_bidirectional_chaining
@@ -28,22 +29,35 @@ class ChainingNode(BaseNode):
         else:
             return Chain.generate_chains
 
-    def process(self, input_text: str, sources: List[List[str]],
-                source_batched_likelihoods: Dict[str, torch.Tensor]) -> Any:
+    def process(
+        self,
+        input_text: str,
+        sources: List[List[str]],
+        source_batched_likelihoods: Dict[str, torch.Tensor],
+    ) -> Any:
         tokenizer = self.eb_config.tokenizer
 
         input_token_ids = tokenizer.encode(input_text)
         result_chains = []
-        for token_pos, (token_id, token_sources) in enumerate(zip(input_token_ids, sources)):
+        for token_pos, (token_id, token_sources) in enumerate(
+            zip(input_token_ids, sources)
+        ):
             self.logger.debug(f"position: {token_pos + 1} / {len(input_token_ids)}")
 
             for source in token_sources:
                 batched_likelihoods = source_batched_likelihoods[source]
-                self.logger.debug(f"\tbatch size: {len(batched_likelihoods)}, "
-                                  f"token id: {token_id}, "
-                                  f"source: {source}")
+                self.logger.debug(
+                    f"\tbatch size: {len(batched_likelihoods)}, "
+                    f"token id: {token_id}, "
+                    f"source: {source}"
+                )
 
-                result_chains += self.chaining_func(np.hstack(batched_likelihoods.numpy()), source, input_token_ids, token_pos)
+                result_chains += self.chaining_func(
+                    np.hstack(batched_likelihoods.numpy()),
+                    source,
+                    input_token_ids,
+                    token_pos,
+                )
 
         return result_chains
 

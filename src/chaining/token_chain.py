@@ -13,11 +13,14 @@ class Chain:
     likelihood_significance_threshold = 1e-5
     max_skips = 2
 
-    def __init__(self, source: str,
-                 target_begin_pos: int,
-                 source_begin_pos: int,
-                 all_likelihoods: Optional[List[float] | npt.NDArray[np.float64]] = None,
-                 parent: Optional[Chain] = None):
+    def __init__(
+        self,
+        source: str,
+        target_begin_pos: int,
+        source_begin_pos: int,
+        all_likelihoods: Optional[List[float] | npt.NDArray[np.float64]] = None,
+        parent: Optional[Chain] = None,
+    ):
         """Create chain
 
         Parameters
@@ -42,7 +45,9 @@ class Chain:
 
         self.target_begin_pos: int = target_begin_pos
         self.source_begin_pos: int = source_begin_pos
-        self.all_likelihoods = np.array([] if (all_likelihoods is None) else all_likelihoods)
+        self.all_likelihoods = np.array(
+            [] if (all_likelihoods is None) else all_likelihoods
+        )
         self.source = source
         self.parent = parent
         self.matched_source_text: str | None = None
@@ -62,18 +67,21 @@ class Chain:
 
     @property
     def likelihoods(self) -> npt.NDArray[np.float64]:
-        """Significant likelihoods
-        """
-        return self.all_likelihoods[self.all_likelihoods >= Chain.likelihood_significance_threshold]
+        """Significant likelihoods"""
+        return self.all_likelihoods[
+            self.all_likelihoods >= Chain.likelihood_significance_threshold
+        ]
 
     def __eq__(self, other: Chain) -> bool:
         if not isinstance(other, Chain):
             return False
 
-        return (self.source == other.source and
-                self.target_begin_pos == other.target_begin_pos and
-                self.source_begin_pos == other.source_begin_pos and
-                np.array_equal(self.all_likelihoods, other.all_likelihoods))
+        return (
+            self.source == other.source
+            and self.target_begin_pos == other.target_begin_pos
+            and self.source_begin_pos == other.source_begin_pos
+            and np.array_equal(self.all_likelihoods, other.all_likelihoods)
+        )
 
     def __len__(self) -> int:
         """Length of the chain.
@@ -85,21 +93,23 @@ class Chain:
         return (
             f"Chain(\n"
             f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
-            f"\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ \"{self.source}\"\n"
+            f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
             f"\tlen: {len(self)}\n"
             f"\tparent: {self.parent!s}"
             f")"
         )
 
     def __repr__(self) -> str:
-        return (f"Chain("
-                f"target_begin_pos={self.target_begin_pos}, "
-                f"source_begin_pos={self.source_begin_pos, }"
-                f"likelihoods={self.likelihoods!r}, "
-                f"all_likelihoods={self.all_likelihoods!r}"
-                f"source={self.source!r}, "
-                f"parent={self.parent!r}"
-                f")")
+        return (
+            f"Chain("
+            f"target_begin_pos={self.target_begin_pos}, "
+            f"source_begin_pos={self.source_begin_pos, }"
+            f"likelihoods={self.likelihoods!r}, "
+            f"all_likelihoods={self.all_likelihoods!r}"
+            f"source={self.source!r}, "
+            f"parent={self.parent!r}"
+            f")"
+        )
 
     def __add__(self, other: Chain) -> Chain:
         """Adds 2 chains.
@@ -120,24 +130,34 @@ class Chain:
             return NotImplemented
 
         if self.source != other.source:
-            raise ValueError(f"Added chain must have same source, got: {self.source} and {other.source}")
+            raise ValueError(
+                f"Added chain must have same source, got: {self.source} and {other.source}"
+            )
 
-        if (self.target_end_pos - 1 != other.target_begin_pos) or (self.source_end_pos - 1 != other.source_begin_pos):
-            raise ValueError("Added chains must have one common position"
-                             "on the end of left chain and beginning of the right chain. "
-                             f"Got chains:\n{self}\nand\n{other}")
+        if (self.target_end_pos - 1 != other.target_begin_pos) or (
+            self.source_end_pos - 1 != other.source_begin_pos
+        ):
+            raise ValueError(
+                "Added chains must have one common position"
+                "on the end of left chain and beginning of the right chain. "
+                f"Got chains:\n{self}\nand\n{other}"
+            )
 
         if self.all_likelihoods[-1] != other.all_likelihoods[0]:
-            raise ValueError("Added chains must have one common likelihood"
-                             "on the end of left chain and beginning of the right chain. "
-                             f"Got chains:\n{self}\nand\n{other}"
-                             f"with likelihoods: {other.all_likelihoods[-1]} and {other.all_likelihoods[0]}")
+            raise ValueError(
+                "Added chains must have one common likelihood"
+                "on the end of left chain and beginning of the right chain. "
+                f"Got chains:\n{self}\nand\n{other}"
+                f"with likelihoods: {other.all_likelihoods[-1]} and {other.all_likelihoods[0]}"
+            )
 
         chain = Chain(
             source=self.source,
             target_begin_pos=self.target_begin_pos,
             source_begin_pos=self.source_begin_pos,
-            all_likelihoods=np.concatenate([self.all_likelihoods[:-1], other.all_likelihoods])
+            all_likelihoods=np.concatenate(
+                [self.all_likelihoods[:-1], other.all_likelihoods]
+            ),
         )
 
         assert len(chain) == (len(self) + len(other) - 1)
@@ -151,7 +171,7 @@ class Chain:
             "target_begin_pos": self.target_begin_pos,
             "source_begin_pos": self.source_begin_pos,
             "all_likelihoods": self.all_likelihoods.tolist(),
-            "source": self.source
+            "source": self.source,
         }
 
     @staticmethod
@@ -160,18 +180,16 @@ class Chain:
             target_begin_pos=d["target_begin_pos"],
             source_begin_pos=d["source_begin_pos"],
             all_likelihoods=np.array(d["all_likelihoods"]),
-            source=d["source"]
+            source=d["source"],
         )
 
     def append_end(self, likelihood: float) -> None:
-        """Appends significant likelihood to the chain
-        """
+        """Appends significant likelihood to the chain"""
         self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
         self._end_skips = 0
 
     def skip_end(self, likelihood: float) -> None:
-        """Appends insignificant likelihood to the chain
-        """
+        """Appends insignificant likelihood to the chain"""
         self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
         self._end_skips += 1
         if len(self) == 0:
@@ -183,26 +201,27 @@ class Chain:
             target_begin_pos=self.target_begin_pos - len(self) + 1,
             source_begin_pos=self.source_begin_pos - len(self) + 1,
             all_likelihoods=np.flip(self.all_likelihoods),
-            parent=self
+            parent=self,
         )
 
-        rev_chain._begin_skips, rev_chain._end_skips = self._end_skips, self._begin_skips
+        rev_chain._begin_skips, rev_chain._end_skips = (
+            self._end_skips,
+            self._begin_skips,
+        )
 
         assert rev_chain.target_end_pos == self.target_begin_pos + 1
         return rev_chain
 
     def trim(self):
-        """Trims insignificant likelihoods from the chain
-        """
+        """Trims insignificant likelihoods from the chain"""
         end_trim = len(self) - self._end_skips
-        self.all_likelihoods = self.all_likelihoods[self._begin_skips:end_trim]
+        self.all_likelihoods = self.all_likelihoods[self._begin_skips : end_trim]
         self.target_begin_pos += self._begin_skips
         self._begin_skips = 0
         self._end_skips = 0
 
     def trim_copy(self) -> Chain:
-        """Produces a chain without insignificant likelihoods on the ends
-        """
+        """Produces a chain without insignificant likelihoods on the ends"""
         obj = copy.deepcopy(self)
         obj.trim()
         obj.parent = self
@@ -217,12 +236,16 @@ class Chain:
     def get_score(self):
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
         l = np.exp(np.log(self.likelihoods).mean())
-        score = l * (len(self)**2)
+        score = l * (len(self) ** 2)
         return score
 
     @staticmethod
-    def generate_chains(source_likelihoods: torch.Tensor, source_name: str,
-                        target_token_ids: List[int], target_start_pos: int) -> List[Chain]:
+    def generate_chains(
+        source_likelihoods: torch.Tensor,
+        source_name: str,
+        target_token_ids: List[int],
+        target_start_pos: int,
+    ) -> List[Chain]:
         """Generates chains of tokens with the same source
 
         Parameters
@@ -247,7 +270,9 @@ class Chain:
             # FORWARD CHAINING:
             chain = Chain(source_name, target_start_pos, source_start_pos)
             skips = 0
-            shift_upper_bound = min(source_len - source_start_pos, len(target_token_ids) - target_start_pos)
+            shift_upper_bound = min(
+                source_len - source_start_pos, len(target_token_ids) - target_start_pos
+            )
             for shift in range(0, shift_upper_bound):
                 target_pos = target_start_pos + shift
                 source_pos = source_start_pos + shift
@@ -256,7 +281,9 @@ class Chain:
                 assert source_pos < source_len
 
                 token_curr_id = target_token_ids[target_pos]
-                token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
+                token_curr_likelihood = source_likelihoods[source_pos][
+                    token_curr_id
+                ].item()
 
                 if token_curr_likelihood < Chain.likelihood_significance_threshold:
                     chain.skip_end(token_curr_likelihood)
@@ -271,8 +298,12 @@ class Chain:
         return result_chains
 
     @staticmethod
-    def generate_chains_bidirectional(source_likelihoods: npt.NDArray[np.float64], source_name: str,
-                                      target_token_ids: List[int], target_start_pos: int) -> List[Chain]:
+    def generate_chains_bidirectional(
+        source_likelihoods: npt.NDArray[np.float64],
+        source_name: str,
+        target_token_ids: List[int],
+        target_start_pos: int,
+    ) -> List[Chain]:
         """Generates chains of tokens with the same source
 
         Parameters
@@ -297,7 +328,9 @@ class Chain:
             forward_chain = Chain(source_name, target_start_pos, source_start_pos)
             forward_chains = []
             skips = 0
-            shift_upper_bound = min(source_len - source_start_pos, len(target_token_ids) - target_start_pos)
+            shift_upper_bound = min(
+                source_len - source_start_pos, len(target_token_ids) - target_start_pos
+            )
             for shift in range(0, shift_upper_bound):
                 target_pos = target_start_pos + shift
                 source_pos = source_start_pos + shift
@@ -306,7 +339,9 @@ class Chain:
                 assert source_pos < source_len
 
                 token_curr_id = target_token_ids[target_pos]
-                token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
+                token_curr_likelihood = source_likelihoods[source_pos][
+                    token_curr_id
+                ].item()
 
                 if token_curr_likelihood < Chain.likelihood_significance_threshold:
                     forward_chain.skip_end(token_curr_likelihood)
@@ -331,7 +366,9 @@ class Chain:
                 assert source_pos >= 0
 
                 token_curr_id = target_token_ids[target_pos]
-                token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
+                token_curr_likelihood = source_likelihoods[source_pos][
+                    token_curr_id
+                ].item()
 
                 if token_curr_likelihood < Chain.likelihood_significance_threshold:
                     backward_chain.skip_end(token_curr_likelihood)
@@ -346,8 +383,13 @@ class Chain:
             assert backward_chain.target_begin_pos == forward_chain.target_begin_pos
 
             # COMBINE CHAINS:
-            for backward_chain, forward_chain in itertools.product(backward_chains, forward_chains):
-                if backward_chain._end_skips + forward_chain._begin_skips > Chain.max_skips:
+            for backward_chain, forward_chain in itertools.product(
+                backward_chains, forward_chains
+            ):
+                if (
+                    backward_chain._end_skips + forward_chain._begin_skips
+                    > Chain.max_skips
+                ):
                     # Reject chain combinations with a large gap in the middle
                     continue
 

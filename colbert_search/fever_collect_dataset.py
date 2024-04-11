@@ -16,11 +16,16 @@ from src import SourceMapping
 
 fever_path = "./colbert_search/collections/fever.jsonl"
 
+
 def unpack_sources(pack: List[List[List[str]]]) -> List[str]:
     sources = [evidence for sublist in pack for evidence in sublist]
     sources = map(lambda lst: lst[2], sources)
-    sources = map(lambda s: s.replace("-LRB-", "(").replace("-RRB-", ")").replace('-COLON-', ':'), sources)
+    sources = map(
+        lambda s: s.replace("-LRB-", "(").replace("-RRB-", ")").replace("-COLON-", ":"),
+        sources,
+    )
     return list(sources)
+
 
 def get_sources(lst: list[str]) -> dict[str, str]:
     d = {}
@@ -28,9 +33,9 @@ def get_sources(lst: list[str]) -> dict[str, str]:
 
     req_time = time.time()
     for i, source in enumerate(lst):
-        print('.', end='')
+        print(".", end="")
         if (i + 1) % 10 == 0:
-            print(i + 1, end='')
+            print(i + 1, end="")
         if (i + 1) % 100 == 0:
             print()
 
@@ -51,7 +56,7 @@ def get_sources(lst: list[str]) -> dict[str, str]:
                 time.sleep(1)
 
             except Exception as e:
-                print(f"Unknown error \"{source}\", {e}", file=sys.stderr)
+                print(f'Unknown error "{source}", {e}', file=sys.stderr)
                 print(f"Retrying ({try_num}) in 1 second...")
                 time.sleep(1)
 
@@ -66,11 +71,11 @@ def compress(series: pd.Series) -> list[str]:
 def save_sources(data: dict[str, str], passages_file, sources_file) -> None:
     pid = 0
     mapping = SourceMapping()
-    with open(passages_file, 'w') as f:
+    with open(passages_file, "w") as f:
         for url, text in data.items():
-            parts = text.split('\n')
+            parts = text.split("\n")
             for part in parts:
-                passage = part.strip().replace('\t', ' ')
+                passage = part.strip().replace("\t", " ")
                 if len(passage) == 0:
                     continue
 
@@ -82,7 +87,7 @@ def save_sources(data: dict[str, str], passages_file, sources_file) -> None:
 
 
 def fever_process_dataset():
-    with open(fever_path, 'r') as f:
+    with open(fever_path, "r") as f:
         obj = pd.read_json(f, lines=True)
 
     mask_verifiable_only = obj["verifiable"] == "VERIFIABLE"
@@ -92,15 +97,11 @@ def fever_process_dataset():
     not_supported = obj[obj["label"] == "REFUTES"]
 
     # Data:
-    sup_passages = pd.DataFrame({
-        'passage': supported["claim"],
-        'supported': True
-    })
+    sup_passages = pd.DataFrame({"passage": supported["claim"], "supported": True})
 
-    not_sup_passage = pd.DataFrame({
-        'passage': not_supported["claim"],
-        'supported': False
-    })
+    not_sup_passage = pd.DataFrame(
+        {"passage": not_supported["claim"], "supported": False}
+    )
 
     # Passages for testing:
     passages = pd.concat([sup_passages, not_sup_passage], ignore_index=True)
@@ -120,9 +121,13 @@ def fever_process_dataset():
     not_supporting_dict = get_sources(random.choices(not_supporting_sources, k=1000))
 
     # Save to disk
-    save_sources(supporting_dict, 'wiki-p0-p0_passages_1.tsv', 'wiki-p0-p0_sources_1.csv')
-    save_sources(supporting_dict, 'wiki-p0-p0_passages_2.tsv', 'wiki-p0-p0_sources_2.csv')
+    save_sources(
+        supporting_dict, "wiki-p0-p0_passages_1.tsv", "wiki-p0-p0_sources_1.csv"
+    )
+    save_sources(
+        supporting_dict, "wiki-p0-p0_passages_2.tsv", "wiki-p0-p0_sources_2.csv"
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fever_process_dataset()

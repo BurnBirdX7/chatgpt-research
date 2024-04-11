@@ -11,28 +11,33 @@ DEFAULT_OUTPUT_MAPPING_LOC = "collections/fever_map.tsv"
 def unpack_sources(pack: List[List[List[str]]]) -> List[str]:
     sources = [evidence for sublist in pack for evidence in sublist]
     sources = map(lambda lst: lst[2], sources)
-    sources = map(lambda s: s.replace("-LRB-", "(").replace("-RRB-", ")").replace('-COLON-', ':'), sources)
+    sources = map(
+        lambda s: s.replace("-LRB-", "(").replace("-RRB-", ")").replace("-COLON-", ":"),
+        sources,
+    )
     sources = map(lambda s: f"https://en.wikipedia.org/wiki/{s}", sources)
     return list(sources)
 
 
 def main(source: str, destination: str, destination_map: str):
-    print("Preparing FEVER... ", end='')
+    print("Preparing FEVER... ", end="")
     source_json = pd.read_json(source, lines=True)
-    source_json = source_json[source_json["verifiable"] == "VERIFIABLE"].reset_index(drop=True)
+    source_json = source_json[source_json["verifiable"] == "VERIFIABLE"].reset_index(
+        drop=True
+    )
 
     collection_tsv = pd.DataFrame()
-    collection_tsv['text'] = source_json['claim']
-    collection_tsv.to_csv(destination, sep='\t', header=False)
+    collection_tsv["text"] = source_json["claim"]
+    collection_tsv.to_csv(destination, sep="\t", header=False)
 
     mapping_tsv = pd.DataFrame()
-    mapping_tsv['fid'] = source_json['id']
-    mapping_tsv['urls'] = source_json['evidence'].map(unpack_sources)
-    mapping_tsv['is_supported'] = source_json['label'] == 'SUPPORTS'
+    mapping_tsv["fid"] = source_json["id"]
+    mapping_tsv["urls"] = source_json["evidence"].map(unpack_sources)
+    mapping_tsv["is_supported"] = source_json["label"] == "SUPPORTS"
 
-    mapping_tsv.to_csv(destination_map, sep='\t')
+    mapping_tsv.to_csv(destination_map, sep="\t")
     print("Done")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(DEFAULT_INPUT_LOC, DEFAULT_OUTPUT_COLLECTION_LOC, DEFAULT_OUTPUT_MAPPING_LOC)

@@ -32,12 +32,9 @@ def get_wiki_pipeline(output_path: str) -> Pipeline:
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     in_path = sys.argv[1]
     out_path = sys.argv[2]
 
     pipeline = get_wiki_pipeline(out_path)
     pipeline.run(in_path)
-
-
-

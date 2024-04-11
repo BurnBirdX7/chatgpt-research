@@ -21,5 +21,5 @@ def build_index_from_elvis_articles():
     build_index_from_wiki(wiki_config, IndexConfig())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     build_index_from_elvis_articles()

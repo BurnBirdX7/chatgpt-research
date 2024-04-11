@@ -3,20 +3,28 @@ from __future__ import annotations
 import wikipediaapi  # type: ignore
 
 banned_title_prefixes: list[str] = [
-    "Category:", "File:", "See also", "References", "External links"
+    "Category:",
+    "File:",
+    "See also",
+    "References",
+    "External links",
 ]
 
+
 class OnlineWiki:
-    wikipedia = wikipediaapi.Wikipedia(language="en",
-                                       headers={"Accept-Encoding": "gzip"},
-                                       user_agent="chatgpt-research-wiki-scrapper/1.1"
-                                                  "(https://github.com/BurnBirdX7/chatgpt-research; "
-                                                  "artemiy.lazarevx7@gmail.com)"
-                                                  "Wikipedia-API/0.6.0")
+    wikipedia = wikipediaapi.Wikipedia(
+        language="en",
+        headers={"Accept-Encoding": "gzip"},
+        user_agent="chatgpt-research-wiki-scrapper/1.1"
+        "(https://github.com/BurnBirdX7/chatgpt-research; "
+        "artemiy.lazarevx7@gmail.com)"
+        "Wikipedia-API/0.6.0",
+    )
 
     @staticmethod
-    def __traverse_sections(section: wikipediaapi.WikipediaPageSection,
-                            page_url: str) -> dict[str, str]:
+    def __traverse_sections(
+        section: wikipediaapi.WikipediaPageSection, page_url: str
+    ) -> dict[str, str]:
         title = section.title
 
         for prefix in banned_title_prefixes:
@@ -64,4 +72,3 @@ class OnlineWiki:
         for page_title in page_titles:
             d |= OnlineWiki.__get_sections_from_page(page_title)
         return d
-

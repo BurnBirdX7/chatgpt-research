@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ['BaseDataDescriptor', 'ValueType']
+__all__ = ["BaseDataDescriptor", "ValueType"]
 
 import datetime
 import logging
@@ -10,7 +10,7 @@ import string
 from typing import Generic, TypeVar, Union, List, Dict
 from abc import abstractmethod, ABC
 
-T = TypeVar('T')
+T = TypeVar("T")
 ValueType = Union[int, float, str, List["ValueType"], Dict[str, "ValueType"]]
 
 
@@ -81,10 +81,9 @@ class BaseDataDescriptor(Generic[T], ABC):
         """
 
     def cleanup_files(self, *filepath_list: str):
-        """Removes listed files, doesn't throw if files are missing
-        """
+        """Removes listed files, doesn't throw if files are missing"""
         for filepath in filepath_list:
-            self.logger.debug(f"Removing file \"{filepath}\"...")
+            self.logger.debug(f'Removing file "{filepath}"...')
             pathlib.Path.unlink(pathlib.Path(filepath), missing_ok=True)
 
     def cleanup(self, dic: dict[str, ValueType]):
@@ -121,4 +120,4 @@ class BaseDataDescriptor(Generic[T], ABC):
 
     @staticmethod
     def get_random_string(n: int = 16) -> str:
-        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=n))
+        return "".join(random.choices(string.ascii_lowercase + string.digits, k=n))

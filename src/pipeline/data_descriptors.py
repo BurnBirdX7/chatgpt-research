@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-__all__ = ['EmptyDataDescriptor',
-           'InDictDescriptor',
-           'IntDescriptor',
-           'FloatDescriptor',
-           'BytesDescriptor',
-           'StrDescriptor',
-           'ListDescriptor',
-           'DictDescriptor',
-           'ComplexDictDescriptor',
-           'ComplexListDescriptor']
+__all__ = [
+    "EmptyDataDescriptor",
+    "InDictDescriptor",
+    "IntDescriptor",
+    "FloatDescriptor",
+    "BytesDescriptor",
+    "StrDescriptor",
+    "ListDescriptor",
+    "DictDescriptor",
+    "ComplexDictDescriptor",
+    "ComplexListDescriptor",
+]
 
 import logging
 import os.path
@@ -18,7 +20,7 @@ from typing import TypeVar, cast, List, Dict, Type
 
 from .base_data_descriptor import BaseDataDescriptor, ValueType
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class EmptyDataDescriptor(BaseDataDescriptor[None]):
@@ -38,15 +40,13 @@ class EmptyDataDescriptor(BaseDataDescriptor[None]):
 
 class InDictDescriptor(BaseDataDescriptor[T], ABC):
     def store(self, data: T) -> dict[str, ValueType]:
-        return {
-            'value': str(data)
-        }
+        return {"value": str(data)}
 
 
 class IntDescriptor(InDictDescriptor[int]):
 
     def load(self, dic: Dict[str, ValueType]) -> int:
-        return int(dic['value'])  # type: ignore
+        return int(dic["value"])  # type: ignore
 
     @classmethod
     def get_data_type(cls) -> Type[int]:
@@ -56,7 +56,7 @@ class IntDescriptor(InDictDescriptor[int]):
 class FloatDescriptor(InDictDescriptor[float]):
 
     def load(self, dic: Dict[str, ValueType]) -> float:
-        return float(dic['value'])  # type: ignore
+        return float(dic["value"])  # type: ignore
 
     @classmethod
     def get_data_type(cls) -> Type[float]:
@@ -66,7 +66,7 @@ class FloatDescriptor(InDictDescriptor[float]):
 class StrDescriptor(InDictDescriptor[str]):
 
     def load(self, dic: Dict[str, ValueType]) -> str:
-        return dic['value']  # type: ignore
+        return dic["value"]  # type: ignore
 
     @classmethod
     def get_data_type(cls) -> Type[str]:
@@ -75,9 +75,7 @@ class StrDescriptor(InDictDescriptor[str]):
 
 class ListDescriptor(BaseDataDescriptor[List[T]]):
     def store(self, data: List[T]) -> Dict[str, ValueType]:
-        return {
-            "list": data  # type: ignore
-        }
+        return {"list": data}  # type: ignore
 
     def load(self, dic: Dict[str, ValueType]) -> List[T]:
         return cast(List[T], dic["list"])
@@ -93,18 +91,16 @@ class BytesDescriptor(BaseDataDescriptor[bytes]):
         filename = os.path.abspath(os.path.join(self.artifacts_folder, filename))
         with open(filename, "wb") as file:
             file.write(data)
-            return {
-                "filename": filename
-            }
+            return {"filename": filename}
 
     def load(self, dic: Dict[str, ValueType]) -> bytes:
-        filename = cast(str, dic['filename'])
+        filename = cast(str, dic["filename"])
         with open(filename, "rb") as file:
             data = file.read()
             return data
 
     def cleanup(self, dic: dict[str, ValueType]):
-        self.cleanup_files(dic['filename'])
+        self.cleanup_files(dic["filename"])
 
     @classmethod
     def get_data_type(cls) -> Type[bytes]:
@@ -133,16 +129,16 @@ class ComplexListDescriptor(BaseDataDescriptor[List[T]]):
         for elem in data:
             lst.append(self.elem_descriptor.store(elem))
 
-        return {'data': lst}
+        return {"data": lst}
 
     def load(self, dic: dict[str, ValueType]) -> List[T]:
         lst = []
-        for elem in dic['data']:
+        for elem in dic["data"]:
             lst.append(self.elem_descriptor.load(elem))
         return lst
 
     def cleanup(self, dic: dict[str, ValueType]):
-        for elem in dic['data']:
+        for elem in dic["data"]:
             self.elem_descriptor.cleanup(elem)
 
     def get_data_type(self) -> Type[list]:

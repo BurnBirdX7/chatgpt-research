@@ -10,18 +10,16 @@ from src import Config, Question
 
 
 def yes(s: str) -> bool:
-    return s.strip().lower() == 'y'
+    return s.strip().lower() == "y"
 
 
 def no(s: str) -> bool:
-    return s.strip().lower() == 'n'
+    return s.strip().lower() == "n"
 
 
 def survey(sentences: List[str]) -> Dict[str, bool]:
     sentence_correctness: Dict[str, bool] = {}
-    sentences = list(
-        filter(lambda s: len(s) > 0,
-               map(lambda s: s.strip(), sentences)))
+    sentences = list(filter(lambda s: len(s) > 0, map(lambda s: s.strip(), sentences)))
 
     n = len(sentences)
     for i in range(n):
@@ -33,7 +31,7 @@ def survey(sentences: List[str]) -> Dict[str, bool]:
         if i < n - 1:
             print("next:", sentences[i + 1])
 
-        inp = ''
+        inp = ""
         while not yes(inp) and not no(inp):
             inp = input("Is this sentence correct? [y/n]")
 
@@ -50,12 +48,12 @@ def main(quiz_name: str, delimiter: str = "#"):
         answer_correctness: List[Dict[str, bool]] = []
 
         for answer in q.given_answers:
-            if '#' not in answer:
+            if "#" not in answer:
                 explanation = answer
             else:
                 _, explanation = answer.split(delimiter, 1)
 
-            sentences = explanation.split('.')
+            sentences = explanation.split(".")
             answer_correctness.append(survey(sentences))
 
         q.given_answers = answer_correctness  # type: ignore
@@ -64,7 +62,7 @@ def main(quiz_name: str, delimiter: str = "#"):
     Question.save_json(questions, out_filename)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) != 2:
         raise ValueError("Incorrect number of supplied parameters")
     main(sys.argv[1])
