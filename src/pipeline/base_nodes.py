@@ -95,7 +95,7 @@ class BaseNode(Node, ABC):
             f"{self.logger.name}.{self.out_descriptor.__class__.__name__}"
         )
 
-    @Node.logger.setter
+    @Node.logger.setter  # type: ignore
     def logger(self, new_logger):
         Node.logger.fset(self, new_logger)
         self.out_descriptor.logger = logging.getLogger(

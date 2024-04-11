@@ -4,6 +4,7 @@ import datetime
 import pprint
 import time
 from dataclasses import dataclass
+from typing import Callable
 
 import pandas as pd
 import torch.cuda
@@ -16,7 +17,7 @@ def majority_label(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
     return len(pos2chain) >= 0.5 * len(tokens)
 
 
-def percent_label(percent: float) -> callable:
+def percent_label(percent: float) -> Callable:
     def __func(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
         return len(pos2chain) >= (percent * len(tokens) / 100)
 
@@ -24,7 +25,7 @@ def percent_label(percent: float) -> callable:
     return __func
 
 
-def longest_chain_percent_label(percent: float) -> callable:
+def longest_chain_percent_label(percent: float) -> Callable:
     def __func(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
         max_chain = max(pos2chain.values(), key=lambda ch: len(ch))
         return len(max_chain) >= (percent * len(tokens) / 100)

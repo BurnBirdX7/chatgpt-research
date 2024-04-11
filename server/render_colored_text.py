@@ -56,8 +56,6 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
                 source_dict[last_chain.source].append(color_num)
 
         for pos, token in enumerate(coloring.tokens):
-            token: str
-
             chain = get_chain(pos)
 
             if chain == last_chain:

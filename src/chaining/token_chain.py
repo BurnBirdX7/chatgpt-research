@@ -72,7 +72,10 @@ class Chain:
             self.all_likelihoods >= Chain.likelihood_significance_threshold
         ]
 
-    def __eq__(self, other: Chain) -> bool:
+    def __eq__(self, other: Chain | None) -> bool:
+        if other is None:
+            return False
+
         if not isinstance(other, Chain):
             return False
 

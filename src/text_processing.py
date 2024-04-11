@@ -44,7 +44,7 @@ class TextProcessingNode(BaseNode, Generic[T]):
 
     @classmethod
     def new(cls, name: str, func: Callable[[str], str]) -> TextProcessingNode[str]:
-        return cls(name, func, [str], StrDescriptor())
+        return cls(name, func, [str], StrDescriptor())  # type: ignore
 
     @classmethod
     def new_for_lists(
@@ -53,7 +53,7 @@ class TextProcessingNode(BaseNode, Generic[T]):
         def wrapper(batch: List[str]) -> List[str]:
             return [func(b) for b in batch]
 
-        return cls(name, wrapper, [list], ListDescriptor())
+        return cls(name, wrapper, [list], ListDescriptor())  # type: ignore
 
     @classmethod
     def new_for_dicts(
@@ -62,7 +62,7 @@ class TextProcessingNode(BaseNode, Generic[T]):
         def wrapper(batch: Dict[str, str]) -> Dict[str, str]:
             return {k: func(v) for k, v in batch.items()}
 
-        return cls(name, wrapper, [dict], DictDescriptor())
+        return cls(name, wrapper, [dict], DictDescriptor())  # type: ignore
 
     def process(self, inp: T) -> T:
         return self.func(inp)

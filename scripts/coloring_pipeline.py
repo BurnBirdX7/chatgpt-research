@@ -63,7 +63,7 @@ class AddMatchedText(BaseNode):
 
 def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
     # Configs:
-    colbert_cfg = ColbertServerConfig.load_from_env()
+    colbert_cfg: ColbertServerConfig = ColbertServerConfig.load_from_env()  # type: ignore
     text_eb_config = EmbeddingBuilderConfig(
         normalize=True, centroid_file="artifacts/centroid-colbert.npy"
     )  # Default

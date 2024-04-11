@@ -86,20 +86,20 @@ class ListDescriptor(BaseDataDescriptor[List[T]]):
 
 
 class BytesDescriptor(BaseDataDescriptor[bytes]):
-    def store(self, data: bytes) -> Dict[str, ValueType]:
+    def store(self, data: bytes) -> Dict[str, str]:
         filename = f"bytes-{self.block_name}-{self.get_timestamp_str()}.dat"
         filename = os.path.abspath(os.path.join(self.artifacts_folder, filename))
         with open(filename, "wb") as file:
             file.write(data)
             return {"filename": filename}
 
-    def load(self, dic: Dict[str, ValueType]) -> bytes:
+    def load(self, dic: Dict[str, str]) -> bytes:
         filename = cast(str, dic["filename"])
         with open(filename, "rb") as file:
             data = file.read()
             return data
 
-    def cleanup(self, dic: dict[str, ValueType]):
+    def cleanup(self, dic: dict[str, str]):
         self.cleanup_files(dic["filename"])
 
     @classmethod
@@ -124,20 +124,20 @@ class ComplexListDescriptor(BaseDataDescriptor[List[T]]):
         super().__init__()
         self.elem_descriptor = elem_descriptor
 
-    def store(self, data: List[T]) -> dict[str, ValueType]:
+    def store(self, data: List[T]) -> dict:
         lst = []
         for elem in data:
             lst.append(self.elem_descriptor.store(elem))
 
         return {"data": lst}
 
-    def load(self, dic: dict[str, ValueType]) -> List[T]:
+    def load(self, dic: dict) -> List[T]:
         lst = []
         for elem in dic["data"]:
             lst.append(self.elem_descriptor.load(elem))
         return lst
 
-    def cleanup(self, dic: dict[str, ValueType]):
+    def cleanup(self, dic: dict):
         for elem in dic["data"]:
             self.elem_descriptor.cleanup(elem)
 
@@ -155,26 +155,26 @@ class ComplexDictDescriptor(BaseDataDescriptor[Dict[str, T]]):
         self.elem_descriptor = elem_descriptor
         self.elem_descriptor.logger = self.logger
 
-    @BaseDataDescriptor.logger.setter
+    @BaseDataDescriptor.logger.setter  # type: ignore
     def logger(self, new_logger: logging.Logger):
-        BaseDataDescriptor.logger.fset(self, new_logger)
+        BaseDataDescriptor.logger.fset(self, new_logger)    # type: ignore
         self.elem_descriptor.logger = new_logger
 
-    def store(self, data: Dict[str, T]) -> dict[str, ValueType]:
+    def store(self, data: Dict[str, T]) -> dict:
         dic = {}
         for key, elem in data.items():
             dic[key] = self.elem_descriptor.store(elem)
 
         return dic
 
-    def load(self, data_dict: dict[str, ValueType]) -> Dict[str, T]:
+    def load(self, data_dict: dict) -> Dict[str, T]:
         json_dic = {}
         for key, dat in data_dict.items():
             json_dic[key] = self.elem_descriptor.load(dat)
 
         return json_dic
 
-    def cleanup(self, dic: dict[str, ValueType]):
+    def cleanup(self, dic: dict):
         for value in dic.values():
             self.elem_descriptor.cleanup(value)
 

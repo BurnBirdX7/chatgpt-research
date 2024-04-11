@@ -179,7 +179,7 @@ class IndexDescriptor(BaseDataDescriptor[Index]):
             )
         )
 
-    def cleanup(self, dic: dict[str, ValueType]):
+    def cleanup(self, dic: dict):
         self.cleanup_files(dic["index_file"], dic["mapping_file"])
 
     def get_data_type(self) -> type:

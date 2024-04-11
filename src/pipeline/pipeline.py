@@ -692,7 +692,7 @@ class Pipeline:
         statistic_dic: Dict[str, NodeStatistics] = {}
 
         prev_output: Any = input_
-        prev_node_name: str = "$input" if input_ is not None else None
+        prev_node_name: str | None = "$input" if input_ is not None else None
 
         # Execution:
         for cur_node_name in execution_order:

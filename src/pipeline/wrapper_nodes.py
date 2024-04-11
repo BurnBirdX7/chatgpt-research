@@ -17,7 +17,7 @@ class _WrapperNode(BaseNode, ABC):
         self.elem_node = elem_node
         self.elem_node.logger = self.logger
 
-    @Node.logger.setter
+    @Node.logger.setter  # type: ignore
     def logger(self, new_logger: logging.Logger):
         BaseNode.logger.fset(self, new_logger)
         self.elem_node.logger = new_logger

@@ -40,7 +40,7 @@ class BaseDataDescriptor(Generic[T], ABC):
         return False
 
     @abstractmethod
-    def store(self, data: T) -> dict[str, ValueType]:
+    def store(self, data: T) -> dict:
         """Method used to store data to the disk
 
         Parameters
@@ -65,7 +65,7 @@ class BaseDataDescriptor(Generic[T], ABC):
         """
 
     @abstractmethod
-    def load(self, dic: dict[str, ValueType]) -> T:
+    def load(self, dic: dict) -> T:
         """Restores data from disk and returns it.
         Overload this method to implement loading saved data from the disk
 
@@ -86,7 +86,7 @@ class BaseDataDescriptor(Generic[T], ABC):
             self.logger.debug(f'Removing file "{filepath}"...')
             pathlib.Path.unlink(pathlib.Path(filepath), missing_ok=True)
 
-    def cleanup(self, dic: dict[str, ValueType]):
+    def cleanup(self, dic: dict):
         """Removes artifacts produces by this descriptor from the disk.
         Overload this method if your descriptor places data on disks and not only in returned dictionary.
         Use `cleanup_files` if possible.
