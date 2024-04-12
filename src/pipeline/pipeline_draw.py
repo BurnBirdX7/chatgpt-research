@@ -1,3 +1,4 @@
+from io import BytesIO
 from typing import List, Tuple
 
 from matplotlib.axes import Axes
@@ -108,7 +109,7 @@ def draw(pipeline: Pipeline, ax: Tuple[Axes, Axes, Axes]):
     ax[2].set_title("Execution order")
 
 
-def show_pipeline(pipeline: Pipeline):
+def draw_pipeline(pipeline: Pipeline) -> plt.Figure:
     fig, ((ax11, ax12), (ax21, ax22)) = plt.subplots(
         2, 2, figsize=(40, 24), height_ratios=[11.6, 0.4]
     )
@@ -120,6 +121,20 @@ def show_pipeline(pipeline: Pipeline):
     fig.tight_layout()
 
     draw(pipeline, (ax11, ax12, ax3))
+
+    return fig
+
+
+def bytes_draw_pipeline(pipeline: Pipeline) -> BytesIO:
+    fig = draw_pipeline(pipeline)
+    img = BytesIO()
+    fig.savefig(img, format="png")
+    img.seek(0)
+    return img
+
+
+def show_pipeline(pipeline: Pipeline):
+    draw_pipeline(pipeline)
     plt.show()
 
 

@@ -14,4 +14,4 @@ class LuceneConfig(BaseConfig):
 
         return os.environ["LUCENE_INDEX_PATH"]
 
-    index_path: str = field(default_factory=LuceneConfig.get_from_env)  # type: ignore
+    index_path: str = field(default_factory=get_from_env)  # type: ignore

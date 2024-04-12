@@ -1,101 +1,16 @@
 from __future__ import annotations
 
-import datetime
 import logging
-import time
-from collections import OrderedDict
-from functools import lru_cache
-from typing import List, Tuple
 
 from flask import Flask, render_template, request, Response
 
 from scripts.coloring_pipeline import get_coloring_pipeline
-from server.render_colored_text import render_colored_text, Coloring
-from src import ChainingNode
-from src.pipeline import Pipeline
-
+from server.color_text import color_text
+from server.render_colored_text import render_colored_text
+from src.pipeline.pipeline_draw import bytes_draw_pipeline
 
 # FLASK
 app = Flask(__name__)
-
-
-# Pipeline configuratio
-def pipeline_preset(name: str, use_bidirectional_chaining: bool) -> Pipeline:
-    pipeline = get_coloring_pipeline(name)
-    pipeline.assert_prerequisites()
-    pipeline.force_caching("input-tokenized")
-    pipeline.force_caching("$input")
-    pipeline.store_optional_data = True
-    pipeline.dont_timestamp_history = True
-    all_chains: ChainingNode = pipeline.nodes["all-chains"]  # type: ignore
-    all_chains.use_bidirectional_chaining = use_bidirectional_chaining
-    return pipeline
-
-
-# Create and configure Pipelines
-unidir_pipeline = pipeline_preset("unidirectional", use_bidirectional_chaining=False)
-bidir_pipeline = pipeline_preset("bidirectional", use_bidirectional_chaining=True)
-
-
-@lru_cache(5)
-def color_text(
-    text: str | None, resume_node: str = "all-chains"
-) -> Tuple[str, List[Coloring]]:
-    if text is not None and unidir_pipeline.store_optional_data:
-        unidir_pipeline.cleanup_file(unidir_pipeline.unstamped_history_filepath)
-        bidir_pipeline.cleanup_file(bidir_pipeline.unstamped_history_filepath)
-
-    coloring_variants = []
-    start = time.time()
-
-    # UNIDIRECTIONAL
-    if text is None:
-        result = unidir_pipeline.resume_from_disk(
-            unidir_pipeline.unstamped_history_filepath, resume_node
-        )
-    else:
-        result = unidir_pipeline.run(text)
-    coloring_variants.append(
-        Coloring(
-            name="Unidirectional chaining",
-            tokens=result.cache["input-tokenized"],
-            pos2chain=result.last_node_result,
-        )
-    )
-    stats = OrderedDict()
-    stats["unidirectional"] = result.statistics
-
-    # BIDIRECTIONAL
-    if text is None:
-        result = bidir_pipeline.resume_from_disk(
-            bidir_pipeline.unstamped_history_filepath, resume_node
-        )
-    else:
-        result = bidir_pipeline.resume_from_cache(result, "all-chains")
-
-    coloring_variants.append(
-        Coloring(
-            name="Bidirectional chaining",
-            tokens=result.cache["input-tokenized"],
-            pos2chain=result.last_node_result,
-        )
-    )
-    stats["bidirectional"] = result.statistics
-
-    # Preserve input
-    if text is None:
-        text = result.cache["$input"]
-    del result
-
-    seconds = time.time() - start
-
-    print(f"Time taken to run: {datetime.timedelta(seconds=seconds)}")
-    for i, (name, stats) in enumerate(stats.items()):
-        print(f"Statistics (run {i+1}, {name})")
-        for _, stat in stats.items():
-            print(str(stat))
-
-    return text, coloring_variants
 
 
 @app.route("/", methods=["GET"])
@@ -107,10 +22,7 @@ def request_page():
 def result_page():
     user_input = request.form["user_input"]
     store_data = "store" in request.form
-    unidir_pipeline.store_intermediate_data = store_data
-    bidir_pipeline.store_intermediate_data = store_data
-
-    _, coloring_variants = color_text(user_input)
+    _, coloring_variants = color_text(user_input, store_data)
     return Response(
         render_colored_text(user_input, coloring_variants), mimetype="text/html"
     )
@@ -123,12 +35,16 @@ def resume_page():
     else:
         resume_point = request.args["resume_point"]
 
-    unidir_pipeline.store_intermediate_data = False
-    bidir_pipeline.store_intermediate_data = False
-    input_text, coloring_variants = color_text(None, resume_node=resume_point)
+    input_text, coloring_variants = color_text(None, False, resume_node=resume_point)
     return Response(
         render_colored_text(input_text, coloring_variants), mimetype="text/html"
     )
+
+
+@app.route("/visualize", methods=["GET"])
+def visualize_page():
+    img = bytes_draw_pipeline(get_coloring_pipeline("coloring"))
+    return Response(img, mimetype="image/png")
 
 
 if __name__ == "__main__":
