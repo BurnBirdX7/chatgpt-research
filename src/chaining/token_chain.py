@@ -50,8 +50,8 @@ class Chain:
         self.parent = parent
         self.attachment: Dict[str, Any] = {}
 
-        self._begin_skips = 0
-        self._end_skips = 0
+        self.begin_skips = 0
+        self.end_skips = 0
 
     @property
     def target_end_pos(self) -> int:
@@ -73,7 +73,6 @@ class Chain:
             return -1.0
 
         return float(self.all_likelihoods[target_pos-self.target_begin_pos])
-
 
     def __eq__(self, other: Chain | None) -> bool:
         if other is None:
@@ -100,8 +99,9 @@ class Chain:
             f"Chain(\n"
             f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
             f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
-            f"\tlen: {len(self)}\n"
-            f"\tparent: {self.parent!s}"
+            f"\tlen: {len(self)}  [sign len: {len(self.likelihoods)}]\n"
+            f"\tparent: {self.parent!s}\n"
+            f"\tbegin_skips: {self.begin_skips}, end_skips: {self.end_skips}\n"
             f")"
         )
 
@@ -161,8 +161,9 @@ class Chain:
         )
 
         assert len(chain) == (len(self) + len(other) - 1)
-        chain._begin_skips = self._begin_skips
-        chain._end_skips = self._end_skips
+        chain.begin_skips = self.begin_skips
+        chain.end_skips = self.end_skips
+        chain.parent = [self, other]
 
         return chain
 
@@ -186,14 +187,14 @@ class Chain:
     def append_end(self, likelihood: float) -> None:
         """Appends significant likelihood to the chain"""
         self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
-        self._end_skips = 0
+        self.end_skips = 0
 
     def skip_end(self, likelihood: float) -> None:
         """Appends insignificant likelihood to the chain"""
         self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
-        self._end_skips += 1
+        self.end_skips += 1
         if len(self) == 0:
-            self._begin_skips += 1
+            self.begin_skips += 1
 
     def reverse(self) -> Chain:
         rev_chain = Chain(
@@ -204,9 +205,9 @@ class Chain:
             parent=self,
         )
 
-        rev_chain._begin_skips, rev_chain._end_skips = (
-            self._end_skips,
-            self._begin_skips,
+        rev_chain.begin_skips, rev_chain.end_skips = (
+            self.end_skips,
+            self.begin_skips,
         )
 
         assert rev_chain.target_end_pos == self.target_begin_pos + 1
@@ -214,11 +215,11 @@ class Chain:
 
     def trim(self):
         """Trims insignificant likelihoods from the chain"""
-        end_trim = len(self) - self._end_skips
-        self.all_likelihoods = self.all_likelihoods[self._begin_skips : end_trim]
-        self.target_begin_pos += self._begin_skips
-        self._begin_skips = 0
-        self._end_skips = 0
+        end_trim = len(self) - self.end_skips
+        self.all_likelihoods = self.all_likelihoods[self.begin_skips: end_trim]
+        self.target_begin_pos += self.begin_skips
+        self.begin_skips = 0
+        self.end_skips = 0
 
     def trim_copy(self) -> Chain:
         """Produces a chain without insignificant likelihoods on the ends"""
@@ -374,7 +375,7 @@ class Chain:
 
             # COMBINE CHAINS:
             for backward_chain, forward_chain in itertools.product(backward_chains, forward_chains):
-                if backward_chain._end_skips + forward_chain._begin_skips > Chain.max_skips:
+                if backward_chain.end_skips + forward_chain.begin_skips > Chain.max_skips:
                     # Reject chain combinations with a large gap in the middle
                     continue
 
@@ -382,11 +383,11 @@ class Chain:
 
             # Add uni-directional chains to the set
             for chain in backward_chains:
-                if chain._end_skips > 0:
+                if chain.end_skips > 0:
                     chain.trim()
 
             for chain in forward_chains:
-                if chain._begin_skips > 0:
+                if chain.begin_skips > 0:
                     chain.trim()
 
             result_chains += backward_chains + forward_chains

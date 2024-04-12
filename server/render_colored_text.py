@@ -35,6 +35,7 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
         # Track progress
         color_num: int = 0
         last_chain: Optional[Chain] = None
+        relative_pos = 0
 
         for pos, token in enumerate(coloring.tokens):
             chain = get_chain(pos)
@@ -47,6 +48,7 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
                 color_num += 1
                 source_dict[chain.source].append(color_num)
                 last_chain = chain
+                relative_pos = 0
 
             token_list.append(
                 {
@@ -59,8 +61,10 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
                     "source_text": chain.attachment["source_text"],
                     "chain": str(chain),
                     "token": token,
+                    "source_token": chain.attachment["source_tokens"][relative_pos]
                 }
             )
+            relative_pos += 1
 
         source_list = list(sorted(source_dict.items(), key=lambda item: len(item[1]), reverse=True))
 
