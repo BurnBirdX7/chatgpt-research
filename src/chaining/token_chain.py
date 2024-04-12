@@ -6,7 +6,7 @@ import itertools
 import numpy as np
 import numpy.typing as npt
 import torch
-from typing import Optional, List, Set
+from typing import Optional, List, Set, Dict, Any
 
 
 class Chain:
@@ -45,12 +45,10 @@ class Chain:
 
         self.target_begin_pos: int = target_begin_pos
         self.source_begin_pos: int = source_begin_pos
-        self.all_likelihoods = np.array(
-            [] if (all_likelihoods is None) else all_likelihoods
-        )
+        self.all_likelihoods = np.array([] if (all_likelihoods is None) else all_likelihoods)
         self.source = source
         self.parent = parent
-        self.matched_source_text: str | None = None
+        self.attachment: Dict[str, Any] = {}
 
         self._begin_skips = 0
         self._end_skips = 0
@@ -68,9 +66,7 @@ class Chain:
     @property
     def likelihoods(self) -> npt.NDArray[np.float64]:
         """Significant likelihoods"""
-        return self.all_likelihoods[
-            self.all_likelihoods >= Chain.likelihood_significance_threshold
-        ]
+        return self.all_likelihoods[self.all_likelihoods >= Chain.likelihood_significance_threshold]
 
     def __eq__(self, other: Chain | None) -> bool:
         if other is None:
@@ -133,13 +129,9 @@ class Chain:
             return NotImplemented
 
         if self.source != other.source:
-            raise ValueError(
-                f"Added chain must have same source, got: {self.source} and {other.source}"
-            )
+            raise ValueError(f"Added chain must have same source, got: {self.source} and {other.source}")
 
-        if (self.target_end_pos - 1 != other.target_begin_pos) or (
-            self.source_end_pos - 1 != other.source_begin_pos
-        ):
+        if (self.target_end_pos - 1 != other.target_begin_pos) or (self.source_end_pos - 1 != other.source_begin_pos):
             raise ValueError(
                 "Added chains must have one common position"
                 "on the end of left chain and beginning of the right chain. "
@@ -158,9 +150,7 @@ class Chain:
             source=self.source,
             target_begin_pos=self.target_begin_pos,
             source_begin_pos=self.source_begin_pos,
-            all_likelihoods=np.concatenate(
-                [self.all_likelihoods[:-1], other.all_likelihoods]
-            ),
+            all_likelihoods=np.concatenate([self.all_likelihoods[:-1], other.all_likelihoods]),
         )
 
         assert len(chain) == (len(self) + len(other) - 1)
@@ -218,7 +208,7 @@ class Chain:
     def trim(self):
         """Trims insignificant likelihoods from the chain"""
         end_trim = len(self) - self._end_skips
-        self.all_likelihoods = self.all_likelihoods[self._begin_skips: end_trim]
+        self.all_likelihoods = self.all_likelihoods[self._begin_skips : end_trim]
         self.target_begin_pos += self._begin_skips
         self._begin_skips = 0
         self._end_skips = 0
@@ -273,9 +263,7 @@ class Chain:
             # FORWARD CHAINING:
             chain = Chain(source_name, target_start_pos, source_start_pos)
             skips = 0
-            shift_upper_bound = min(
-                source_len - source_start_pos, len(target_token_ids) - target_start_pos
-            )
+            shift_upper_bound = min(source_len - source_start_pos, len(target_token_ids) - target_start_pos)
             for shift in range(0, shift_upper_bound):
                 target_pos = target_start_pos + shift
                 source_pos = source_start_pos + shift
@@ -284,9 +272,7 @@ class Chain:
                 assert source_pos < source_len
 
                 token_curr_id = target_token_ids[target_pos]
-                token_curr_likelihood = source_likelihoods[source_pos][
-                    token_curr_id
-                ].item()
+                token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
 
                 if token_curr_likelihood < Chain.likelihood_significance_threshold:
                     chain.skip_end(token_curr_likelihood)
@@ -331,9 +317,7 @@ class Chain:
             forward_chain = Chain(source_name, target_start_pos, source_start_pos)
             forward_chains = []
             skips = 0
-            shift_upper_bound = min(
-                source_len - source_start_pos, len(target_token_ids) - target_start_pos
-            )
+            shift_upper_bound = min(source_len - source_start_pos, len(target_token_ids) - target_start_pos)
             for shift in range(0, shift_upper_bound):
                 target_pos = target_start_pos + shift
                 source_pos = source_start_pos + shift
@@ -342,9 +326,7 @@ class Chain:
                 assert source_pos < source_len
 
                 token_curr_id = target_token_ids[target_pos]
-                token_curr_likelihood = source_likelihoods[source_pos][
-                    token_curr_id
-                ].item()
+                token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
 
                 if token_curr_likelihood < Chain.likelihood_significance_threshold:
                     forward_chain.skip_end(token_curr_likelihood)
@@ -369,9 +351,7 @@ class Chain:
                 assert source_pos >= 0
 
                 token_curr_id = target_token_ids[target_pos]
-                token_curr_likelihood = source_likelihoods[source_pos][
-                    token_curr_id
-                ].item()
+                token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
 
                 if token_curr_likelihood < Chain.likelihood_significance_threshold:
                     backward_chain.skip_end(token_curr_likelihood)
@@ -386,13 +366,8 @@ class Chain:
             assert backward_chain.target_begin_pos == forward_chain.target_begin_pos
 
             # COMBINE CHAINS:
-            for backward_chain, forward_chain in itertools.product(
-                backward_chains, forward_chains
-            ):
-                if (
-                    backward_chain._end_skips + forward_chain._begin_skips
-                    > Chain.max_skips
-                ):
+            for backward_chain, forward_chain in itertools.product(backward_chains, forward_chains):
+                if backward_chain._end_skips + forward_chain._begin_skips > Chain.max_skips:
                     # Reject chain combinations with a large gap in the middle
                     continue
 

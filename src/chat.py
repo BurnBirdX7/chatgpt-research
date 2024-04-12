@@ -23,9 +23,7 @@ class Dialogue:
         self.history.append(msg)
 
     def add_user_msg(self, text: str):
-        if self.user_messages == 0 or (
-            self.limit_user_messages and self.user_messages >= self.limit_user_messages
-        ):
+        if self.user_messages == 0 or (self.limit_user_messages and self.user_messages >= self.limit_user_messages):
             self.reset_dialog()
 
         self.user_messages += 1
@@ -70,9 +68,7 @@ class Chat:
                     timed_out += 1
                     if not self.suppress_output:
                         print(err.error, file=sys.stderr)
-                        print(
-                            f"Connection timed out... Trying again ({timed_out}/{max_timeout})"
-                        )
+                        print(f"Connection timed out... Trying again ({timed_out}/{max_timeout})")
                     continue
 
                 if not self.suppress_output:
@@ -92,9 +88,7 @@ class Chat:
 
                 if not self.suppress_output:
                     print(f"Error text: {err.error}", file=sys.stderr)
-                    print(
-                        "[assumed] Hit context length limit. Context was reduced. Retrying..."
-                    )
+                    print("[assumed] Hit context length limit. Context was reduced. Retrying...")
 
                 continue
 

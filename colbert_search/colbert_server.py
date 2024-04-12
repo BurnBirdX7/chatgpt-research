@@ -54,9 +54,7 @@ searchers: List[Tuple[Searcher, SourceMapping]] = []
 counter = {"api_calls": 0}
 
 
-def search(
-    searcher: Searcher, source_mapping: SourceMapping, query: str, k: int
-) -> list[dict[str, Any]]:
+def search(searcher: Searcher, source_mapping: SourceMapping, query: str, k: int) -> list[dict[str, Any]]:
     pids, ranks, scores = searcher.search(query, k=100)
     pids, ranks, scores = pids[:k], ranks[:k], scores[:k]
 

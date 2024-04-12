@@ -21,9 +21,7 @@ class WikiDataFile:
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "WikiDataFile":
-        return WikiDataFile(
-            d["path"], d["date"], int(d["num"]), int(d["p_first"]), int(d["p_last"])
-        )
+        return WikiDataFile(d["path"], d["date"], int(d["num"]), int(d["p_first"]), int(d["p_last"]))
 
     def __lt__(self, other: "WikiDataFile"):
         if self.date < other.date:
@@ -42,10 +40,7 @@ class ListWikiFileDescriptor(BaseDataDescriptor[List[WikiDataFile]]):
         return {"list": [asdict(bz2file) for bz2file in data]}
 
     def load(self, dic: Dict[str, ValueType]) -> List[WikiDataFile]:
-        return [
-            WikiDataFile.from_dict(bz2dict)
-            for bz2dict in cast(List[Dict[str, Any]], dic["list"])
-        ]
+        return [WikiDataFile.from_dict(bz2dict) for bz2dict in cast(List[Dict[str, Any]], dic["list"])]
 
     def get_data_type(self) -> type:
         return list

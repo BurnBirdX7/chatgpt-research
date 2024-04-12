@@ -36,9 +36,7 @@ class EmbeddingsBuilder:
 
         self.embedding_length = self.model.config.hidden_size
         self.normalize = config.normalize
-        self.logger.debug(
-            f"EmbeddingsBuilder: Embedding normalization: {self.normalize}"
-        )
+        self.logger.debug(f"EmbeddingsBuilder: Embedding normalization: {self.normalize}")
 
         self.suppress_progress_report = False
 
@@ -68,18 +66,14 @@ class EmbeddingsBuilder:
 
         for i in window_steps:
             # Create tensor with acceptable dimensions:
-            input_ids_tensor = torch.tensor(
-                input_ids[i: i + sequence_length]
-            ).unsqueeze(0)
+            input_ids_tensor = torch.tensor(input_ids[i : i + sequence_length]).unsqueeze(0)
 
             # Moves tensor to model's device
             input_ids_tensor = input_ids_tensor.to(self.model.device)
 
             with torch.no_grad():
                 output = self.model(input_ids_tensor)
-            seq_embeddings = (
-                output.last_hidden_state.squeeze(0).cpu().numpy().astype(np.float32)
-            )
+            seq_embeddings = output.last_hidden_state.squeeze(0).cpu().numpy().astype(np.float32)
 
             if previous_half is not None:
                 # Get mean value of 2 halves (prev[:t] and curr[t:])
@@ -113,14 +107,8 @@ class EmbeddingsBuilder:
             pad_to_multiple_of=self.max_model_input_length,
         )
 
-        input_ids = (
-            tokenizer_output["input_ids"]
-            .reshape((-1, self.max_model_input_length))
-            .to(self.device)
-        )
-        attention_mask = (
-            tokenizer_output["attention_mask"].reshape(input_ids.shape).to(self.device)
-        )
+        input_ids = tokenizer_output["input_ids"].reshape((-1, self.max_model_input_length)).to(self.device)
+        attention_mask = tokenizer_output["attention_mask"].reshape(input_ids.shape).to(self.device)
         with torch.no_grad():
             output = self.model(input_ids, attention_mask=attention_mask)
 
@@ -218,9 +206,7 @@ class EmbeddingsFromTextNode(BaseNode):
         self.eb_config = config
 
     def process(self, text: str) -> np.ndarray:
-        eb = EmbeddingsBuilder(
-            self.eb_config, logging.getLogger(f"{self.logger.name}.EmbeddingsBuilder")
-        )
+        eb = EmbeddingsBuilder(self.eb_config, logging.getLogger(f"{self.logger.name}.EmbeddingsBuilder"))
         return eb.tensor_from_text(text).cpu().numpy()
 
     def prerequisite_check(self) -> str | None:
@@ -240,9 +226,7 @@ class TokenizeTextNode(BaseNode):
     def process(self, text: str, *ignore) -> List[str]:
         tokenizer = self.eb_config.tokenizer
         tokens = tokenizer.tokenize(text)
-        readable_tokens = list(
-            map(lambda s: tokenizer.convert_tokens_to_string([s]), tokens)
-        )
+        readable_tokens = list(map(lambda s: tokenizer.convert_tokens_to_string([s]), tokens))
         return readable_tokens
 
 
@@ -256,14 +240,10 @@ class LikelihoodsForMultipleSources(BaseNode):
         tokenizer = self.eb_config.tokenizer
         model = self.eb_config.model
 
-        source_batched_likelihoods = (
-            {}
-        )  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
+        source_batched_likelihoods = {}  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
 
         for i, (source_name, source_text) in enumerate(sources_data.items()):
-            self.logger.debug(
-                f'Generating likelihoods for source {i + 1}/{len(sources_data)}: "{source_name}"'
-            )
+            self.logger.debug(f'Generating likelihoods for source {i + 1}/{len(sources_data)}: "{source_name}"')
             tokenizer_output = tokenizer(
                 text=source_text,
                 add_special_tokens=False,
@@ -280,9 +260,7 @@ class LikelihoodsForMultipleSources(BaseNode):
             source_token_id_batch = make_batch(tokenizer_output["input_ids"])
             with torch.no_grad():
                 # Logits have dimensions: (passage, position, vocab)
-                batched_logits = model(
-                    source_token_id_batch, attention_mask=source_attention_mask
-                ).logits
+                batched_logits = model(source_token_id_batch, attention_mask=source_attention_mask).logits
 
             batched_likelihoods = torch.nn.functional.softmax(batched_logits, dim=2)
             source_batched_likelihoods[source_name] = batched_likelihoods.cpu()

@@ -91,16 +91,12 @@ class BaseNode(Node, ABC):
         self.__out_type = self.out_descriptor.get_data_type()
 
         # Misc:
-        self.out_descriptor.logger = logging.getLogger(
-            f"{self.logger.name}.{self.out_descriptor.__class__.__name__}"
-        )
+        self.out_descriptor.logger = logging.getLogger(f"{self.logger.name}.{self.out_descriptor.__class__.__name__}")
 
     @Node.logger.setter  # type: ignore
     def logger(self, new_logger):
         Node.logger.fset(self, new_logger)
-        self.out_descriptor.logger = logging.getLogger(
-            f"{self.logger.name}.{self.out_descriptor.__class__.__name__}"
-        )
+        self.out_descriptor.logger = logging.getLogger(f"{self.logger.name}.{self.out_descriptor.__class__.__name__}")
 
     @property
     def in_types(self) -> List[type]:
@@ -148,9 +144,7 @@ class ConstantNode(BaseNode):
         super().__init__(name, [], out_descriptor)
         self.value = value
         if not out_descriptor.is_type_compatible(type(value)):
-            raise TypeError(
-                f"Value {value} of type {type(value)} is not compatible with descriptor {out_descriptor!r}"
-            )
+            raise TypeError(f"Value {value} of type {type(value)} is not compatible with descriptor {out_descriptor!r}")
 
     def process(self, *ignored) -> Any:
         return self.value

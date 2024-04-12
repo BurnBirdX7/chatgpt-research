@@ -1,6 +1,6 @@
 import copy
 import itertools
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Tuple
 
 from transformers import RobertaForMaskedLM
 
@@ -33,30 +33,39 @@ def FilterDict(dict_: dict, keys: list) -> dict:
     return {k: dict_[k] for k in unique_keys}
 
 
-class AddMatchedText(BaseNode):
+class AttachMetaData(BaseNode):
 
     def __init__(self, name: str):
-        super().__init__(name, [list, dict], ChainListDescriptor())
+        super().__init__(name, [list, list, dict], ChainListDescriptor())
 
-    def process(
-        self, chains: List[Chain], source_tokens_dict: Dict[str, List[str]]
-    ) -> Any:
+    @staticmethod
+    def get_texts(token_list: List[str], beg: int, end: int) -> Tuple[str, str, str]:
+        text = "".join(token_list[beg:end])
+        pre = "".join(token_list[beg - 3 : beg])
+        post = "".join(token_list[end : end + 3])
+        return text, pre, post
+
+    def process(self, chains: List[Chain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]) -> Any:
         """
         Parameters
         ----------
         chains : List[Chain]
+        target_tokens : List[str]
         source_tokens_dict : Dict[str, List[str]]
 
         Returns
         -------
         List[Chain]
         """
-        chains = copy.deepcopy(chains)
 
         for chain in chains:
             source_tokens = source_tokens_dict[chain.source]
-            text = "".join(source_tokens[chain.source_begin_pos: chain.source_end_pos])
-            chain.matched_source_text = text
+            chain.attachment["source_text"] = AttachMetaData.get_texts(
+                source_tokens, chain.source_begin_pos, chain.source_end_pos
+            )
+            chain.attachment["target_text"] = AttachMetaData.get_texts(
+                target_tokens, chain.target_begin_pos, chain.target_end_pos
+            )
 
         return chains
 
@@ -64,43 +73,28 @@ class AddMatchedText(BaseNode):
 def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
     # Configs:
     colbert_cfg: ColbertServerConfig = ColbertServerConfig.load_from_env()  # type: ignore
-    text_eb_config = EmbeddingBuilderConfig(
-        normalize=True, centroid_file="artifacts/centroid-colbert.npy"
-    )  # Default
+    text_eb_config = EmbeddingBuilderConfig(normalize=True, centroid_file="artifacts/centroid-colbert.npy")  # Default
     chaining_eb_config = EmbeddingBuilderConfig(
-        model=RobertaForMaskedLM.from_pretrained("roberta-large").to(
-            text_eb_config.model.device
-        ),
+        model=RobertaForMaskedLM.from_pretrained("roberta-large").to(text_eb_config.model.device),
         centroid_file="artifacts/centroid-colbert.npy",
     )
 
     # == Pipeline ==
 
     # First node strips input of punctuation
-    pipeline = Pipeline(
-        TextProcessingNode.new("input-stripped", remove_punctuation), name=name
-    )
+    pipeline = Pipeline(TextProcessingNode.new("input-stripped", remove_punctuation), name=name)
 
     # Node queries all sources that might contain similar text from ColBERT
     pipeline.attach_back(QueryColbertServer("all-sources-dict-raw", colbert_cfg))
 
     # Clear all retrieved texts of punctuation
-    pipeline.attach_back(
-        TextProcessingNode.new_for_dicts("all-sources-dict", remove_punctuation)
-    )
+    pipeline.attach_back(TextProcessingNode.new_for_dicts("all-sources-dict", remove_punctuation))
 
     # Generate embeddings from sources and build new FAISS index
     pipeline.attach_back(IndexFromSourcesNode("all-sources-index", text_eb_config))
 
-    # (MISC) Input text is split into tokens
-    pipeline.attach(
-        TokenizeTextNode("input-tokenized", text_eb_config), "input-stripped"
-    )
-
     # Produce embeddings from input
-    pipeline.attach(
-        EmbeddingsFromTextNode("input-embeddings", text_eb_config), "input-stripped"
-    )
+    pipeline.attach(EmbeddingsFromTextNode("input-embeddings", text_eb_config), "input-stripped")
 
     # Get possible source names for every token-pos of the input text
     pipeline.attach(
@@ -110,22 +104,10 @@ def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
     )
 
     # Narrow dictionary
-    pipeline.attach(
-        FilterDict("narrowed-sources-dict"), "all-sources-dict", "narrowed-sources-list"
-    )
+    pipeline.attach(FilterDict("narrowed-sources-dict"), "all-sources-dict", "narrowed-sources-list")
 
     # Get likelihoods for all token-positions for given sources
-    pipeline.attach_back(
-        LikelihoodsForMultipleSources("source-likelihoods", chaining_eb_config)
-    )
-
-    # (MISC) Split source texts into tokens
-    pipeline.attach(
-        DictWrapperNode(
-            TokenizeTextNode("narrowed-sources-dict-tokenized", text_eb_config)
-        ),
-        "narrowed-sources-dict",
-    )
+    pipeline.attach_back(LikelihoodsForMultipleSources("source-likelihoods", chaining_eb_config))
 
     # Build high-likelihood chains
     pipeline.attach(
@@ -138,15 +120,42 @@ def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
     # Filter overlapping chains out
     pipeline.attach_back(FilterChainsNode("filtered-chains"))
 
-    # Add matched source texts to filetered chains
-    pipeline.attach(
-        AddMatchedText("chains-with-text"),
-        "filtered-chains",
-        "narrowed-sources-dict-tokenized",
-    )
-
     # Map every token-position onto corresponding chain
     pipeline.attach_back(Pos2ChainMapNode("token2chain"))
+
+    return pipeline
+
+
+def get_extended_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
+    # Configs:
+    text_eb_config = EmbeddingBuilderConfig(normalize=True, centroid_file="artifacts/centroid-colbert.npy")
+
+    # == Pipeline ==
+
+    pipeline = get_coloring_pipeline(name)
+
+    # (MISC) Input text is split into tokens
+    pipeline.attach(
+        TokenizeTextNode("input-tokenized", text_eb_config),
+        "input-stripped",
+        auxiliary=True,
+    )
+
+    # (MISC) Split source texts into tokens
+    pipeline.attach(
+        DictWrapperNode(TokenizeTextNode("narrowed-sources-dict-tokenized", text_eb_config)),
+        "narrowed-sources-dict",
+        auxiliary=True,
+    )
+
+    # Add matched source texts to filetered chains
+    pipeline.attach(
+        AttachMetaData("chains-with-text"),
+        "filtered-chains",
+        "input-tokenized",
+        "narrowed-sources-dict-tokenized",
+        auxiliary=True,
+    )
 
     return pipeline
 

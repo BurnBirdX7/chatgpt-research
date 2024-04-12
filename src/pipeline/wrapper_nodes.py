@@ -10,9 +10,7 @@ __all__ = ["ListWrapperNode", "DictWrapperNode"]
 
 
 class _WrapperNode(BaseNode, ABC):
-    def __init__(
-        self, elem_node: Node, in_type: type, out_descriptor: BaseDataDescriptor
-    ):
+    def __init__(self, elem_node: Node, in_type: type, out_descriptor: BaseDataDescriptor):
         super().__init__(elem_node.name, [in_type], out_descriptor)
         self.elem_node = elem_node
         self.elem_node.logger = self.logger
@@ -29,9 +27,7 @@ class ListWrapperNode(_WrapperNode):
     """
 
     def __init__(self, elem_node: Node):
-        super().__init__(
-            elem_node, list, ComplexListDescriptor(elem_node.out_descriptor)
-        )
+        super().__init__(elem_node, list, ComplexListDescriptor(elem_node.out_descriptor))
 
     def process(self, input_: list) -> list:
         return [self.elem_node.process(v) for v in input_]
@@ -39,9 +35,7 @@ class ListWrapperNode(_WrapperNode):
 
 class DictWrapperNode(_WrapperNode):
     def __init__(self, elem_node: Node):
-        super().__init__(
-            elem_node, dict, ComplexDictDescriptor(elem_node.out_descriptor)
-        )
+        super().__init__(elem_node, dict, ComplexDictDescriptor(elem_node.out_descriptor))
 
     def process(self, input_: dict) -> dict:
         return {k: self.elem_node.process(v) for k, v in input_.items()}

@@ -22,9 +22,7 @@ def unpack_sources(pack: List[List[List[str]]]) -> List[str]:
 def main(source: str, destination: str, destination_map: str):
     print("Preparing FEVER... ", end="")
     source_json = pd.read_json(source, lines=True)
-    source_json = source_json[source_json["verifiable"] == "VERIFIABLE"].reset_index(
-        drop=True
-    )
+    source_json = source_json[source_json["verifiable"] == "VERIFIABLE"].reset_index(drop=True)
 
     collection_tsv = pd.DataFrame()
     collection_tsv["text"] = source_json["claim"]

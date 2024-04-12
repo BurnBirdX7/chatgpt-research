@@ -32,46 +32,35 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
         token_list = []
 
         # Track progress
-        accumulated = ""
         color_num: int = 1
         last_chain: Optional[Chain] = None
-
-        def push_text():
-            nonlocal color_num
-            if last_chain is None:
-                token_list.append({"color_num": 0, "token": accumulated})
-            else:
-                token_list.append(
-                    {
-                        "link": last_chain.source,
-                        "score": last_chain.get_score(),
-                        "chain": str(last_chain),
-                        "color_num": color_num,
-                        "token": accumulated,
-                        "source_text": last_chain.matched_source_text,
-                    }
-                )
-
-                color_num += 1
-                source_dict[last_chain.source].append(color_num)
 
         for pos, token in enumerate(coloring.tokens):
             chain = get_chain(pos)
 
-            if chain == last_chain:
-                accumulated += token
+            if chain is None:
+                token_list.append({"color_num": 0, "token": token})
                 continue
 
-            push_text()
+            if chain is not last_chain:
+                color_num += 1
+                source_dict[chain.source].append(color_num)
+                last_chain = chain
 
-            last_chain = chain
-            accumulated = token
+            token_list.append(
+                {
+                    "url": chain.source,
+                    "color_num": color_num,
+                    "score": chain.get_score(),
+                    "target_pos": pos,
+                    "target_text": chain.attachment["target_text"],
+                    "source_text": chain.attachment["source_text"],
+                    "chain": str(chain),
+                    "token": token,
+                }
+            )
 
-        push_text()
-
-        source_list = list(
-            sorted(source_dict.items(), key=lambda item: len(item[1]), reverse=True)
-        )
+        source_list = list(sorted(source_dict.items(), key=lambda item: len(item[1]), reverse=True))
 
         result_list.append(
             {

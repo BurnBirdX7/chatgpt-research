@@ -9,7 +9,7 @@ import pandas as pd
 import torch.cuda
 
 from src.chaining import Chain
-from scripts.coloring_pipeline import get_coloring_pipeline
+from scripts.coloring_pipeline import get_extended_coloring_pipeline
 
 
 def majority_label(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
@@ -76,7 +76,7 @@ class Stat:
         return 2 * p * r / (p + r) if p is not None and r is not None else None
 
 
-pipeline = get_coloring_pipeline()
+pipeline = get_extended_coloring_pipeline()
 pipeline.store_intermediate_data = False
 pipeline.force_caching("input-tokenized")
 pipeline.assert_prerequisites()

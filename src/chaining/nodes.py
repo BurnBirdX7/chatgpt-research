@@ -39,17 +39,13 @@ class ChainingNode(BaseNode):
 
         input_token_ids = tokenizer.encode(input_text)
         result_chains = []
-        for token_pos, (token_id, token_sources) in enumerate(
-            zip(input_token_ids, sources)
-        ):
+        for token_pos, (token_id, token_sources) in enumerate(zip(input_token_ids, sources)):
             self.logger.debug(f"position: {token_pos + 1} / {len(input_token_ids)}")
 
             for source in token_sources:
                 batched_likelihoods = source_batched_likelihoods[source]
                 self.logger.debug(
-                    f"\tbatch size: {len(batched_likelihoods)}, "
-                    f"token id: {token_id}, "
-                    f"source: {source}"
+                    f"\tbatch size: {len(batched_likelihoods)}, " f"token id: {token_id}, " f"source: {source}"
                 )
 
                 result_chains += self.chaining_func(

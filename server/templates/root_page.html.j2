@@ -34,7 +34,13 @@
 <form action="/resume" method="GET">
     <label for="resume_point">
         Rerun point:
-        <input type="text" id="resume_point" name="resume_point" value="all-chains">
+        <select name="resume_point" id="resume_point">
+            {% for point in resume_points -%}
+                <option value="{{ point }}" {% if point == "all-chains" %} selected {% endif %}>
+                    {{- point -}}
+                </option>
+            {%- endfor %}
+        </select>
     </label>
 
     <button>Partially redo last saved run</button>

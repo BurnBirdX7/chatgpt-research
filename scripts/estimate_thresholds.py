@@ -29,9 +29,7 @@ def estimate_thresholds_on_index(
 
     count = len(config.data) // 10
     pages = random.choices(list(config.data.items()), k=count)
-    embedding_builder = EmbeddingsBuilder(
-        EmbeddingBuilderConfig(tokenizer, model, normalize=True)
-    )
+    embedding_builder = EmbeddingsBuilder(EmbeddingBuilderConfig(tokenizer, model, normalize=True))
     embedding_builder.suppress_progress_report = True
 
     positives = []
@@ -79,9 +77,7 @@ def estimate_thresholds_for_elvis():
     for page in ChargingBar("Loading related articles").iter(elvis_related_articles):
         data |= OnlineWiki.get_sections(page)
 
-    for page in ChargingBar("Loading unrelated articles").iter(
-        elvis_unrelated_articles
-    ):
+    for page in ChargingBar("Loading unrelated articles").iter(elvis_unrelated_articles):
         data |= OnlineWiki.get_sections(page)
 
     estimate_thresholds(ThresholdConfig(data=data))

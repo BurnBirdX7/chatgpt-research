@@ -18,15 +18,15 @@ results = [
         name = "string",
         sources = [
             Source{
-                link = "url",
+                url = "url",
                 color = "color_class"
             },
             ...
         ],
         token_coloring = [
             TokenColored {
-                link = "url",
-                score = "1.0",
+                url = "url",
+                score = 1.0,
                 chain = "chain sre representation",
                 color_num = 11,
                 token = "text"
@@ -48,17 +48,30 @@ results = [
         </tr>
         <tr>
             <td class="src_text_box">
-                {%- for coloring in result.token_coloring -%}
-                    {%- if coloring.link is defined -%}
-                        <span class="color{{ coloring.color_num }} src_text"
-                              data-chain="{{ coloring.chain|escape }}"
-                              data-source="{{ coloring.link }}"
-                              data-sourcetext="{{ coloring.source_text }}"
+                {%- for token in result.token_coloring -%}
+                    {%- if token.url is defined -%}
+                        {#- Each token carries all of meta-information -#}
+                        {#- TODO: Optimize -#}
+                        <span class="color{{ token.color_num }} src_text"
+                              data-source-url="{{ token.url }}"
+                              data-score="{{ token.score }}"
+
+                              data-target-pos="{{ token.target_pos }}"
+
+                              data-target-text="{{ token.target_text[0] }}"
+                              data-target-text-pre="{{ token.target_text[1] }}"
+                              data-target-text-post="{{ token.target_text[2] }}"
+
+                              data-source-text="{{ token.source_text[0] }}"
+                              data-source-text-pre="{{ token.source_text[1] }}"
+                              data-source-text-post="{{ token.source_text[2] }}"
+
+                              data-chain="{{ token.chain|escape }}"
                         >
-                            {{- coloring.token -}}
+                            {{- token.token -}}
                         </span>
                     {%- else -%}
-                        <span class="color{{ coloring.color_num }}">{{ coloring.token }}</span>
+                        <span class="color{{ token.color_num }}">{{ token.token }}</span>
                     {%- endif -%}
                 {%- endfor -%}
             </td>

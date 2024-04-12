@@ -47,18 +47,14 @@ class TextProcessingNode(BaseNode, Generic[T]):
         return cls(name, func, [str], StrDescriptor())  # type: ignore
 
     @classmethod
-    def new_for_lists(
-        cls, name: str, func: Callable[[str], str]
-    ) -> TextProcessingNode[List[str]]:
+    def new_for_lists(cls, name: str, func: Callable[[str], str]) -> TextProcessingNode[List[str]]:
         def wrapper(batch: List[str]) -> List[str]:
             return [func(b) for b in batch]
 
         return cls(name, wrapper, [list], ListDescriptor())  # type: ignore
 
     @classmethod
-    def new_for_dicts(
-        cls, name: str, func: Callable[[str], str]
-    ) -> TextProcessingNode[Dict[str, str]]:
+    def new_for_dicts(cls, name: str, func: Callable[[str], str]) -> TextProcessingNode[Dict[str, str]]:
         def wrapper(batch: Dict[str, str]) -> Dict[str, str]:
             return {k: func(v) for k, v in batch.items()}
 

@@ -141,6 +141,10 @@
     z-index: 5;
 }
 
+.greytext {
+    color: darkgray;
+}
+
 table {
     border: black 1px dashed;
     padding: 10pt;

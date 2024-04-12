@@ -1,0 +1,41 @@
+
+[tool.mypy]
+exclude = '''(?x)(
+          colbert_search/colbert_git/(.*).py$
+          | ^colbert_search/
+          | scripts/(   survey
+                        | new_approach_colored
+                        | filter_answers
+                        | color_text
+                        | collect_pop_quiz
+                        | model_of_GPT
+                        | build_index_from_potential_sources
+                        | generate_toloka)\.py$
+          )'''
+disable_error_code = ['override', 'import-untyped']
+allow_redefinition = true
+
+[[tool.mypy.overrides]]
+module = ["search", "search.Searcher"]
+disable_error_code = ['import-not-found','name-defined','attr-defined']
+
+[[tool.mypy.overrides]]
+module = "src.chat.*"
+disable_error_code = ['attr-defined']
+
+
+[tool.black]
+line-length = 120
+target-version = ['py39', 'py311']
+extend-exclude = '''(?x)(
+          colbert_search/colbert_git/(.*).py$
+          | ^colbert_search/
+          | scripts/(   survey
+                        | new_approach_colored
+                        | filter_answers
+                        | color_text
+                        | collect_pop_quiz
+                        | model_of_GPT
+                        | build_index_from_potential_sources
+                        | generate_toloka)\.py$
+          )'''

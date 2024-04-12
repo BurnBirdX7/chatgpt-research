@@ -31,9 +31,7 @@ class Index:
         """
         faiss_index = faiss.read_index(config.index_file)
         if config.faiss_use_gpu:
-            faiss_index = faiss.index_cpu_to_gpu(
-                faiss.StandardGpuResources(), 0, faiss_index
-            )
+            faiss_index = faiss.index_cpu_to_gpu(faiss.StandardGpuResources(), 0, faiss_index)
 
         mapping = SourceMapping.read_csv(config.mapping_file)
         return Index(faiss_index, mapping, config)
@@ -130,10 +128,7 @@ class Index:
         """
 
         indexes, _ = self.search_topk(x, k)
-        return [
-            self.get_sources(idxs)
-            for idxs in indexes  # indexes has (N, k) dims => idxs has (k,) dims
-        ]
+        return [self.get_sources(idxs) for idxs in indexes]  # indexes has (N, k) dims => idxs has (k,) dims
 
 
 class IndexDescriptor(BaseDataDescriptor[Index]):
@@ -143,12 +138,8 @@ class IndexDescriptor(BaseDataDescriptor[Index]):
         output_folder = self.artifacts_folder
         time_str = self.get_timestamp_str()
         rand_str = self.get_random_string(2)
-        index_file_name = os.path.join(
-            output_folder, f"{time_str}-{rand_str}.faiss_index"
-        )
-        mapping_file_name = os.path.join(
-            output_folder, f"{time_str}-{rand_str}.mapping.csv"
-        )
+        index_file_name = os.path.join(output_folder, f"{time_str}-{rand_str}.faiss_index")
+        mapping_file_name = os.path.join(output_folder, f"{time_str}-{rand_str}.mapping.csv")
 
         # Replace current config names with the generated
         data.config.index_file = index_file_name

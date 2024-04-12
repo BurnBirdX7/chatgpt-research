@@ -13,12 +13,8 @@ from progress.bar import ChargingBar  # type: ignore
 from src.config import EmbeddingBuilderConfig
 
 
-def estimate_centroid(
-    data: Iterable[str], tokenizer: RobertaTokenizer, model: RobertaModel
-) -> np.ndarray:
-    embedding_config = EmbeddingBuilderConfig(
-        tokenizer=tokenizer, model=model, normalize=False, centroid_file=None
-    )
+def estimate_centroid(data: Iterable[str], tokenizer: RobertaTokenizer, model: RobertaModel) -> np.ndarray:
+    embedding_config = EmbeddingBuilderConfig(tokenizer=tokenizer, model=model, normalize=False, centroid_file=None)
 
     embedding_builder = EmbeddingsBuilder(embedding_config)
     embedding_builder.suppress_progress_report = True
@@ -32,9 +28,7 @@ def estimate_centroid(
     return embeddings.mean(0)
 
 
-def estimate_centroid_for_elvis_persona(
-    tokenizer: RobertaTokenizer, model: RobertaModel
-) -> np.ndarray:
+def estimate_centroid_for_elvis_persona(tokenizer: RobertaTokenizer, model: RobertaModel) -> np.ndarray:
     page_names = elvis_unrelated_articles + elvis_unrelated_articles_large
     texts: List[str] = []
     for name in ChargingBar("Loading articles").iter(page_names):
@@ -46,9 +40,7 @@ def estimate_centroid_for_elvis_persona(
 def estimate_centroid_for_tsv_data(
     filepath: str, selection_size: int, tokenizer: RobertaTokenizer, model: RobertaModel
 ) -> np.ndarray:
-    df = pd.read_csv(filepath, delimiter="\t", names=["pid", "text"]).sample(
-        selection_size
-    )
+    df = pd.read_csv(filepath, delimiter="\t", names=["pid", "text"]).sample(selection_size)
     return estimate_centroid(df["text"], tokenizer, model)
 
 
@@ -56,9 +48,7 @@ def estimate_centroid_script(centroid_file, *args):
     if len(sys.argv) == 2:
         centroid_data = estimate_centroid_for_elvis_persona(*Roberta.get_default())
     elif len(sys.argv) == 4:
-        centroid_data = estimate_centroid_for_tsv_data(
-            args[0], int(args[1]), *Roberta.get_default()
-        )
+        centroid_data = estimate_centroid_for_tsv_data(args[0], int(args[1]), *Roberta.get_default())
     else:
         print(
             "Usage:\n"

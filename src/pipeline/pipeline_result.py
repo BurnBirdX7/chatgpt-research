@@ -75,13 +75,9 @@ class NodeStatistics:
         if self.node_seconds > 0:
             time_.append(f"time: {datetime.timedelta(seconds=self.node_seconds)}")
         if self.descriptor_seconds > 0:
-            time_.append(
-                f"descriptor time: {datetime.timedelta(seconds=self.descriptor_seconds)}"
-            )
+            time_.append(f"descriptor time: {datetime.timedelta(seconds=self.descriptor_seconds)}")
         if self.other_seconds > 0:
-            time_.append(
-                f"other time: {datetime.timedelta(seconds=self.other_seconds)})"
-            )
+            time_.append(f"other time: {datetime.timedelta(seconds=self.other_seconds)})")
 
         s = ", ".join(time_)
 

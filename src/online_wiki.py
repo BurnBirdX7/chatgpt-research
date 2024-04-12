@@ -22,9 +22,7 @@ class OnlineWiki:
     )
 
     @staticmethod
-    def __traverse_sections(
-        section: wikipediaapi.WikipediaPageSection, page_url: str
-    ) -> dict[str, str]:
+    def __traverse_sections(section: wikipediaapi.WikipediaPageSection, page_url: str) -> dict[str, str]:
         title = section.title
 
         for prefix in banned_title_prefixes:

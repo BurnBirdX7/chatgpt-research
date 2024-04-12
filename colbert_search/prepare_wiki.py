@@ -51,11 +51,7 @@ class WikiParseContext:
         """
         Pushes data from text representation of wikipedia article into file and mapping structures
         """
-        if (
-            not self.should_parse
-            or self.current_page is None
-            or self.current_title is None
-        ):
+        if not self.should_parse or self.current_page is None or self.current_title is None:
             return
 
         self.pushed += 1
@@ -67,9 +63,7 @@ class WikiParseContext:
             for paragraph in section.split("\n"):
                 stripped_paragraph = paragraph.strip()
                 if len(stripped_paragraph) > 0:
-                    stripped_paragraph = stripped_paragraph.replace(
-                        "\t", " "
-                    )  # make tsv-safe
+                    stripped_paragraph = stripped_paragraph.replace("\t", " ")  # make tsv-safe
                     self.passage_file.write(f"{self.pid}\t{stripped_paragraph}\n")
                     self.pid += 1
 
@@ -101,14 +95,10 @@ class WikiParseContext:
         if self.passage_file is not None:
             self.passage_file.close()
 
-        self.source_mapping_path = os.path.join(
-            self.output_dir, f"{self.collection_name}_sources_{num}.tsv"
-        )
+        self.source_mapping_path = os.path.join(self.output_dir, f"{self.collection_name}_sources_{num}.tsv")
         self.source_mapping = SourceMapping()
 
-        self.passage_file_path = os.path.join(
-            self.output_dir, f"{self.collection_name}_passages_{num}.csv"
-        )
+        self.passage_file_path = os.path.join(self.output_dir, f"{self.collection_name}_passages_{num}.csv")
         self.passage_file = open(self.passage_file_path, "w")
 
         self.pid = 0
@@ -224,17 +214,11 @@ def prepare_wiki(collection_name: str, wiki_path: str, output_dir: str) -> list[
             if event == "end":
                 ctx.current_title = elem.text
         elif elem.tag == ctx.text_tag:
-            if (
-                event == "end"
-                and ctx.should_parse
-                and not is_title_banned(ctx.current_title)
-            ):
+            if event == "end" and ctx.should_parse and not is_title_banned(ctx.current_title):
                 ctx.current_page = parse_wikitext(elem.text)
 
         if ctx.pushed > 25000:
-            print(
-                f"==== pushed {ctx.pushed} passages, creating new file ====", flush=True
-            )
+            print(f"==== pushed {ctx.pushed} passages, creating new file ====", flush=True)
             file_num += 1
             passage_files.append(ctx.reset(file_num))
 
@@ -264,9 +248,7 @@ class PrepareWiki(BaseNode):
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print(
-            "Usage: python -m colbert_search prepare_wiki [collection_name] [wiki_file] [output_dir]"
-        )
+        print("Usage: python -m colbert_search prepare_wiki [collection_name] [wiki_file] [output_dir]")
         exit(1)
 
     prepare_wiki(*sys.argv[1:])

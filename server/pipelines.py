@@ -6,14 +6,14 @@ from collections import OrderedDict
 from functools import lru_cache
 from typing import Tuple, List
 
-from scripts.coloring_pipeline import get_coloring_pipeline
+from scripts.coloring_pipeline import get_extended_coloring_pipeline
 from server.render_colored_text import Coloring
 from src.pipeline import Pipeline
 
 
-# Pipeline configuratio
+# Pipeline configuration
 def pipeline_preset(name: str, use_bidirectional_chaining: bool) -> Pipeline:
-    pipeline = get_coloring_pipeline(name)
+    pipeline = get_extended_coloring_pipeline(name)
     pipeline.assert_prerequisites()
     pipeline.force_caching("input-tokenized")
     pipeline.force_caching("$input")
@@ -29,10 +29,12 @@ unidir_pipeline = pipeline_preset("unidirectional", use_bidirectional_chaining=F
 bidir_pipeline = pipeline_preset("bidirectional", use_bidirectional_chaining=True)
 
 
+def get_resume_points() -> List[str]:
+    return list(unidir_pipeline.default_execution_order)
+
+
 @lru_cache(5)
-def color_text(
-    text: str | None, store_data: bool, resume_node: str = "all-chains"
-) -> Tuple[str, List[Coloring]]:
+def color_text(text: str | None, store_data: bool, resume_node: str = "all-chains") -> Tuple[str, List[Coloring]]:
     if text is not None and store_data:
         unidir_pipeline.cleanup_file(unidir_pipeline.unstamped_history_filepath)
         bidir_pipeline.cleanup_file(bidir_pipeline.unstamped_history_filepath)
@@ -41,13 +43,12 @@ def color_text(
     bidir_pipeline.store_intermediate_data = store_data
 
     coloring_variants = []
+
     start = time.time()
 
     # UNIDIRECTIONAL
     if text is None:
-        result = unidir_pipeline.resume_from_disk(
-            unidir_pipeline.unstamped_history_filepath, resume_node
-        )
+        result = unidir_pipeline.resume_from_disk(unidir_pipeline.unstamped_history_filepath, resume_node)
     else:
         result = unidir_pipeline.run(text)
     coloring_variants.append(
@@ -62,9 +63,12 @@ def color_text(
 
     # BIDIRECTIONAL
     if text is None:
-        result = bidir_pipeline.resume_from_disk(
-            bidir_pipeline.unstamped_history_filepath, resume_node
-        )
+        exec_order = bidir_pipeline.default_execution_order
+        if exec_order.index(resume_node) > exec_order.index("all-chains"):
+            result = bidir_pipeline.resume_from_disk(bidir_pipeline.unstamped_history_filepath, resume_node)
+        else:
+            result = bidir_pipeline.resume_from_cache(result, resume_node)
+
     else:
         result = bidir_pipeline.resume_from_cache(result, "all-chains")
 

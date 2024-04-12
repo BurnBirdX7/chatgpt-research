@@ -99,9 +99,7 @@ def fever_process_dataset():
     # Data:
     sup_passages = pd.DataFrame({"passage": supported["claim"], "supported": True})
 
-    not_sup_passage = pd.DataFrame(
-        {"passage": not_supported["claim"], "supported": False}
-    )
+    not_sup_passage = pd.DataFrame({"passage": not_supported["claim"], "supported": False})
 
     # Passages for testing:
     passages = pd.concat([sup_passages, not_sup_passage], ignore_index=True)
@@ -121,12 +119,8 @@ def fever_process_dataset():
     get_sources(random.choices(not_supporting_sources, k=1000))
 
     # Save to disk
-    save_sources(
-        supporting_dict, "wiki-p0-p0_passages_1.tsv", "wiki-p0-p0_sources_1.csv"
-    )
-    save_sources(
-        supporting_dict, "wiki-p0-p0_passages_2.tsv", "wiki-p0-p0_sources_2.csv"
-    )
+    save_sources(supporting_dict, "wiki-p0-p0_passages_1.tsv", "wiki-p0-p0_sources_1.csv")
+    save_sources(supporting_dict, "wiki-p0-p0_passages_2.tsv", "wiki-p0-p0_sources_2.csv")
 
 
 if __name__ == "__main__":

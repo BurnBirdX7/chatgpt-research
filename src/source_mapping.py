@@ -20,9 +20,7 @@ class SourceMapping:
 
     @property
     def highest_bound(self):
-        return (
-            self.upper_limits[-1] if len(self.upper_limits) > 0 else self.lowest_bound
-        )
+        return self.upper_limits[-1] if len(self.upper_limits) > 0 else self.lowest_bound
 
     def append_interval(self, length: int, source: str) -> None:
         """

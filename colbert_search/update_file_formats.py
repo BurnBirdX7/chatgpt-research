@@ -9,9 +9,7 @@ from src import WikiDataFile
 from src import SourceMapping
 
 
-def find_matches(
-    wikidict_pipe_path: str, directory: str
-) -> List[Tuple[WikiDataFile, str, int, bool]]:
+def find_matches(wikidict_pipe_path: str, directory: str) -> List[Tuple[WikiDataFile, str, int, bool]]:
     dic = json.load(open(wikidict_pipe_path, "r"))["list"]
 
     files = []
@@ -47,9 +45,7 @@ def tsv_table_to_csv_mapping(tsv_filename: str) -> SourceMapping:
                 print(f"Got wrong line format, line #{i}:")
                 continue
             id, url = parts
-            clean_url = (
-                url.strip().replace("\t", "_").replace(" ", "_").replace("'", "")
-            )
+            clean_url = url.strip().replace("\t", "_").replace(" ", "_").replace("'", "")
             mapping.append_interval(1, clean_url)
 
     return mapping

@@ -20,16 +20,11 @@ class ChainListDescriptor(BaseDataDescriptor):
 
 class Pos2ChainMappingDescriptor(BaseDataDescriptor[Dict[int, Chain]]):
 
-    def store(
-        self, data: Dict[int, Chain]
-    ) -> dict[str, base_data_descriptor.ValueType]:
+    def store(self, data: Dict[int, Chain]) -> dict[str, base_data_descriptor.ValueType]:
         return {str(pos): chain.to_dict() for pos, chain in data.items()}
 
     def load(self, dic: dict[str, base_data_descriptor.ValueType]) -> Dict[int, Chain]:
-        return {
-            int(pos_str): Chain.from_dict(chain_dict)  # type: ignore
-            for pos_str, chain_dict in dic.items()
-        }
+        return {int(pos_str): Chain.from_dict(chain_dict) for pos_str, chain_dict in dic.items()}  # type: ignore
 
     def get_data_type(self) -> type:
         return dict
