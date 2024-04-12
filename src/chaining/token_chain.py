@@ -18,7 +18,7 @@ class Chain:
         source: str,
         target_begin_pos: int,
         source_begin_pos: int,
-        all_likelihoods: Optional[List[float] | npt.NDArray[np.float64]] = None,
+        all_likelihoods: Optional[List[float] | npt.NDArray[np.float32]] = None,
         parent: Optional[Chain] = None,
     ):
         """Create chain
@@ -45,7 +45,7 @@ class Chain:
 
         self.target_begin_pos: int = target_begin_pos
         self.source_begin_pos: int = source_begin_pos
-        self.all_likelihoods = np.array([] if (all_likelihoods is None) else all_likelihoods)
+        self.all_likelihoods: npt.NDArray[np.float32] = np.array([] if (all_likelihoods is None) else all_likelihoods, dtype=np.float32)
         self.source = source
         self.parent = parent
         self.attachment: Dict[str, Any] = {}
@@ -64,9 +64,16 @@ class Chain:
         return self.source_begin_pos + len(self)
 
     @property
-    def likelihoods(self) -> npt.NDArray[np.float64]:
+    def likelihoods(self) -> npt.NDArray[np.float32]:
         """Significant likelihoods"""
         return self.all_likelihoods[self.all_likelihoods >= Chain.likelihood_significance_threshold]
+
+    def get_target_likelihood(self, target_pos: int) -> float:
+        if target_pos < self.target_begin_pos or target_pos >= self.target_end_pos:
+            return -1.0
+
+        return float(self.all_likelihoods[target_pos-self.target_begin_pos])
+
 
     def __eq__(self, other: Chain | None) -> bool:
         if other is None:
@@ -288,7 +295,7 @@ class Chain:
 
     @staticmethod
     def generate_chains_bidirectional(
-        source_likelihoods: npt.NDArray[np.float64],
+        source_likelihoods: npt.NDArray[np.float32],
         source_name: str,
         target_token_ids: List[int],
         target_start_pos: int,
@@ -297,7 +304,7 @@ class Chain:
 
         Parameters
         ----------
-        source_likelihoods : npt.NDArray[np.float64]
+        source_likelihoods : npt.NDArray[np.float32]
             inferred from the source text likelihoods for the tokens
 
         source_name : str

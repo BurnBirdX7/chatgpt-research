@@ -88,7 +88,7 @@
 }
 
 .color22 {
-    color: #ffdf3f;
+    color: #0babc7;
 }
 
 .color23 {
@@ -122,7 +122,43 @@
     color: dodgerblue;
 }
 
-.source_reference {
+/* Page-wide styling */
+
+#options-box {
+    display: flex;
+    justify-content: center;
+}
+
+
+/* Colored text styling */
+
+table {
+    border: black 1px dashed;
+    padding: 10pt;
+}
+
+.src_text_box span:hover {
+    background-color: yellow;
+}
+
+.src_text_box {
+    width: 55%;
+}
+
+.src_link_box {
+    width: 45%;
+}
+
+
+h1, h2, h3 {
+    text-align: center;
+}
+
+
+/* Reference list styling */
+
+.source_reference{
+    text-decoration-line: none;
     color: black;
     font-style: italic;
 }
@@ -130,6 +166,8 @@
 .source_reference:hover {
     text-decoration: underline;
 }
+
+/* Popup styling */
 
 .popup {
     position: absolute;
@@ -145,24 +183,7 @@
     color: darkgray;
 }
 
-table {
-    border: black 1px dashed;
-    padding: 10pt;
-}
-
-a {
-    text-decoration-line: none
-}
-
-.src_text_box {
-    width: 55%;
-}
-
-.src_link_box {
-    width: 45%;
-}
-
-
-h1, h2, h3 {
-    text-align: center;
+.likelihood_plot {
+    width: 800px;
+    height: 300px;
 }

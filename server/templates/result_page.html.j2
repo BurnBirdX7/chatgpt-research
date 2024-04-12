@@ -6,7 +6,13 @@
     <link rel="stylesheet" type="text/css" href="/static/style_result.css">
 </head>
 <body>
-<h1>Result of research</h1>
+<h1>Result of search</h1>
+<div id="options-box">
+    <label for="load-images" style="align-content: center">
+        <input id="load-images" type="checkbox" value="Load images">
+        Display graphs
+    </label>
+</div>
 <h2>Input</h2>
 <p>{{ input_text }}</p>
 
@@ -41,10 +47,10 @@ results = [
 
 {% for result in results %}
     <h3> {{ result.name }} </h3>
-    <table>
+    <table class="category-table" data-key="{{ result.key }}">
         <tr>
             <th>Colored text</th>
-            <th>Sources</th>
+            <th>Sources ({{ result.sources|length }}) </th>
         </tr>
         <tr>
             <td class="src_text_box">
@@ -57,6 +63,7 @@ results = [
                               data-score="{{ token.score }}"
 
                               data-target-pos="{{ token.target_pos }}"
+                              data-target-likelihood="{{ token.target_likelihood }}"
 
                               data-target-text="{{ token.target_text[0] }}"
                               data-target-text-pre="{{ token.target_text[1] }}"

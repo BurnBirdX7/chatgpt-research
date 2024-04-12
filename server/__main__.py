@@ -5,7 +5,7 @@ import logging
 from flask import Flask, render_template, request, Response
 
 from scripts.coloring_pipeline import get_extended_coloring_pipeline
-from server.pipelines import color_text, get_resume_points
+from server.pipelines import color_text, get_resume_points, plot_pos_likelihoods
 from server.render_colored_text import render_colored_text
 from src.pipeline.pipeline_draw import bytes_draw_pipeline
 
@@ -38,9 +38,17 @@ def resume_page():
 
 
 @app.route("/visualize", methods=["GET"])
-def visualize_page():
+def visualize_img():
     img = bytes_draw_pipeline(get_extended_coloring_pipeline("coloring"))
     return Response(img, mimetype="image/png")
+
+
+@app.route("/prev/stats", methods=["GET"])
+def stats_img():
+    target_pos = int(request.args['target_pos'])
+    target_likelihood = float(request.args['likelihood'])
+    key = request.args['key']
+    return Response(plot_pos_likelihoods(target_pos, target_likelihood, key))
 
 
 if __name__ == "__main__":

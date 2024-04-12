@@ -1,16 +1,29 @@
+
+// Popup setup:
 const popup = document.createElement('div')
 popup.className = 'popup'
 popup.style.display = 'none'
 document.body.appendChild(popup)
 
+// Boxes:
 const source_texts = document.querySelectorAll('.src_text')
 const source_text_boxes = document.querySelectorAll(".src_text_box")
-const timer = clearTimeout(12)
 
+// Parameters:
 let popupFixated = false
+let loadImages = false
+
+
+// Functions:
+function getKey(elem) {
+    const target = elem.closest(".category-table")
+    return target.getAttribute('data-key')
+}
 
 function updatePopup(event, target) {
     const source_url = target.getAttribute('data-source-url')
+    const target_pos = target.getAttribute('data-target-pos')
+    const target_likelihood = target.getAttribute('data-target-likelihood')
     let color_class = 'color0'
     target.classList.forEach((cls) => {
         if (cls.startsWith('color')) {
@@ -37,23 +50,38 @@ function updatePopup(event, target) {
             <span class="greytext">${target.getAttribute('data-source-text-post')}...</span>
         </td></tr>    
         </table>
-        <b>Score: </b> ${target.getAttribute('data-score')}<br>
-        <pre>${target.getAttribute("data-chain")}</pre><br>
-        <button id="popup_close">Close</button>
-    `
+        <b>Score: </b> ${target.getAttribute('data-score')}
+        <b>Pos: </b> ${target_pos}
+        <b>Likelihood: </b> ${parseFloat(target_likelihood).toFixed(4)}
+        <br>`
+
+    if (loadImages) {
+        popup.innerHTML += `
+        <img alt="plot"
+             class="likelihood_plot"
+             src="/prev/stats?key=${getKey(target)}&target_pos=${target_pos}&likelihood=${target_likelihood}">
+        <br>`
+    }
+    popup.innerHTML += "<button id=\"popup_close\">Close</button>"
     // ! INNER HTML SECTION
 
     popup.style.display = 'block'
     popup.style.left = (event.pageX + 10) + 'px'
-    popup.style.top = (event.pageY + 10 - popup.offsetHeight) + 'px'
+    popup.style.top = (event.pageY - 10 - popup.offsetHeight) + 'px'
     popup.querySelector("#popup_close").addEventListener("click", () => {
         popupFixated = false
         popup.style.display = 'none'
     })
 }
 
+// Add Listeners
+
+document.querySelector("#load-images").addEventListener('change', (event) => {
+    loadImages = event.target.checked
+})
+
 source_texts.forEach(span => {
-    span.addEventListener('mouseenter', (event) => {
+    span.addEventListener('mousemove', (event) => {
         if (popupFixated) {
             return
         }

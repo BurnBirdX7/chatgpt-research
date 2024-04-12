@@ -11,7 +11,8 @@ from src.chaining import Chain
 
 @dataclasses.dataclass
 class Coloring:
-    name: str
+    title: str
+    pipeline_name: str
     tokens: List[str]
     pos2chain: Dict[int, Chain]
 
@@ -32,7 +33,7 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
         token_list = []
 
         # Track progress
-        color_num: int = 1
+        color_num: int = 0
         last_chain: Optional[Chain] = None
 
         for pos, token in enumerate(coloring.tokens):
@@ -53,6 +54,7 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
                     "color_num": color_num,
                     "score": chain.get_score(),
                     "target_pos": pos,
+                    "target_likelihood": chain.get_target_likelihood(pos),
                     "target_text": chain.attachment["target_text"],
                     "source_text": chain.attachment["source_text"],
                     "chain": str(chain),
@@ -64,7 +66,8 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
 
         result_list.append(
             {
-                "name": coloring.name,
+                "name": coloring.title,
+                "key": coloring.pipeline_name,
                 "sources": source_list,
                 "token_coloring": token_list,
             }
