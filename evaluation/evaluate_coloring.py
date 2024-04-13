@@ -33,6 +33,7 @@ def longest_chain_cover(tokens: list[str], pos2chain: dict[int, Chain]):
 def prob2bool(func: Callable) -> List[Callable]:
     wrappers = []
     for threshold in range(10, 91, 5):
+
         @functools.wraps(func)
         def wrapper(tokens: list[str], pos2chain: dict[int, Chain]):
             prob = func(tokens, pos2chain)
@@ -86,39 +87,38 @@ class Stat:
 pipeline = get_extended_coloring_pipeline()
 pipeline.store_intermediate_data = False
 pipeline.force_caching("input-tokenized")
-queryNode: QueryColbertServerNode = pipeline.nodes['all-sources-dict-raw']
+queryNode: QueryColbertServerNode = pipeline.nodes["all-sources-dict-raw"]  # type: ignore
+
 
 def roc_curve(passages: pd.DataFrame, start_idx: int):
-    with open('progress.json', 'r') as f:
-        preds = {
-                    f.__name__: []
-                    for f in statistics
-                } | ujson.load(f)['preds']
+    with open("progress.json", "r") as f:
+        progress = ujson.load(f)
+
+    preds = {f.__name__: [] for f in statistics} | progress["preds"]
 
     for i, x_test, y_true in passages[start_idx:].itertuples():
         logger.info(f"Evaluating {i + 1} / {len(passages)}...")
         res = pipeline.run(x_test)
-        tokens = res.cache['input-tokenized']
+        tokens = res.cache["input-tokenized"]
         for func in statistics:
             preds[func.__name__].append(func(tokens, res.last_node_result))
 
-        with open('progress.json', 'w') as f:
-            ujson.dump({
-                'idx': i+1,
-                'preds': preds,
-            }, f)
+        with open("progress.json", "w") as f:
+            progress["idx"] = i + 1
+            progress["preds"] = preds
+            ujson.dump(progress, f, indent=2)
 
     for func, y_pred in preds.items():
-        fpr, tpr, thresholds = metrics.roc_curve(passages['supported'], y_pred)
+        fpr, tpr, thresholds = metrics.roc_curve(passages.drop(progress["skips"])["supported"], y_pred)
         roc_auc = metrics.auc(fpr, tpr)
-        plt.title(f'ROC curve for {func.__name__} func')
-        plt.plot(fpr, tpr, 'b', label=f'AUC = {roc_auc:0.2f}')
-        plt.legend(loc='lower right')
-        plt.plot([0, 1], [0, 1], 'r--')
+        plt.title(f"ROC curve for {func} func")
+        plt.plot(fpr, tpr, "b", label=f"AUC = {roc_auc:0.2f}")
+        plt.legend(loc="lower right")
+        plt.plot([0, 1], [0, 1], "r--")
         plt.xlim([0, 1])
         plt.ylim([0, 1])
-        plt.ylabel('True Positive Rate')
-        plt.xlabel('False Positive Rate')
+        plt.ylabel("True Positive Rate")
+        plt.xlabel("False Positive Rate")
         plt.show()
 
 
@@ -178,7 +178,7 @@ def estimate_bool():
 def start():
     passages = pd.read_csv("selected_passages.csv")
     with open("progress.json", "r") as f:
-        start_idx = int(ujson.load(f)['idx'])
+        start_idx = int(ujson.load(f)["idx"])
 
     logger.info(f"Starting evaluation with progress counter on {start_idx}")
     roc_curve(passages, start_idx)

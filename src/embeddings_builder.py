@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import itertools
 import logging
 import os.path
@@ -262,7 +263,7 @@ class LikelihoodsForMultipleSources(BaseNode):
                 # Logits have dimensions: (passage, position, vocab)
                 batched_logits = model(source_token_id_batch, attention_mask=source_attention_mask).logits
 
-            batched_likelihoods = torch.nn.functional.softmax(batched_logits, dim=2)
-            source_batched_likelihoods[source_name] = batched_likelihoods.cpu()
+            batched_likelihoods = torch.nn.functional.softmax(batched_logits.cpu(), dim=2)
+            source_batched_likelihoods[source_name] = batched_likelihoods
 
         return source_batched_likelihoods

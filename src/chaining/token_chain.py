@@ -45,9 +45,11 @@ class Chain:
 
         self.target_begin_pos: int = target_begin_pos
         self.source_begin_pos: int = source_begin_pos
-        self.all_likelihoods: npt.NDArray[np.float64] = np.array([] if (all_likelihoods is None) else all_likelihoods, dtype=np.float64)
+        self.all_likelihoods: npt.NDArray[np.float64] = np.array(
+            [] if (all_likelihoods is None) else all_likelihoods, dtype=np.float64
+        )
         self.source = source
-        self.parent: Chain | List[Chain] = parent
+        self.parent: Chain | List[Chain] | None = parent
         self.attachment: Dict[str, Any] = {}
 
         self.begin_skips = 0
@@ -72,7 +74,7 @@ class Chain:
         if target_pos < self.target_begin_pos or target_pos >= self.target_end_pos:
             return -1.0
 
-        return float(self.all_likelihoods[target_pos-self.target_begin_pos])
+        return float(self.all_likelihoods[target_pos - self.target_begin_pos])
 
     def __eq__(self, other: Chain | None) -> bool:
         if other is None:
@@ -230,9 +232,9 @@ class Chain:
     def trim(self):
         """Trims insignificant likelihoods from the chain"""
         if self.end_skips > 0:
-            self.all_likelihoods = self.all_likelihoods[self.begin_skips:-self.end_skips]
+            self.all_likelihoods = self.all_likelihoods[self.begin_skips : -self.end_skips]
         else:
-            self.all_likelihoods = self.all_likelihoods[self.begin_skips:]
+            self.all_likelihoods = self.all_likelihoods[self.begin_skips :]
 
         self.target_begin_pos += self.begin_skips
         self.source_begin_pos += self.begin_skips

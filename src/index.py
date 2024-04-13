@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import logging
 import os
 from typing import Union, Tuple, List, Any, Dict
@@ -7,10 +8,10 @@ from typing import Union, Tuple, List, Any, Dict
 import faiss  # type: ignore
 import pandas as pd  # type: ignore
 import numpy as np
+import torch
 
 from . import EmbeddingsBuilder
 from .pipeline import BaseDataDescriptor, base_data_descriptor, BaseNode, ListDescriptor
-from .pipeline.base_data_descriptor import ValueType
 from .source_mapping import SourceMapping
 
 __all__ = ["Index", "IndexDescriptor", "IndexFromSourcesNode", "SearchIndexNode"]
@@ -182,31 +183,27 @@ class IndexFromSourcesNode(BaseNode):
     Node processes dictionary (source_name -> source_text) into Index that can be searched
     """
 
-    def __init__(self, name: str, embedding_builder_config: EmbeddingBuilderConfig):
+    def __init__(self, name: str, embedding_builder_config: EmbeddingBuilderConfig, index_config: IndexConfig):
         super().__init__(name, [dict], IndexDescriptor())
         self.eb_config = embedding_builder_config
+        self.index_config = index_config
 
     def process(self, source_dict: Dict[str, str], *ignore) -> Index:
         """
         Accepts a dictionary (source_name -> source_text)
         """
-        index_cfg = IndexConfig()
 
         # Build embeddings
         eb = EmbeddingsBuilder(self.eb_config)
-        all_embeddings = None
+        all_embeddings = []
         mapping = SourceMapping()
 
         for source_name, source_text in source_dict.items():
             embeddings = eb.from_text(source_text)
             mapping.append_interval(len(embeddings), source_name)
+            all_embeddings.append(embeddings)
 
-            if all_embeddings is None:
-                all_embeddings = embeddings
-            else:
-                all_embeddings = np.concatenate([all_embeddings, embeddings])
-
-        return Index.from_embeddings(all_embeddings, mapping, index_cfg)
+        return Index.from_embeddings(np.concatenate(all_embeddings), mapping, self.index_config)
 
 
 class SearchIndexNode(BaseNode):

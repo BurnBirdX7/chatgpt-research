@@ -137,7 +137,6 @@ def colbert_server(config: ColbertServerConfig):
         os.kill(os.getpid(), signal.SIGTERM)
         return {"code": "ok", "msg": "Shutting down..."}
 
-
     global searchers
     searchers = init_searchers(INDEX_ROOT)
     app.run(config.ip_address, config.port)

@@ -66,7 +66,7 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
                     "source_text": chain.attachment["source_text"],
                     "chain": str(chain),
                     "token": token,
-                    "source_token": matched_token
+                    "source_token": matched_token,
                 }
             )
             relative_pos += 1

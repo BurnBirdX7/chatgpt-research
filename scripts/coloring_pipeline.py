@@ -17,11 +17,9 @@ from src.pipeline import (
     Pipeline,
     mapping_node,
     DictDescriptor,
-    ListDescriptor,
-    ComplexDictDescriptor,
     BaseNode,
 )
-from src.config import ColbertServerConfig, EmbeddingBuilderConfig
+from src.config import ColbertServerConfig, EmbeddingBuilderConfig, IndexConfig
 from src.pipeline.wrapper_nodes import DictWrapperNode
 from src.text_processing import TextProcessingNode, remove_punctuation
 
@@ -40,9 +38,9 @@ class AttachMetaData(BaseNode):
 
     @staticmethod
     def get_texts(token_list: List[str], beg: int, end: int) -> Tuple[str, str, str]:
-        text = "".join(token_list[beg: end])
-        pre = "".join(token_list[max(beg - 3, 0): beg])
-        post = "".join(token_list[end: end + 3])
+        text = "".join(token_list[beg:end])
+        pre = "".join(token_list[max(beg - 3, 0) : beg])
+        post = "".join(token_list[end : end + 3])
         return text, pre, post
 
     def process(self, chains: List[Chain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]) -> Any:
@@ -60,7 +58,7 @@ class AttachMetaData(BaseNode):
 
         for chain in chains:
             source_tokens = source_tokens_dict[chain.source]
-            chain.attachment["source_tokens"] = source_tokens[chain.source_begin_pos:chain.source_end_pos]
+            chain.attachment["source_tokens"] = source_tokens[chain.source_begin_pos : chain.source_end_pos]
             chain.attachment["source_text"] = AttachMetaData.get_texts(
                 source_tokens, chain.source_begin_pos, chain.source_end_pos
             )
@@ -79,6 +77,7 @@ def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
         model=RobertaForMaskedLM.from_pretrained("roberta-large").to(text_eb_config.model.device),
         centroid_file="artifacts/centroid-colbert.npy",
     )
+    source_index_config = IndexConfig(faiss_use_gpu=False)
 
     # == Pipeline ==
 
@@ -92,7 +91,7 @@ def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
     pipeline.attach_back(TextProcessingNode.new_for_dicts("all-sources-dict", remove_punctuation))
 
     # Generate embeddings from sources and build new FAISS index
-    pipeline.attach_back(IndexFromSourcesNode("all-sources-index", text_eb_config))
+    pipeline.attach_back(IndexFromSourcesNode("all-sources-index", text_eb_config, source_index_config))
 
     # Produce embeddings from input
     pipeline.attach(EmbeddingsFromTextNode("input-embeddings", text_eb_config), "input-stripped")

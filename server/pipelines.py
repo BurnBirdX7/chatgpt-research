@@ -41,6 +41,7 @@ bidir_pipeline = pipeline_preset("bidirectional", use_bidirectional_chaining=Tru
 chain_dicts: Dict[str, List[Chain]] = defaultdict(list)
 logger = logging.getLogger(__name__)
 
+
 def get_resume_points() -> List[str]:
     return list(unidir_pipeline.default_execution_order)
 
@@ -48,6 +49,7 @@ def get_resume_points() -> List[str]:
 def get_chains_for_pos(target_pos: int, key: str) -> List[Chain]:
     chains = chain_dicts[key]
     return [chain for chain in chains if chain.target_begin_pos <= target_pos < chain.target_end_pos]
+
 
 def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: List[Chain]) -> bytes:
     likelihoods = np.array([chain.get_target_likelihood(target_pos) for chain in chains])
@@ -59,18 +61,18 @@ def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: L
 
     fig, ax = plt.subplots(figsize=(8, 3))
     ax.hist(likelihoods, bins=16, range=(0, 1.0), color="grey")
-    ax.axvline(x=np.max(likelihoods), color='r')
-    ax.axvline(x=np.mean(likelihoods), color='g')
-    ax.axvline(x=target_likelihood, color='b', linestyle='--')
+    ax.axvline(x=np.max(likelihoods), color="r")
+    ax.axvline(x=np.mean(likelihoods), color="g")
+    ax.axvline(x=target_likelihood, color="b", linestyle="--")
 
     text_x = (ax.get_xlim()[0] + ax.get_xlim()[1]) / 2
     text_y = (ax.get_ylim()[0] + ax.get_ylim()[1]) / 2
 
     ax.text(text_x, text_y, f"Chain count: {len(chains)}")
 
-    ax.set_xlabel('likelihood')
-    ax.set_ylabel('frequency')
-    fig.savefig(img, format='png')
+    ax.set_xlabel("likelihood")
+    ax.set_ylabel("frequency")
+    fig.savefig(img, format="png")
     plt.close(fig)
     img.seek(0)
     return img.read()
