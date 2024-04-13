@@ -99,9 +99,9 @@ class Chain:
             return "-"
 
         if isinstance(self.parent, Chain):
-            return str(self.parent).replace("\t", "\t\t")
+            return str(self.parent).replace("\n\t", "\np\t\t")
 
-        return "[" + ", \n\t".join([str(chain) for chain in self.parent]).replace("\t", "\t\t") + "]"
+        return "[" + ", \n\t".join([str(chain) for chain in self.parent]).replace("\n\t", "\n\t\t") + "]"
 
     def __str__(self) -> str:
         return (
@@ -110,7 +110,7 @@ class Chain:
             f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
             f"\tlen: {len(self)}  [sign len: {len(self.likelihoods)}]\n"
             f"\tparent: {self._print_parent()}\n"
-            f"\tbegin_skips: {self.begin_skips}, end_skips: {self.end_skips}\n"
+            f"\tbegin_skips: {self.begin_skips}, end_skips: {self.end_skips}"
             f")"
         )
 

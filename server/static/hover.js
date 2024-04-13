@@ -34,7 +34,9 @@ function updatePopup(event, target) {
     })
 
     // INNER HTML SECTION
-    popup.innerHTML = `
+
+    if (source_url != null) {
+        popup.innerHTML = `
         <span class="${color_class}">⏺</span>
         <a href="${source_url}" target="_blank" class="source_reference">${source_url}</a><br>
         
@@ -53,6 +55,9 @@ function updatePopup(event, target) {
         <b>Pos: </b> ${target_pos}
         <b>Likelihood: </b> ${parseFloat(target_likelihood).toFixed(6)}
         <br>`
+    } else {
+        popup.innerHTML = `This token: \`<code>${target.innerText}</code>\`, Pos: ${target_pos} <br>`
+    }
 
     if (loadImages) {
         popup.innerHTML += `
@@ -63,7 +68,7 @@ function updatePopup(event, target) {
     }
 
     if (printChains) {
-        popup.innerHTML += `<pre>${target.getAttribute('data-chain')}</pre>`
+        popup.innerHTML += `<pre>${target.getAttribute('data-chain').replaceAll('\t', '  ')}</pre>`
     }
 
     popup.innerHTML += "<button id=\"popup_close\">Unpin</button>"
