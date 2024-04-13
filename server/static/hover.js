@@ -58,7 +58,7 @@ function updatePopup(event, target) {
         popup.innerHTML += `
         <img alt="plot"
              class="likelihood_plot"
-             src="/prev/stats?key=${getKey(target)}&target_pos=${target_pos}&likelihood=${target_likelihood}">
+             src="/prev/plots?key=${getKey(target)}&target_pos=${target_pos}&likelihood=${target_likelihood}">
         <br>`
     }
 
@@ -66,7 +66,7 @@ function updatePopup(event, target) {
         popup.innerHTML += `<pre>${target.getAttribute('data-chain')}</pre>`
     }
 
-    popup.innerHTML += "<button id=\"popup_close\">Close</button>"
+    popup.innerHTML += "<button id=\"popup_close\">Unpin</button>"
     // ! INNER HTML SECTION
 
     popup.style.display = 'block';

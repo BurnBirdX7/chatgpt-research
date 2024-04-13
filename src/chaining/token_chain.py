@@ -18,8 +18,8 @@ class Chain:
         source: str,
         target_begin_pos: int,
         source_begin_pos: int,
-        all_likelihoods: Optional[List[float] | npt.NDArray[np.float32]] = None,
-        parent: Optional[Chain] = None,
+        all_likelihoods: List[float] | npt.NDArray[np.float64] | None = None,
+        parent: Chain | List[Chain] | None = None,
     ):
         """Create chain
 
@@ -38,16 +38,16 @@ class Chain:
             All likelihoods of tokens from target text appearing in source text.
             If no value is supplied, length of 0 is assumed
 
-        parent : Chain, optional
+        parent : Chain or List[Chain], optional
             Parent chain, intended for debug purposes.
             Generally is a chain that was reduced or transformed into this chain
         """
 
         self.target_begin_pos: int = target_begin_pos
         self.source_begin_pos: int = source_begin_pos
-        self.all_likelihoods: npt.NDArray[np.float32] = np.array([] if (all_likelihoods is None) else all_likelihoods, dtype=np.float32)
+        self.all_likelihoods: npt.NDArray[np.float64] = np.array([] if (all_likelihoods is None) else all_likelihoods, dtype=np.float64)
         self.source = source
-        self.parent = parent
+        self.parent: Chain | List[Chain] = parent
         self.attachment: Dict[str, Any] = {}
 
         self.begin_skips = 0
@@ -64,7 +64,7 @@ class Chain:
         return self.source_begin_pos + len(self)
 
     @property
-    def likelihoods(self) -> npt.NDArray[np.float32]:
+    def likelihoods(self) -> npt.NDArray[np.float64]:
         """Significant likelihoods"""
         return self.all_likelihoods[self.all_likelihoods >= Chain.likelihood_significance_threshold]
 
@@ -94,13 +94,22 @@ class Chain:
         """
         return len(self.all_likelihoods)
 
+    def _print_parent(self) -> str:
+        if self.parent is None:
+            return "-"
+
+        if isinstance(self.parent, Chain):
+            return str(self.parent).replace("\t", "\t\t")
+
+        return "[" + ", \n\t".join([str(chain) for chain in self.parent]).replace("\t", "\t\t") + "]"
+
     def __str__(self) -> str:
         return (
             f"Chain(\n"
             f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
             f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
             f"\tlen: {len(self)}  [sign len: {len(self.likelihoods)}]\n"
-            f"\tparent: {self.parent!s}\n"
+            f"\tparent: {self._print_parent()}\n"
             f"\tbegin_skips: {self.begin_skips}, end_skips: {self.end_skips}\n"
             f")"
         )
@@ -138,6 +147,9 @@ class Chain:
         if self.source != other.source:
             raise ValueError(f"Added chain must have same source, got: {self.source} and {other.source}")
 
+        if len(self) == 0 or len(other) == 0:
+            raise ValueError("Chains can't be empty")
+
         if (self.target_end_pos - 1 != other.target_begin_pos) or (self.source_end_pos - 1 != other.source_begin_pos):
             raise ValueError(
                 "Added chains must have one common position"
@@ -162,7 +174,7 @@ class Chain:
 
         assert len(chain) == (len(self) + len(other) - 1)
         chain.begin_skips = self.begin_skips
-        chain.end_skips = self.end_skips
+        chain.end_skips = other.end_skips
         chain.parent = [self, other]
 
         return chain
@@ -186,22 +198,24 @@ class Chain:
 
     def append_end(self, likelihood: float) -> None:
         """Appends significant likelihood to the chain"""
+        assert likelihood >= Chain.likelihood_significance_threshold
         self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
         self.end_skips = 0
 
     def skip_end(self, likelihood: float) -> None:
         """Appends insignificant likelihood to the chain"""
-        self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
+        assert likelihood < Chain.likelihood_significance_threshold
         self.end_skips += 1
-        if len(self) == 0:
+        if len(self.likelihoods) == 0:  # No significant likelihoods encountered yet
             self.begin_skips += 1
+        self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
 
     def reverse(self) -> Chain:
         rev_chain = Chain(
             source=self.source,
             target_begin_pos=self.target_begin_pos - len(self) + 1,
             source_begin_pos=self.source_begin_pos - len(self) + 1,
-            all_likelihoods=np.flip(self.all_likelihoods),
+            all_likelihoods=np.flip(self.all_likelihoods, axis=0),
             parent=self,
         )
 
@@ -215,9 +229,13 @@ class Chain:
 
     def trim(self):
         """Trims insignificant likelihoods from the chain"""
-        end_trim = len(self) - self.end_skips
-        self.all_likelihoods = self.all_likelihoods[self.begin_skips: end_trim]
+        if self.end_skips > 0:
+            self.all_likelihoods = self.all_likelihoods[self.begin_skips:-self.end_skips]
+        else:
+            self.all_likelihoods = self.all_likelihoods[self.begin_skips:]
+
         self.target_begin_pos += self.begin_skips
+        self.source_begin_pos += self.begin_skips
         self.begin_skips = 0
         self.end_skips = 0
 
@@ -296,7 +314,7 @@ class Chain:
 
     @staticmethod
     def generate_chains_bidirectional(
-        source_likelihoods: npt.NDArray[np.float32],
+        source_likelihoods: npt.NDArray[np.float64],
         source_name: str,
         target_token_ids: List[int],
         target_start_pos: int,
@@ -305,7 +323,7 @@ class Chain:
 
         Parameters
         ----------
-        source_likelihoods : npt.NDArray[np.float32]
+        source_likelihoods : npt.NDArray[np.float64]
             inferred from the source text likelihoods for the tokens
 
         source_name : str
@@ -382,13 +400,9 @@ class Chain:
                 result_chains.append(backward_chain + forward_chain)
 
             # Add uni-directional chains to the set
-            for chain in backward_chains:
-                if chain.end_skips > 0:
-                    chain.trim()
 
-            for chain in forward_chains:
-                if chain.begin_skips > 0:
-                    chain.trim()
+            backward_chains = [chain.trim_copy() for chain in backward_chains]
+            forward_chains = [chain.trim_copy() for chain in forward_chains]
 
             result_chains += backward_chains + forward_chains
 

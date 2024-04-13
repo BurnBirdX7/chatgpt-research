@@ -41,7 +41,7 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
             chain = get_chain(pos)
 
             if chain is None:
-                token_list.append({"color_num": 0, "token": token})
+                token_list.append({"color_num": 0, "token": token, "target_pos": pos})
                 continue
 
             if chain is not last_chain:
@@ -50,6 +50,11 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
                 last_chain = chain
                 relative_pos = 0
 
+            source_tokens = chain.attachment["source_tokens"]
+            if len(source_tokens) > relative_pos:
+                matched_token = source_tokens[relative_pos]
+            else:
+                matched_token = f"<UNMATCHED ({relative_pos}/{len(source_tokens)})>"
             token_list.append(
                 {
                     "url": chain.source,
@@ -61,7 +66,7 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
                     "source_text": chain.attachment["source_text"],
                     "chain": str(chain),
                     "token": token,
-                    "source_token": chain.attachment["source_tokens"][relative_pos]
+                    "source_token": matched_token
                 }
             )
             relative_pos += 1

@@ -62,6 +62,11 @@ def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: L
     ax.axvline(x=np.mean(likelihoods), color='g')
     ax.axvline(x=target_likelihood, color='b', linestyle='--')
 
+    text_x = (ax.get_xlim()[0] + ax.get_xlim()[1]) / 2
+    text_y = (ax.get_ylim()[0] + ax.get_ylim()[1]) / 2
+
+    ax.text(text_x, text_y, f"Chain count: {len(chains)}")
+
     ax.set_xlabel('likelihood')
     ax.set_ylabel('frequency')
     fig.savefig(img, format='png')
@@ -76,16 +81,16 @@ def plot_pos_likelihoods(target_pos: int, target_likelihood: float, key: str) ->
 
 
 @lru_cache(5)
-def color_text(text: str | None, store_data: bool, resume_node: str = "all-chains") -> Tuple[str, List[Coloring]]:
+def color_text(text: str | None, override_data: bool, resume_node: str = "all-chains") -> Tuple[str, List[Coloring]]:
     plot_pos_likelihoods.cache_clear()
     stats = OrderedDict()
 
-    if text is not None and store_data:
+    if override_data:
         unidir_pipeline.cleanup_file(unidir_pipeline.unstamped_history_filepath)
         bidir_pipeline.cleanup_file(bidir_pipeline.unstamped_history_filepath)
 
-    unidir_pipeline.store_intermediate_data = store_data
-    bidir_pipeline.store_intermediate_data = store_data
+    unidir_pipeline.store_intermediate_data = override_data
+    bidir_pipeline.store_intermediate_data = override_data
 
     coloring_variants = []
 

@@ -429,7 +429,7 @@ class Pipeline:
         """
 
         if pipeline_result.pipeline_name != self.name:
-            self.logger.warning(f'Resuming run of the pipeline with different name: "{pipeline_result}"')
+            self.logger.warning(f'Resuming run of the pipeline with different name: "{pipeline_result.pipeline_name}"')
 
         node_index = self.__default_execution_order.index(node_name)
         execution_order = self.__default_execution_order[node_index:]

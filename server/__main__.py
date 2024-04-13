@@ -43,10 +43,10 @@ def visualize_img():
     return Response(img, mimetype="image/png")
 
 
-@app.route("/prev/stats", methods=["GET"])
+@app.route("/prev/plots", methods=["GET"])
 def stats_img():
     target_pos = int(request.args['target_pos'])
-    target_likelihood = float(request.args['likelihood'])
+    target_likelihood = request.args.get('likelihood', 0.0, float)
     key = request.args['key']
     return Response(plot_pos_likelihoods(target_pos, target_likelihood, key))
 

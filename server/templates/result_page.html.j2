@@ -6,6 +6,7 @@
     <link rel="stylesheet" type="text/css" href="/static/style_result.css">
 </head>
 <body>
+<a href="/">&lt; back</a>
 <h1>Result of search</h1>
 <div id="options-box">
     <label for="load-images">
@@ -85,7 +86,10 @@ results = [
                             {{- token.token -}}
                         </span>
                     {%- else -%}
-                        <span class="color{{ token.color_num }}">{{ token.token }}</span>
+                        <span class="color{{ token.color_num }} src_text"
+                              data-target-pos="{{ token.target_pos }}">
+                            {{- token.token -}}
+                        </span>
                     {%- endif -%}
                 {%- endfor -%}
             </td>

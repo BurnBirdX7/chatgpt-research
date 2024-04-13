@@ -70,6 +70,10 @@ class FilterChainsNode(BaseNode):
         self.logger.debug(f"Chain count: {len(chains)}")
         filtered_chains: List[Chain] = []
         marked_positions: Set[int] = set()  # positions that are marked with some source
+
+        chains = [chain.trim_copy() for chain in chains]
+        chains = [chain for chain in chains if len(chain) > 1]
+
         for chain in sorted(chains, key=lambda x: x.get_score(), reverse=True):
             if len(chain) < 2:
                 continue
