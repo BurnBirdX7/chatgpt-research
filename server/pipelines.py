@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import io
+import logging
 import time
 from collections import OrderedDict, defaultdict
 from functools import lru_cache
@@ -38,7 +39,7 @@ def pipeline_preset(name: str, use_bidirectional_chaining: bool) -> Pipeline:
 unidir_pipeline = pipeline_preset("unidirectional", use_bidirectional_chaining=False)
 bidir_pipeline = pipeline_preset("bidirectional", use_bidirectional_chaining=True)
 chain_dicts: Dict[str, List[Chain]] = defaultdict(list)
-
+logger = logging.getLogger(__name__)
 
 def get_resume_points() -> List[str]:
     return list(unidir_pipeline.default_execution_order)
@@ -84,6 +85,8 @@ def plot_pos_likelihoods(target_pos: int, target_likelihood: float, key: str) ->
 def color_text(text: str | None, override_data: bool, resume_node: str = "all-chains") -> Tuple[str, List[Coloring]]:
     plot_pos_likelihoods.cache_clear()
     stats = OrderedDict()
+
+    logger.info(f"Coloring.... override = {override_data}")
 
     if override_data:
         unidir_pipeline.cleanup_file(unidir_pipeline.unstamped_history_filepath)

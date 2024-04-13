@@ -736,7 +736,7 @@ class Pipeline:
                     Dictionary to where path to produced pipefile will be saved
         """
 
-        if not self.store_intermediate_data and (node.out_descriptor.is_optional() or not self.store_optional_data):
+        if not self.store_intermediate_data or (node.out_descriptor.is_optional() and not self.store_optional_data):
             return
 
         self.logger.debug(f"Storing data for node: {node.name}")
