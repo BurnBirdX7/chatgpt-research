@@ -1,43 +1,50 @@
 from __future__ import annotations
 
 import datetime
+import functools
+import ujson
 import time
+import logging
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, List, TextIO
 
 import pandas as pd
-import torch.cuda
+from sklearn import metrics
+import matplotlib.pyplot as plt
 
+from src import QueryColbertServerNode
 from src.chaining import Chain
-from scripts.coloring_pipeline import get_extended_coloring_pipeline
+from scripts.coloring_pipeline import get_extended_coloring_pipeline, get_coloring_pipeline
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-def majority_label(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
-    return len(pos2chain) >= 0.5 * len(tokens)
+def overall_cover(tokens: list[str], pos2chain: dict[int, Chain]) -> float:
+    return len(pos2chain) / len(tokens)
 
 
-def percent_label(percent: float) -> Callable:
-    def __func(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
-        return len(pos2chain) >= (percent * len(tokens) / 100)
-
-    __func.__name__ = f"{percent}_percent_label"
-    return __func
+def longest_chain_cover(tokens: list[str], pos2chain: dict[int, Chain]):
+    chains = pos2chain.values()
+    max_chain = max(chains, key=lambda ch: len(ch))
+    return len(max_chain) / len(tokens)
 
 
-def longest_chain_percent_label(percent: float) -> Callable:
-    def __func(tokens: list[str], pos2chain: dict[int, Chain]) -> bool:
-        max_chain = max(pos2chain.values(), key=lambda ch: len(ch))
-        return len(max_chain) >= (percent * len(tokens) / 100)
+def prob2bool(func: Callable) -> List[Callable]:
+    wrappers = []
+    for threshold in range(10, 91, 5):
+        @functools.wraps(func)
+        def wrapper(tokens: list[str], pos2chain: dict[int, Chain]):
+            prob = func(tokens, pos2chain)
+            return prob >= threshold
 
-    __func.__name__ = f"longest_chain_{percent}_percent_label"
-    return __func
+        wrapper.__name__ = func.__name__ + f"_tr{threshold}"
+        wrappers.append(wrapper)
+    return wrappers
 
 
-incremental = (
-    [majority_label]
-    + [percent_label(x) for x in range(10, 91, 10)]
-    + [longest_chain_percent_label(x) for x in range(10, 91, 10)]
-)
+statistics = [overall_cover, longest_chain_cover]
+incremental = prob2bool(overall_cover) + prob2bool(longest_chain_cover)
 
 
 @dataclass
@@ -79,16 +86,49 @@ class Stat:
 pipeline = get_extended_coloring_pipeline()
 pipeline.store_intermediate_data = False
 pipeline.force_caching("input-tokenized")
-pipeline.assert_prerequisites()
+queryNode: QueryColbertServerNode = pipeline.nodes['all-sources-dict-raw']
+
+def roc_curve(passages: pd.DataFrame, start_idx: int):
+    with open('progress.json', 'r') as f:
+        preds = {
+                    f.__name__: []
+                    for f in statistics
+                } | ujson.load(f)['preds']
+
+    for i, x_test, y_true in passages[start_idx:].itertuples():
+        logger.info(f"Evaluating {i + 1} / {len(passages)}...")
+        res = pipeline.run(x_test)
+        tokens = res.cache['input-tokenized']
+        for func in statistics:
+            preds[func.__name__].append(func(tokens, res.last_node_result))
+
+        with open('progress.json', 'w') as f:
+            ujson.dump({
+                'idx': i+1,
+                'preds': preds,
+            }, f)
+
+    for func, y_pred in preds.items():
+        fpr, tpr, thresholds = metrics.roc_curve(passages['supported'], y_pred)
+        roc_auc = metrics.auc(fpr, tpr)
+        plt.title(f'ROC curve for {func.__name__} func')
+        plt.plot(fpr, tpr, 'b', label=f'AUC = {roc_auc:0.2f}')
+        plt.legend(loc='lower right')
+        plt.plot([0, 1], [0, 1], 'r--')
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.ylabel('True Positive Rate')
+        plt.xlabel('False Positive Rate')
+        plt.show()
 
 
-def estimate():
+def estimate_bool():
     start_time = time.time()
 
     # Sample passages
     all_passages = pd.read_csv("passages.csv")
-    pos_passages = all_passages[all_passages["supported"]].sample(100)
-    neg_passages = all_passages[~all_passages["supported"]].sample(100)
+    pos_passages = all_passages[all_passages["supported"]].sample(10)
+    neg_passages = all_passages[~all_passages["supported"]].sample(10)
     passages = pd.concat([pos_passages, neg_passages], ignore_index=True)
 
     stats = {f.__name__: Stat() for f in incremental}
@@ -133,14 +173,13 @@ def estimate():
     print(f"{best_recall=}")
     print(f"{best_f1=}")
     print(f"time elapsed: {datetime.timedelta(seconds=time.time() - start_time)}")
-    return False
 
 
-if __name__ == "__main__":
-    run = True
-    while run:
-        try:
-            run = estimate()
-        except Exception as e:
-            torch.cuda.empty_cache()
-            print("Caught exception:", e)
+def start():
+    passages = pd.read_csv("selected_passages.csv")
+    with open("progress.json", "r") as f:
+        start_idx = int(ujson.load(f)['idx'])
+
+    logger.info(f"Starting evaluation with progress counter on {start_idx}")
+    roc_curve(passages, start_idx)
+    exit(0)

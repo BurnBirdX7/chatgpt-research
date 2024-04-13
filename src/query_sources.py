@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import ujson
 import http.client
 import urllib.parse as urlparse
 from typing import Dict, List
@@ -10,7 +10,7 @@ from src.pipeline.data_descriptors import DictDescriptor
 from src.config import ColbertServerConfig
 
 
-class QueryColbertServer(BaseNode):
+class QueryColbertServerNode(BaseNode):
     """
     Node accepts request and queries possible sources from colbert index
 
@@ -23,12 +23,17 @@ class QueryColbertServer(BaseNode):
         super().__init__(name, [str], DictDescriptor())
         self.server_config: ColbertServerConfig = config
 
+    def request_kill(self):
+        conn = http.client.HTTPConnection(self.server_config.ip_address, self.server_config.port)
+        conn.request("GET", "/api/kill")
+        self.logger.info("Request server kill")
+
     def request(self, conn: http.client.HTTPConnection, text: str) -> List[Dict[str, str]]:
         url = self.server_config.get_api_url() + "?query=" + urlparse.quote_plus(text)
         conn.request("GET", url)
         response = conn.getresponse()
         content = response.read().decode("utf-8")
-        return json.loads(content)["topk"]
+        return ujson.loads(content)["topk"]
 
     def process(self, text: str) -> dict:
         conn = http.client.HTTPConnection(self.server_config.ip_address, self.server_config.port)

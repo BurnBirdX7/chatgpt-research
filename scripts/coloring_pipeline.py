@@ -4,7 +4,7 @@ from typing import Any, List, Dict, Tuple
 
 from transformers import RobertaForMaskedLM
 
-from src import QueryColbertServer, Chain
+from src import QueryColbertServerNode, Chain
 from src.chaining import ChainingNode, FilterChainsNode, Pos2ChainMapNode
 from src.chaining.descriptors import ChainListDescriptor
 from src.embeddings_builder import (
@@ -86,7 +86,7 @@ def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
     pipeline = Pipeline(TextProcessingNode.new("input-stripped", remove_punctuation), name=name)
 
     # Node queries all sources that might contain similar text from ColBERT
-    pipeline.attach_back(QueryColbertServer("all-sources-dict-raw", colbert_cfg))
+    pipeline.attach_back(QueryColbertServerNode("all-sources-dict-raw", colbert_cfg))
 
     # Clear all retrieved texts of punctuation
     pipeline.attach_back(TextProcessingNode.new_for_dicts("all-sources-dict", remove_punctuation))

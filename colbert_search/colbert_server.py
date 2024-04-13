@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import logging
+import signal
+import sys
+
 import torch
 from dotenv import load_dotenv
 
@@ -127,10 +131,18 @@ def colbert_server(config: ColbertServerConfig):
     def api_ping():
         return "colbert-pong"
 
+    @app.route("/api/kill", methods=["GET"])
+    def api_kill():
+        print("REQUESTED SERVER KILL, shutting down...")
+        os.kill(os.getpid(), signal.SIGTERM)
+        return {"code": "ok", "msg": "Shutting down..."}
+
+
     global searchers
     searchers = init_searchers(INDEX_ROOT)
     app.run(config.ip_address, config.port)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     colbert_server(ColbertServerConfig.load_from_env())
