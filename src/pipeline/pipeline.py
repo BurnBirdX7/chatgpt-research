@@ -410,7 +410,7 @@ class Pipeline:
         finally:
             self.__save_history(beginning_time, history)
 
-    def resume_from_cache(self, pipeline_result: PipelineResult, node_name: str) -> PipelineResult:
+    def resume_from_cache(self: Pipeline, pipeline_result: PipelineResult, node_name: str) -> PipelineResult:
         """Resumes already finished execution from specified point
         Reuses data from cache
 
@@ -455,7 +455,7 @@ class Pipeline:
         finally:
             self.__save_history(start_time, history)
 
-    def resume_from_disk(self, historyfile_path: str, node_name: str) -> PipelineResult:
+    def resume_from_disk(self: Pipeline, historyfile_path: str, node_name: str) -> PipelineResult:
         """Resumes already finished execution from specified point
         Loads all saved data into the cache, purges cache that should be in the future relative to the specified node
 
@@ -495,7 +495,7 @@ class Pipeline:
             for future_task_name in execution_order
             for to_load_name in self.graph[future_task_name]
             if (to_load_name in pre_execution_order) or (to_load_name[0] == "$")
-        } | self.__must_load_output
+        } | {to_load_name for to_load_name in self.__must_load_output if to_load_name in pre_execution_order}
 
         self.logger.info(f"Loading node outputs for these nodes: {names_to_load}")
         statistic_dic = {}

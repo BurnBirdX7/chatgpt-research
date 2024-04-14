@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 
 from scripts.coloring_pipeline import get_extended_coloring_pipeline
 from server.render_colored_text import Coloring
-from src import Chain
+from src import TokenChain
 from src.pipeline import Pipeline
 
 
@@ -38,7 +38,11 @@ def pipeline_preset(name: str, use_bidirectional_chaining: bool) -> Pipeline:
 # GLOBALS
 unidir_pipeline = pipeline_preset("unidirectional", use_bidirectional_chaining=False)
 bidir_pipeline = pipeline_preset("bidirectional", use_bidirectional_chaining=True)
-chain_dicts: Dict[str, List[Chain]] = defaultdict(list)
+
+# Dict [key] -> List[Chain]
+chain_dicts: Dict[str, List[TokenChain]] = defaultdict(list)
+
+input_tokenized: List[str] = []
 logger = logging.getLogger(__name__)
 
 
@@ -46,12 +50,12 @@ def get_resume_points() -> List[str]:
     return list(unidir_pipeline.default_execution_order)
 
 
-def get_chains_for_pos(target_pos: int, key: str) -> List[Chain]:
+def get_chains_for_pos(target_pos: int, key: str) -> List[TokenChain]:
     chains = chain_dicts[key]
     return [chain for chain in chains if chain.target_begin_pos <= target_pos < chain.target_end_pos]
 
 
-def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: List[Chain]) -> bytes:
+def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: List[TokenChain]) -> bytes:
     likelihoods = np.array([chain.get_target_likelihood(target_pos) for chain in chains])
 
     if (likelihoods < 0).any():
@@ -76,6 +80,26 @@ def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: L
     plt.close(fig)
     img.seek(0)
     return img.read()
+
+
+def get_top10_chains(target_pos: int, key: str) -> List[TokenChain]:
+    chains = get_chains_for_pos(target_pos, key)
+    chains = sorted(chains, reverse=True, key=lambda chain: chain.get_score())
+    return list(chains[:10])
+
+
+@lru_cache(200)
+def get_top10_readable_chains(target_pos: int, key: str) -> list[dict]:
+    chains = get_top10_chains(target_pos, key)
+
+    return [
+        {
+            "text": "".join(input_tokenized[chain.target_begin_pos : chain.target_end_pos]),
+            "score": chain.get_score(),
+            "len": len(chain),
+        }
+        for chain in chains
+    ]
 
 
 @lru_cache(200)
@@ -140,6 +164,8 @@ def color_text(text: str | None, override_data: bool, resume_node: str = "all-ch
     stats["bidirectional"] = result.statistics
 
     # Preserve input
+    global input_tokenized
+    input_tokenized = result.cache["input-tokenized"]
     if text is None:
         text = result.cache["$input"]
     del result
@@ -148,7 +174,7 @@ def color_text(text: str | None, override_data: bool, resume_node: str = "all-ch
 
     print(f"Time taken to run: {datetime.timedelta(seconds=seconds)}")
     for i, (name, stats) in enumerate(stats.items()):
-        print(f"Statistics (run {i+1}, {name})")
+        print(f"Statistics (run {i + 1}, {name})")
         for _, stat in stats.items():
             print(str(stat))
 

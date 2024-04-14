@@ -8,12 +8,14 @@ document.body.appendChild(popup)
 const sourceTexts = document.querySelectorAll('.src_text');
 const sourceTextBoxes = document.querySelectorAll(".src_text_box");
 const loadImagesCheckbox = document.querySelector("#load-images");
-const printChainsCheckbox = document.querySelector("#display-chains");
+const displayDebugChainsCheckbox = document.querySelector("#display-debug-chains");
+const displayTop10ChainsCheckbox = document.querySelector("#display-top-chains")
 
 // Parameters:
 let popupFixated = false;
 let loadImages = loadImagesCheckbox.checked;
-let printChains = printChainsCheckbox.checked;
+let displayDebugChains = displayDebugChainsCheckbox.checked;
+let displayTop10Chains = displayTop10ChainsCheckbox.checked;
 
 
 // Functions:
@@ -22,10 +24,11 @@ function getKey(elem) {
     return target.getAttribute('data-key');
 }
 
-function updatePopup(event, target) {
+async function updatePopup(event, target) {
     const source_url = target.getAttribute('data-source-url');
     const target_pos = target.getAttribute('data-target-pos');
     const target_likelihood = target.getAttribute('data-target-likelihood');
+    const key = getKey(target);
     let color_class = 'color0';
     target.classList.forEach((cls) => {
         if (cls.startsWith('color')) {
@@ -63,11 +66,36 @@ function updatePopup(event, target) {
         popup.innerHTML += `
         <img alt="plot"
              class="likelihood_plot"
-             src="/prev/plots?key=${getKey(target)}&target_pos=${target_pos}&likelihood=${target_likelihood}">
+             src="/api/plots/${key}/${target_pos}?likelihood=${target_likelihood}">
         <br>`
     }
 
-    if (printChains) {
+    if (displayTop10Chains) {
+        if (target.top10 === undefined && !target.sent) {
+            target.sent = true
+            fetch(`/api/chains/${key}/${target_pos}`)
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error("Net OK")
+                    }
+                    return res.json()
+                })
+                .then((data) => {
+                    target.top10 = data;
+                })
+                .catch(console.error)
+        }
+
+        if (target.top10 !== undefined) {
+            popup.innerHTML += '<ol>'
+            for (let elem of target.top10) {
+                popup.innerHTML += `<li>${elem.text} <b>score:</b> ${elem.score} <b>len:</b> ${elem.len}</li>`
+            }
+            popup.innerHTML += '</ol>'
+        }
+    }
+
+    if (displayDebugChains) {
         popup.innerHTML += `<pre>${target.getAttribute('data-chain').replaceAll('\t', '  ')}</pre>`
     }
 
@@ -89,8 +117,12 @@ loadImagesCheckbox.addEventListener('change', () => {
     loadImages = loadImagesCheckbox.checked;
 })
 
-printChainsCheckbox.addEventListener('change', () => {
-    printChains = printChainsCheckbox.checked;
+displayDebugChainsCheckbox.addEventListener('change', () => {
+    displayDebugChains = displayDebugChainsCheckbox.checked;
+})
+
+displayTop10ChainsCheckbox.addEventListener('change', () => {
+    displayTop10Chains = displayTop10ChainsCheckbox.checked;
 })
 
 sourceTexts.forEach(span => {

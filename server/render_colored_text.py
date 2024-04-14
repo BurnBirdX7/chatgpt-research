@@ -6,7 +6,7 @@ from typing import Optional, List, Dict
 
 from jinja2 import Template
 
-from src.chaining import Chain
+from src.chaining import TokenChain
 
 
 @dataclasses.dataclass
@@ -14,7 +14,7 @@ class Coloring:
     title: str
     pipeline_name: str
     tokens: List[str]
-    pos2chain: Dict[int, Chain]
+    pos2chain: Dict[int, TokenChain]
 
 
 def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
@@ -24,7 +24,7 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
 
     for coloring in colorings:
 
-        def get_chain(pos: int) -> Chain | None:
+        def get_chain(pos: int) -> TokenChain | None:
             if pos not in coloring.pos2chain:
                 return None
             return coloring.pos2chain[pos]
@@ -34,7 +34,7 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
 
         # Track progress
         color_num: int = 0
-        last_chain: Optional[Chain] = None
+        last_chain: Optional[TokenChain] = None
         relative_pos = 0
 
         for pos, token in enumerate(coloring.tokens):

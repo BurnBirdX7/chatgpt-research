@@ -4,7 +4,7 @@ from typing import Any, List, Dict, Tuple
 
 from transformers import RobertaForMaskedLM
 
-from src import QueryColbertServerNode, Chain
+from src import QueryColbertServerNode, TokenChain
 from src.chaining import ChainingNode, FilterChainsNode, Pos2ChainMapNode
 from src.chaining.descriptors import ChainListDescriptor
 from src.embeddings_builder import (
@@ -21,7 +21,7 @@ from src.pipeline import (
 )
 from src.config import ColbertServerConfig, EmbeddingBuilderConfig, IndexConfig
 from src.pipeline.wrapper_nodes import DictWrapperNode
-from src.text_processing import TextProcessingNode, remove_punctuation
+from src.text_processing import TextProcessingNode, remove_punctuation, remove_wiki_formatting
 
 
 @mapping_node(out_descriptor=DictDescriptor())
@@ -43,19 +43,9 @@ class AttachMetaData(BaseNode):
         post = "".join(token_list[end : end + 3])
         return text, pre, post
 
-    def process(self, chains: List[Chain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]) -> Any:
-        """
-        Parameters
-        ----------
-        chains : List[Chain]
-        target_tokens : List[str]
-        source_tokens_dict : Dict[str, List[str]]
-
-        Returns
-        -------
-        List[Chain]
-        """
-
+    def process(
+        self, chains: List[TokenChain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]
+    ) -> Any:
         for chain in chains:
             source_tokens = source_tokens_dict[chain.source]
             chain.attachment["source_tokens"] = source_tokens[chain.source_begin_pos : chain.source_end_pos]
@@ -82,13 +72,17 @@ def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
     # == Pipeline ==
 
     # First node strips input of punctuation
-    pipeline = Pipeline(TextProcessingNode.new("input-stripped", remove_punctuation), name=name)
+    pipeline = Pipeline(
+        TextProcessingNode.new("input-stripped", remove_punctuation | remove_wiki_formatting), name=name
+    )
 
     # Node queries all sources that might contain similar text from ColBERT
     pipeline.attach_back(QueryColbertServerNode("all-sources-dict-raw", colbert_cfg))
 
     # Clear all retrieved texts of punctuation
-    pipeline.attach_back(TextProcessingNode.new_for_dicts("all-sources-dict", remove_punctuation))
+    pipeline.attach_back(
+        TextProcessingNode.new_for_dicts("all-sources-dict", remove_punctuation | remove_wiki_formatting)
+    )
 
     # Generate embeddings from sources and build new FAISS index
     pipeline.attach_back(IndexFromSourcesNode("all-sources-index", text_eb_config, source_index_config))

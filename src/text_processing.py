@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 import typing
 import unicodedata
@@ -14,6 +15,30 @@ from .pipeline import (
 )
 
 
+class _FuncWrapper:
+    """
+    Wrapper that allows 'or' operation on functions for chaining function calls
+    """
+
+    def __init__(self, func: Callable[[str], str]):
+        self._func = func
+        self.__name__ = func.__name__
+
+    def __call__(self, text: str) -> str:
+        return self._func(text)
+
+    def __or__(self, other: _FuncWrapper):
+        if not isinstance(other, _FuncWrapper):
+            return NotImplemented
+
+        @_FuncWrapper
+        def _wrapper(text: str) -> str:
+            return other._func(self._func(text))
+
+        return _wrapper
+
+
+@_FuncWrapper
 def remove_punctuation(text: str) -> str:
     def pred(i: int):
         ch = chr(i)
@@ -26,6 +51,14 @@ def remove_punctuation(text: str) -> str:
     transform_table = {i: None for i in range(sys.maxunicode) if pred(i)}
 
     return text.translate(transform_table)
+
+
+_wiki_formatting_regex = re.compile(r"((\w+\|)+\w+|'''|'')")
+
+
+@_FuncWrapper
+def remove_wiki_formatting(text: str) -> str:
+    return re.sub(_wiki_formatting_regex, "", text)
 
 
 T = typing.TypeVar("T", bound=Union[str, List[str], Dict[str, str]])

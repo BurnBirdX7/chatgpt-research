@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 
-from flask import Flask, render_template, request, Response
+from flask import Flask, render_template, request, Response, jsonify
 
 from scripts.coloring_pipeline import get_extended_coloring_pipeline
-from server.pipelines import color_text, get_resume_points, plot_pos_likelihoods
+from server.pipelines import color_text, get_resume_points, plot_pos_likelihoods, get_top10_readable_chains
 from server.render_colored_text import render_colored_text
 from src.pipeline.pipeline_draw import bytes_draw_pipeline
 
@@ -43,12 +43,15 @@ def visualize_img():
     return Response(img, mimetype="image/png")
 
 
-@app.route("/prev/plots", methods=["GET"])
-def stats_img():
-    target_pos = int(request.args["target_pos"])
+@app.route("/api/plots/<string:key>/<int:target_pos>", methods=["GET"])
+def plot_img(key: str, target_pos: int):
     target_likelihood = request.args.get("likelihood", 0.0, float)
-    key = request.args["key"]
     return Response(plot_pos_likelihoods(target_pos, target_likelihood, key))
+
+
+@app.route("/api/chains/<string:key>/<int:target_pos>", methods=["GET"])
+def chains_txt(key: str, target_pos: int):
+    return jsonify(get_top10_readable_chains(target_pos, key))
 
 
 if __name__ == "__main__":

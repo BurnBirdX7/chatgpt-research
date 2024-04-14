@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-from src import Chain
+from src import TokenChain
 
 
 def test_simple_chain():
-    chain = Chain("source1", 24, 42)
+    chain = TokenChain("source1", 24, 42)
 
     assert chain.all_likelihoods.dtype == np.float64
 
@@ -31,7 +31,7 @@ def test_simple_chain():
 
 
 def test_reverse():
-    chain = Chain("source1", 24, 42)
+    chain = TokenChain("source1", 24, 42)
 
     chain.skip_end(0)
     chain.skip_end(0.0000001)
@@ -73,7 +73,7 @@ def test_reverse():
 
 
 def test_trim():
-    chain = Chain("source1", 24, 42)
+    chain = TokenChain("source1", 24, 42)
 
     chain.skip_end(0.000003)
     chain.skip_end(0.000007)
@@ -99,8 +99,8 @@ def test_trim():
 
 
 def test_add():
-    chain1 = Chain("source1", 24, 42)
-    chain2 = Chain("source1", 30, 48)
+    chain1 = TokenChain("source1", 24, 42)
+    chain2 = TokenChain("source1", 30, 48)
 
     chain1.skip_end(0.000005)
     chain1.skip_end(0.000003)

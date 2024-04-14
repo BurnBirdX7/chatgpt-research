@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import gc
-import itertools
 import logging
 import os.path
 
@@ -9,6 +7,7 @@ import faiss  # type: ignore
 from progress.bar import ChargingBar  # type: ignore
 import torch  # type: ignore
 import numpy as np
+import numpy.typing as npt
 
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from typing import List, Tuple, Optional, Callable, Dict, Any
@@ -99,11 +98,24 @@ class EmbeddingsBuilder:
         return embeddings
 
     def tensor_from_text(self, text: str) -> torch.Tensor:
+        """
+        Infers embeddings for each token in a text
+
+        Parameters
+        ----------
+        text : str
+            Text in a string form
+
+        Returns
+        -------
+        torch.Tensor
+            A Tensor with dimensions (token_count, embedding_len)
+
+        """
         tokenizer_output = self.tokenizer(
             text,
             return_tensors="pt",
             return_attention_mask=True,
-            add_special_tokens=False,
             padding=True,
             pad_to_multiple_of=self.max_model_input_length,
         )
@@ -111,9 +123,9 @@ class EmbeddingsBuilder:
         input_ids = tokenizer_output["input_ids"].reshape((-1, self.max_model_input_length)).to(self.device)
         attention_mask = tokenizer_output["attention_mask"].reshape(input_ids.shape).to(self.device)
         with torch.no_grad():
-            output = self.model(input_ids, attention_mask=attention_mask)
+            output = self.model(input_ids, attention_mask=attention_mask, output_hidden_states=True)
 
-        return output.last_hidden_state.reshape((-1, self.model_output_length))
+        return output.hidden_states[-1][attention_mask > 0.0][1:-1]
 
     def from_text(self, text: str) -> np.ndarray:
         """
@@ -237,17 +249,28 @@ class LikelihoodsForMultipleSources(BaseNode):
         super().__init__(name, [dict], ComplexDictDescriptor(TensorDescriptor()))
         self.eb_config = embeddings_builder_config
 
-    def process(self, sources_data: Dict[str, str]) -> Dict[str, torch.Tensor]:
+    def process(self, sources_data: Dict[str, str]) -> Dict[str, npt.NDArray[np.float32]]:
+        """
+        Parameters
+        ----------
+        sources_data: Dict[str, str]
+            Dictionary that maps source names onto their contents
+
+        Returns
+        -------
+        Dict[str, NDArray[float32]]
+            Dictionary that maps source names onto likelihoods of every token.
+            Numpy array with dimensions ``(token_count, vocab_size)``.
+        """
         tokenizer = self.eb_config.tokenizer
         model = self.eb_config.model
 
-        source_batched_likelihoods = {}  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
+        source_likelihoods = {}  # Dict (name -> likelihoods_batch)  batch has dimensions (batch, text, vocab)
 
         for i, (source_name, source_text) in enumerate(sources_data.items()):
             self.logger.debug(f'Generating likelihoods for source {i + 1}/{len(sources_data)}: "{source_name}"')
             tokenizer_output = tokenizer(
                 text=source_text,
-                add_special_tokens=False,
                 return_tensors="pt",
                 return_attention_mask=True,
                 padding=True,
@@ -263,7 +286,8 @@ class LikelihoodsForMultipleSources(BaseNode):
                 # Logits have dimensions: (passage, position, vocab)
                 batched_logits = model(source_token_id_batch, attention_mask=source_attention_mask).logits
 
-            batched_likelihoods = torch.nn.functional.softmax(batched_logits.cpu(), dim=2)
-            source_batched_likelihoods[source_name] = batched_likelihoods
+            batched_likelihoods = torch.nn.functional.softmax(batched_logits, dim=2)
+            # Remove padding tokens and cut special tokens
+            source_likelihoods[source_name] = batched_likelihoods[source_attention_mask > 0.0][1:-1].cpu().numpy()
 
-        return source_batched_likelihoods
+        return source_likelihoods

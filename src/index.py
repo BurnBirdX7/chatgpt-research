@@ -199,7 +199,7 @@ class IndexFromSourcesNode(BaseNode):
         mapping = SourceMapping()
 
         for source_name, source_text in source_dict.items():
-            embeddings = eb.from_text(source_text)
+            embeddings = eb.tensor_from_text(source_text).cpu().numpy()
             mapping.append_interval(len(embeddings), source_name)
             all_embeddings.append(embeddings)
 
