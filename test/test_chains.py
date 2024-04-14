@@ -7,13 +7,13 @@ from src import TokenChain
 def test_simple_chain():
     chain = TokenChain("source1", 24, 42)
 
-    assert chain.all_likelihoods.dtype == np.float64
+    assert chain.all_likelihoods.dtype == np.float32
 
     chain.append_end(0.97)
     chain.append_end(0.70)
     chain.skip_end(0.0)
 
-    assert chain.all_likelihoods.dtype == np.float64
+    assert chain.all_likelihoods.dtype == np.float32
 
     assert len(chain) == 3
     assert chain.begin_skips == 0

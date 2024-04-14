@@ -27,15 +27,22 @@ class _FuncWrapper:
     def __call__(self, text: str) -> str:
         return self._func(text)
 
-    def __or__(self, other: _FuncWrapper):
-        if not isinstance(other, _FuncWrapper):
-            return NotImplemented
-
+    @staticmethod
+    def _wrap_or(lhs: Callable[[str], str], rhs: Callable[[str], str]) -> Callable[[str], str]:
         @_FuncWrapper
         def _wrapper(text: str) -> str:
-            return other._func(self._func(text))
+            return rhs(lhs(text))
 
         return _wrapper
+
+    def __or__(self, other: _FuncWrapper | Callable[[str], str]):
+        if not isinstance(other, _FuncWrapper):
+            if not callable(other):
+                return NotImplemented
+
+            return _FuncWrapper._wrap_or(self._func, other)
+
+        return _FuncWrapper._wrap_or(self._func, other._func)
 
 
 @_FuncWrapper

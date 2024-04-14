@@ -23,7 +23,7 @@ class ChainingNode(BaseNode):
         self.use_bidirectional_chaining = use_bidirectional_chaining
 
     @property
-    def chaining_func(self) -> Callable[[npt.NDArray[np.float64], str, List[int], int], List[TokenChain]]:
+    def chaining_func(self) -> Callable[[npt.NDArray[np.float32], str, List[int], int], List[TokenChain]]:
         if self.use_bidirectional_chaining:
             return TokenChain.generate_chains_bidirectional
         else:

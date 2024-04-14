@@ -18,7 +18,7 @@ class TokenChain:
         source: str,
         target_begin_pos: int,
         source_begin_pos: int,
-        all_likelihoods: List[float] | npt.NDArray[np.float64] | None = None,
+        all_likelihoods: List[float] | npt.NDArray[np.float32] | None = None,
         parent: TokenChain | List[TokenChain] | None = None,
         end_skips: int = 0,
         begin_skips: int = 0,
@@ -47,8 +47,8 @@ class TokenChain:
 
         self.target_begin_pos: int = target_begin_pos
         self.source_begin_pos: int = source_begin_pos
-        self.all_likelihoods: npt.NDArray[np.float64] = np.array(
-            [] if (all_likelihoods is None) else all_likelihoods, dtype=np.float64
+        self.all_likelihoods: npt.NDArray[np.float32] = np.array(
+            [] if (all_likelihoods is None) else all_likelihoods, dtype=np.float32
         )
         self.source = source
         self.parent: TokenChain | List[TokenChain] | None = parent
@@ -68,7 +68,7 @@ class TokenChain:
         return self.source_begin_pos + len(self)
 
     @property
-    def likelihoods(self) -> npt.NDArray[np.float64]:
+    def likelihoods(self) -> npt.NDArray[np.float32]:
         """Significant likelihoods"""
         return self.all_likelihoods[self.all_likelihoods >= TokenChain.likelihood_significance_threshold]
 
@@ -207,7 +207,7 @@ class TokenChain:
             "all_likelihoods": self.all_likelihoods.tolist(),
             "source": self.source,
             "begin_skips": self.begin_skips,
-            "end_skips:": self.end_skips,
+            "end_skips": self.end_skips,
         }
 
     @staticmethod
@@ -218,13 +218,13 @@ class TokenChain:
             all_likelihoods=np.array(d["all_likelihoods"]),
             source=d["source"],
             begin_skips=d["begin_skips"],
-            end_skips=d["end_skips"],
+            end_skips=d.get("end_skips", d["end_skips:"]),
         )
 
     def append_end(self, likelihood: float) -> None:
         """Appends significant likelihood to the chain"""
         assert likelihood >= TokenChain.likelihood_significance_threshold
-        self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
+        self.all_likelihoods = np.append(self.all_likelihoods, np.float32(likelihood))
         self.end_skips = 0
 
     def skip_end(self, likelihood: float) -> None:
@@ -233,7 +233,7 @@ class TokenChain:
         self.end_skips += 1
         if len(self.likelihoods) == 0:  # No significant likelihoods encountered yet
             self.begin_skips += 1
-        self.all_likelihoods = np.append(self.all_likelihoods, likelihood)
+        self.all_likelihoods = np.append(self.all_likelihoods, np.float32(likelihood))
 
     def reverse(self) -> TokenChain:
         rev_chain = TokenChain(
@@ -277,7 +277,7 @@ class TokenChain:
     def get_source_token_positions(self) -> Set[int]:
         return set(range(self.source_begin_pos, self.source_end_pos))
 
-    def get_score(self):
+    def get_score(self) -> float:
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
         g_mean = np.exp(np.log(self.likelihoods).mean())
         score = g_mean * (len(self) ** 2)
@@ -295,7 +295,7 @@ class TokenChain:
         starting_target_pos: int,
         target_token_ids: List[int],
         starting_source_pos: int,
-        source_likelihoods: npt.NDArray[np.float64],
+        source_likelihoods: npt.NDArray[np.float32],
         source: str,
         skip_limit: int = DEFAULT_MAX_SKIPS,
     ) -> List[TokenChain]:
@@ -342,7 +342,7 @@ class TokenChain:
     @classmethod
     def generate_chains(
         cls,
-        source_likelihoods: npt.NDArray[np.float64],
+        source_likelihoods: npt.NDArray[np.float32],
         source_name: str,
         target_token_ids: List[int],
         target_start_pos: int,
@@ -383,7 +383,7 @@ class TokenChain:
     @classmethod
     def generate_chains_bidirectional(
         cls,
-        source_likelihoods: npt.NDArray[np.float64],
+        source_likelihoods: npt.NDArray[np.float32],
         source_name: str,
         target_token_ids: List[int],
         target_start_pos: int,
@@ -392,7 +392,7 @@ class TokenChain:
 
         Parameters
         ----------
-        source_likelihoods : npt.NDArray[np.float64]
+        source_likelihoods : npt.NDArray[np.float32]
             inferred from the source text likelihoods for the tokens
 
         source_name : str

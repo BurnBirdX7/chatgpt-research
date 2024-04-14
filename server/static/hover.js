@@ -73,7 +73,7 @@ async function updatePopup(event, target) {
     if (displayTop10Chains) {
         if (target.top10 === undefined && !target.sent) {
             target.sent = true
-            fetch(`/api/chains/${key}/${target_pos}`)
+            fetch(`/api/target-chains/${key}/${target_pos}`)
                 .then(res => {
                     if (!res.ok) {
                         throw new Error("Net OK")
