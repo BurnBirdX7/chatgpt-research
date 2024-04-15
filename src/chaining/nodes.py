@@ -6,7 +6,7 @@ import numpy.typing as npt
 from ..config import EmbeddingBuilderConfig
 from ..pipeline import BaseNode
 from .descriptors import ChainListDescriptor, Pos2ChainMappingDescriptor
-from .token_chain import TokenChain
+from .elastic_chain import ElasticChain
 
 __all__ = ["ChainingNode", "FilterChainsNode", "Pos2ChainMapNode"]
 
@@ -23,18 +23,18 @@ class ChainingNode(BaseNode):
         self.use_bidirectional_chaining = use_bidirectional_chaining
 
     @property
-    def chaining_func(self) -> Callable[[npt.NDArray[np.float32], str, List[int], int], List[TokenChain]]:
+    def chaining_func(self) -> Callable[[npt.NDArray[np.float32], str, List[int], int], List[ElasticChain]]:
         if self.use_bidirectional_chaining:
-            return TokenChain.generate_chains_bidirectional
+            return ElasticChain.generate_chains_bidirectional
         else:
-            return TokenChain.generate_chains
+            return ElasticChain.generate_chains
 
     def process(
         self,
         input_text: str,
         sources: List[List[str]],
         source_likelihoods: Dict[str, npt.NDArray[np.float32]],
-    ) -> List[TokenChain]:
+    ) -> List[ElasticChain]:
         """
         Parameters
         ----------
@@ -45,7 +45,7 @@ class ChainingNode(BaseNode):
 
         Returns
         -------
-        TokenChain
+        ElasticChain
 
         """
         tokenizer = self.eb_config.tokenizer
@@ -76,9 +76,9 @@ class FilterChainsNode(BaseNode):
     def __init__(self, name: str):
         super().__init__(name, [list], ChainListDescriptor())
 
-    def process(self, chains: List[TokenChain]) -> List[TokenChain]:
+    def process(self, chains: List[ElasticChain]) -> List[ElasticChain]:
         self.logger.debug(f"Chain count: {len(chains)}")
-        filtered_chains: List[TokenChain] = []
+        filtered_chains: List[ElasticChain] = []
         marked_positions: Set[int] = set()  # positions that are marked with some source
 
         chains = [chain for chain in chains if chain.significant_len() > 1]
@@ -110,7 +110,7 @@ class AttachMetaData(BaseNode):
         return text, pre, post
 
     def process(
-        self, chains: List[TokenChain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]
+        self, chains: List[ElasticChain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]
     ) -> Any:
         for chain in chains:
             source_tokens = source_tokens_dict[chain.source]
@@ -133,8 +133,8 @@ class Pos2ChainMapNode(BaseNode):
     def __init__(self, name: str):
         super().__init__(name, [list], Pos2ChainMappingDescriptor())
 
-    def process(self, chains: List[TokenChain]) -> Dict[int, TokenChain]:
-        pos2chain: Dict[int, TokenChain] = {}
+    def process(self, chains: List[ElasticChain]) -> Dict[int, ElasticChain]:
+        pos2chain: Dict[int, ElasticChain] = {}
         for i, chain in enumerate(chains):
             for pos in chain.get_target_token_positions():
                 pos2chain[pos] = chain

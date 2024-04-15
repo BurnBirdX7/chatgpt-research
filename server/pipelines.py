@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 
 from scripts.coloring_pipeline import get_extended_coloring_pipeline
 from server.render_colored_text import Coloring
-from src import TokenChain
+from src import ElasticChain
 from src.pipeline import Pipeline
 
 
@@ -43,7 +43,7 @@ unidir_pipeline = pipeline_preset("unidirectional", use_bidirectional_chaining=F
 bidir_pipeline = pipeline_preset("bidirectional", use_bidirectional_chaining=True)
 
 # Dict [key] -> List[Chain]
-chain_dicts: Dict[str, List[TokenChain]] = defaultdict(list)
+chain_dicts: Dict[str, List[ElasticChain]] = defaultdict(list)
 
 sources_dict: Dict[str, List[str]] = defaultdict(list)
 
@@ -55,7 +55,7 @@ def get_resume_points() -> List[str]:
     return list(unidir_pipeline.default_execution_order)
 
 
-def get_chains_for_target_pos(target_pos: int, key: str) -> List[TokenChain]:
+def get_chains_for_target_pos(target_pos: int, key: str) -> List[ElasticChain]:
     chains = chain_dicts[key]
     return [chain for chain in chains if chain.target_begin_pos <= target_pos < chain.target_end_pos]
 
@@ -69,7 +69,7 @@ def get_chains_for_source_pos(source_name: str, source_pos: int):
     ]
 
 
-def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: List[TokenChain]) -> bytes:
+def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: List[ElasticChain]) -> bytes:
     likelihoods = np.array([chain.get_target_likelihood(target_pos) for chain in chains])
 
     if (likelihoods < 0).any():
@@ -96,13 +96,13 @@ def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: L
     return img.read()
 
 
-def _get_top10_target_chains(target_pos: int, key: str) -> List[TokenChain]:
+def _get_top10_target_chains(target_pos: int, key: str) -> List[ElasticChain]:
     chains = get_chains_for_target_pos(target_pos, key)
     chains = sorted(chains, reverse=True, key=lambda chain: chain.get_score())
     return list(chains[:10])
 
 
-def _chain2dict(chain: TokenChain) -> dict[str, str | int | float]:
+def _chain2dict(chain: ElasticChain) -> dict[str, str | int | float]:
     return {
         "text": "".join(input_tokenized[chain.target_begin_pos : chain.target_end_pos]),
         "score": chain.get_score(),
@@ -123,7 +123,7 @@ def plot_pos_likelihoods(target_pos: int, target_likelihood: float, key: str) ->
     return plot_chains_likelihoods(target_pos, target_likelihood, get_chains_for_target_pos(target_pos, key))
 
 
-def _get_top10_source_chains(key: str, source_name: str, source_pos: int) -> Tuple[str, list[TokenChain]]:
+def _get_top10_source_chains(key: str, source_name: str, source_pos: int) -> Tuple[str, list[ElasticChain]]:
     chains = get_chains_for_source_pos(source_name, source_pos)
     chains = sorted(chains, reverse=True, key=lambda chain: chain.get_score())
     tok = sources_dict[source_name][source_pos]

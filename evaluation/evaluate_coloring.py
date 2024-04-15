@@ -13,18 +13,18 @@ from sklearn import metrics
 import matplotlib.pyplot as plt
 
 from src import QueryColbertServerNode
-from src.chaining import TokenChain
+from src.chaining import ElasticChain
 from scripts.coloring_pipeline import get_extended_coloring_pipeline, get_coloring_pipeline
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def overall_cover(tokens: list[str], pos2chain: dict[int, TokenChain]) -> float:
+def overall_cover(tokens: list[str], pos2chain: dict[int, ElasticChain]) -> float:
     return len(pos2chain) / len(tokens)
 
 
-def longest_chain_cover(tokens: list[str], pos2chain: dict[int, TokenChain]):
+def longest_chain_cover(tokens: list[str], pos2chain: dict[int, ElasticChain]):
     chains = pos2chain.values()
     max_chain = max(chains, key=lambda ch: len(ch))
     return len(max_chain) / len(tokens)
@@ -35,7 +35,7 @@ def prob2bool(func: Callable) -> List[Callable]:
     for threshold in range(10, 91, 5):
 
         @functools.wraps(func)
-        def wrapper(tokens: list[str], pos2chain: dict[int, TokenChain]):
+        def wrapper(tokens: list[str], pos2chain: dict[int, ElasticChain]):
             prob = func(tokens, pos2chain)
             return prob >= threshold
 

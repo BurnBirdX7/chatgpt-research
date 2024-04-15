@@ -8,10 +8,12 @@ import numpy.typing as npt
 import torch
 from typing import List, Set, Dict, Any, Tuple
 
+from src.chaining.chain import Chain
 
-class TokenChain:
-    likelihood_significance_threshold = 1e-5
-    DEFAULT_MAX_SKIPS = 2
+
+class ElasticChain(Chain):
+    likelihood_significance_threshold = 0.01
+    DEFAULT_MAX_SKIPS = 4
 
     def __init__(
         self,
@@ -21,8 +23,8 @@ class TokenChain:
         likelihoods: List[float] | npt.NDArray[np.float32] | None = None,
         target_mask: List[bool | int | float] | npt.NDArray[np.bool_] | None = None,
         source_mask: List[bool | int | float] | npt.NDArray[np.bool_] | None = None,
-        parent: TokenChain | List[TokenChain] | None = None,
-        cause: str | None = None,
+        parent: ElasticChain | List[ElasticChain] | None = None,
+        cause: str = "",
     ):
         """Create chain
 
@@ -37,14 +39,25 @@ class TokenChain:
         source_begin_pos : int
             first token position of the chain in matched source text
 
-        all_likelihoods : List[float] or NDArray[float], optional
+        likelihoods : List[float] or NDArray[float], optional
             All likelihoods of tokens from target text appearing in source text.
             If no value is supplied, length of 0 is assumed
+
+        target_mask : List[float] or NDArray[float], optional
+            Must be provided if likelihoods are provided
+
+        source_mask: List[bool | int | float] | npt.NDArray[np.bool_], optional
+            Must be provided if likelihoods are provided
 
         parent : Chain or List[Chain], optional
             Parent chain, intended for debug purposes.
             Generally is a chain that was reduced or transformed into this chain
+
+        cause : str, default = ""
+            If parent is present, cause of separation
+
         """
+        super().__init__(source, target_begin_pos, source_begin_pos, parent, cause)
 
         if likelihoods is not None and (target_mask is None or source_mask is None):
             raise ValueError("If likelihoods are provided, masks should be provided too")
@@ -64,7 +77,7 @@ class TokenChain:
         )
 
         self.source = source
-        self.parent: TokenChain | List[TokenChain] | None = parent
+        self.parent: ElasticChain | List[ElasticChain] | None = parent
         self.cause: str | None = cause
         self.attachment: Dict[str, Any] = {}
 
@@ -87,19 +100,19 @@ class TokenChain:
 
     @property
     def target_end_skips(self):
-        return TokenChain._end_skips(self.target_mask)
+        return ElasticChain._end_skips(self.target_mask)
 
     @property
     def target_begin_skips(self):
-        return TokenChain._begin_skips(self.target_mask)
+        return ElasticChain._begin_skips(self.target_mask)
 
     @property
     def source_end_skips(self):
-        return TokenChain._end_skips(self.source_mask)
+        return ElasticChain._end_skips(self.source_mask)
 
     @property
     def source_begin_skips(self):
-        return TokenChain._begin_skips(self.source_mask)
+        return ElasticChain._begin_skips(self.source_mask)
 
     @staticmethod
     def _begin_skips(mask: npt.NDArray[np.bool_]) -> int:
@@ -113,20 +126,20 @@ class TokenChain:
         """Significant likelihoods"""
         return self.likelihoods[self.target_mask]
 
-    def get_target_likelihood(self, target_pos: int) -> np.float32:
+    def get_target_likelihood(self, target_pos: int) -> float:
         if target_pos < self.target_begin_pos or target_pos >= self.target_end_pos:
             raise ValueError(
                 f"Illegal position, expected in range [{self.target_begin_pos};{self.target_end_pos}), "
                 f"got: {target_pos}"
             )
 
-        return self.likelihoods[target_pos - self.target_begin_pos]
+        return self.likelihoods[target_pos - self.target_begin_pos].item()
 
-    def __eq__(self, other: TokenChain | None) -> bool:
+    def __eq__(self, other: ElasticChain | None) -> bool:
         if other is None:
             return False
 
-        if not isinstance(other, TokenChain):
+        if not isinstance(other, ElasticChain):
             return False
 
         return (
@@ -160,24 +173,15 @@ class TokenChain:
     def significant_len(self):
         return self.target_mask.sum()
 
-    def _print_parent(self) -> str:
-        if self.parent is None:
-            return "-"
-
-        if isinstance(self.parent, TokenChain):
-            return str(self.parent).replace("\n\t", "\n\t\t")
-
-        return "[" + ", \n\t".join([str(chain) for chain in self.parent]).replace("\n\t", "\n\t\t") + "]"
-
     def __str__(self) -> str:
-        cause = self.cause if self.cause is not None else f"lost[{self.cause}]"
+        cause =  f"lost[{self.cause}]" if self.cause != "" else ""
 
         return (
             f"Chain(\n"
             f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
             f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
             f"\tlen: {len(self)}  [sign len: {len(self.significant_likelihoods)}]\n"
-            f"\tparent: {self._print_parent()}\n"
+            f"\tparent: {self.parent_str()}\n"
             f"\tcause: {cause}"
             f")"
         )
@@ -196,7 +200,7 @@ class TokenChain:
             f")"
         )
 
-    def __add__(self, other: TokenChain) -> TokenChain:
+    def __add__(self, other: ElasticChain) -> ElasticChain:
         """Adds 2 chains.
         These chains must share the same token positions at the beginning and the end
 
@@ -211,7 +215,7 @@ class TokenChain:
         ValueError
             if chains have different sources or couldn't be added due to not being neighbours
         """
-        if not isinstance(other, TokenChain):
+        if not isinstance(other, ElasticChain):
             return NotImplemented
 
         if self.source != other.source:
@@ -235,7 +239,7 @@ class TokenChain:
                 f"with likelihoods: {other.likelihoods[-1]} and {other.likelihoods[0]}"
             )
 
-        chain = TokenChain(
+        chain = ElasticChain(
             source=self.source,
             target_begin_pos=self.target_begin_pos,
             source_begin_pos=self.source_begin_pos,
@@ -258,14 +262,14 @@ class TokenChain:
             "likelihoods": self.likelihoods.tolist(),
             "source": self.source,
             "source_len": len(self.source_mask),
-            "source_skipped": np.flatnonzero(~self.source_mask),
+            "source_skipped": np.flatnonzero(~self.source_mask).tolist(),
             "target_len": len(self.target_mask),
-            "target_skipped": np.flatnonzero(~self.target_mask),
-            "cause": None if self.cause is None else f"{self.cause}",
+            "target_skipped": np.flatnonzero(~self.target_mask).tolist(),
+            "cause": self.cause,
         }
 
-    @staticmethod
-    def from_dict(d: dict) -> "TokenChain":
+    @classmethod
+    def from_dict(cls, d: dict) -> "ElasticChain":
         source_len = d["source_len"]
         source_mask = np.ones(source_len, dtype=np.bool_)
         source_mask[d["source_skipped"]] = False
@@ -274,7 +278,7 @@ class TokenChain:
         target_mask = np.ones(target_len, dtype=np.bool_)
         target_mask[d["target_skipped"]] = False
 
-        return TokenChain(
+        return ElasticChain(
             source=d["source"],
             target_begin_pos=d["target_begin_pos"],
             source_begin_pos=d["source_begin_pos"],
@@ -284,7 +288,7 @@ class TokenChain:
             cause=d["cause"],
         )
 
-    def copy(self, cause: str | None = "copy") -> TokenChain:
+    def copy(self, cause: str | None = "copy") -> ElasticChain:
         c = copy.copy(self)
         if cause is not None:
             c.parent = self
@@ -303,7 +307,7 @@ class TokenChain:
         self.target_begin_pos -= 1
         self.source_begin_pos -= 1
 
-    def skip_forward(self, likelihood: float) -> Tuple[TokenChain, TokenChain]:
+    def skip_forward(self, likelihood: float) -> Tuple[ElasticChain, ElasticChain]:
         """
         Marks following token-positions as skipped
 
@@ -313,7 +317,7 @@ class TokenChain:
 
         Returns
         -------
-        Tuple[TokenChain, TokenChain]
+        Tuple[ElasticChain, ElasticChain]
             Tuple of chains, where token-pos is skipped only in target text and where its skipped only in source text
 
         Examples
@@ -322,7 +326,7 @@ class TokenChain:
         Say we tokens in target and source texts: ``[t0,t1,t2,t3,t4,t5]`` and ``[s0,s1,s2,s3,s4,s5]``
 
         And we matched these token sequences up to 't3' and 's3' tokens, so we have TokenChain:
-        >>> the_chain = TokenChain (
+        >>> the_chain = ElasticChain (
         ...    source="some_source",
         ...    target_begin_pos=17,
         ...    source_begin_pos=13,
@@ -374,7 +378,7 @@ class TokenChain:
 
         return target_skip, source_skip
 
-    def skip_backward(self, likelihood: float) -> Tuple[TokenChain, TokenChain]:
+    def skip_backward(self, likelihood: float) -> Tuple[ElasticChain, ElasticChain]:
         """
         Reversed versio  of ``skip_forward``
 
@@ -418,8 +422,8 @@ class TokenChain:
         return lst
 
     def _trim(self, mask: npt.NDArray, *targets: str) -> int:
-        begin_trim = TokenChain._begin_skips(mask)
-        end_trim = len(mask) - TokenChain._end_skips(mask)
+        begin_trim = ElasticChain._begin_skips(mask)
+        end_trim = len(mask) - ElasticChain._end_skips(mask)
 
         for target in targets:
             old_value = getattr(self, target)
@@ -431,7 +435,7 @@ class TokenChain:
         self.target_begin_pos += self._trim(self.target_mask, "target_mask", "likelihoods")
         self.source_begin_pos += self._trim(self.source_mask, "source_mask")
 
-    def trim_copy(self) -> TokenChain:
+    def trim_copy(self) -> ElasticChain:
         """Produces a chain without insignificant likelihoods on the ends"""
         obj = self.copy("trim")
         obj.trim()
@@ -461,21 +465,21 @@ class TokenChain:
     BACKWARD_DIRECTION = _ChainExpansionDirection()
 
     def _expand_chain(
-        self: TokenChain,
+        self: ElasticChain,
         expansion_direction: _ChainExpansionDirection,
         target_token_ids: List[int],
         source_likelihoods: npt.NDArray[np.float32],
         skip_limit: int = DEFAULT_MAX_SKIPS,
         depth: int = 0,
-    ) -> List[TokenChain]:
+    ) -> List[ElasticChain]:
 
         if self.reached_skip_limit(skip_limit):
             return []
 
         # SETUP:
         if expansion_direction == self.FORWARD_DIRECTION:
-            expand_f = TokenChain.expand_forward
-            skip_f = TokenChain.skip_forward
+            expand_f = ElasticChain.expand_forward
+            skip_f = ElasticChain.skip_forward
             shift_upper_bound = min(
                 len(source_likelihoods) - self.source_end_pos, len(target_token_ids) - self.target_end_pos
             )
@@ -484,8 +488,8 @@ class TokenChain:
             shift_multiplier = 1
 
         else:
-            expand_f = TokenChain.expand_backward
-            skip_f = TokenChain.skip_backward
+            expand_f = ElasticChain.expand_backward
+            skip_f = ElasticChain.skip_backward
             shift_upper_bound = min(self.source_begin_pos, self.target_begin_pos)
             target_start_pos = self.target_begin_pos - 1
             source_start_pos = self.source_begin_pos - 1
@@ -503,7 +507,10 @@ class TokenChain:
             token_curr_id = target_token_ids[target_pos]
             token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
 
-            if token_curr_likelihood < TokenChain.likelihood_significance_threshold:
+            if token_curr_likelihood < ElasticChain.likelihood_significance_threshold:
+                if depth == 0 and shift == 0:
+                    return []
+
                 fork1, fork2 = skip_f(self, token_curr_likelihood)
                 result_chains += fork1._expand_chain(
                     expansion_direction, target_token_ids, source_likelihoods, skip_limit, depth + 1
@@ -515,9 +522,7 @@ class TokenChain:
                     skip_limit,
                     depth + 1,
                 )
-                if (depth == 0 and shift == 0) or self.reached_skip_limit(skip_limit):
-                    # Reject depth == 0 and shift == 0 check is made to prevent re-matching of the same sequences
-                    break
+                break
 
             else:
                 expand_f(self, token_curr_likelihood)
@@ -532,7 +537,7 @@ class TokenChain:
         source_name: str,
         target_token_ids: List[int],
         target_start_pos: int,
-    ) -> List[TokenChain]:
+    ) -> List[ElasticChain]:
         """Generates chains of tokens with the same source
 
         Parameters
@@ -550,12 +555,12 @@ class TokenChain:
             position from where to start building chains
         """
 
-        result_chains: List[TokenChain] = []
+        result_chains: List[ElasticChain] = []
         source_len = len(source_likelihoods)
 
         for source_start_pos in range(0, source_len):
             # FORWARD CHAINING:
-            chain = TokenChain(source_name, target_start_pos, source_start_pos)
+            chain = ElasticChain(source_name, target_start_pos, source_start_pos)
             result_chains += chain._expand_chain(
                 cls.FORWARD_DIRECTION,
                 target_token_ids,
@@ -571,7 +576,7 @@ class TokenChain:
         source_name: str,
         target_token_ids: List[int],
         target_start_pos: int,
-    ) -> List[TokenChain]:
+    ) -> List[ElasticChain]:
         """Generates chains of tokens with the same source
 
         Parameters
@@ -588,30 +593,31 @@ class TokenChain:
         target_start_pos : int
             position from where to start building chains
         """
-        result_chains: Set[TokenChain] = set()
+        result_chains: Set[ElasticChain] = set()
         source_len = len(source_likelihoods)
 
         for source_start_pos in range(0, source_len):
             # FORWARD CHAINING:
-            forward_chains = TokenChain(source_name, target_start_pos, source_start_pos)._expand_chain(
+            forward_chains = ElasticChain(source_name, target_start_pos, source_start_pos)._expand_chain(
                 cls.FORWARD_DIRECTION, target_token_ids, source_likelihoods
             )
 
             # BACKWARD CHAINING:
-            backward_chains = TokenChain(source_name, target_start_pos, source_start_pos)._expand_chain(
+            backward_chains = ElasticChain(source_name, target_start_pos, source_start_pos)._expand_chain(
                 cls.BACKWARD_DIRECTION, target_token_ids, source_likelihoods
             )
 
             # COMBINE CHAINS:
             for backward_chain, forward_chain in itertools.product(backward_chains, forward_chains):
                 if (
-                    backward_chain.source_end_skips + forward_chain.source_begin_skips > TokenChain.DEFAULT_MAX_SKIPS
-                    or backward_chain.target_end_skips + forward_chain.target_begin_skips > TokenChain.DEFAULT_MAX_SKIPS
+                    backward_chain.source_end_skips + forward_chain.source_begin_skips > ElasticChain.DEFAULT_MAX_SKIPS
+                    or backward_chain.target_end_skips + forward_chain.target_begin_skips
+                    > ElasticChain.DEFAULT_MAX_SKIPS
                 ):
                     # Reject chain combinations with a large gap in the middle
                     continue
                 try:  # Try adding chain, if fails - skip
-                    chain: TokenChain = backward_chain + forward_chain
+                    chain: ElasticChain = backward_chain + forward_chain
                     chain.trim()
                     result_chains.add(chain)
                 except ValueError:

@@ -6,7 +6,7 @@ from typing import List
 
 from jinja2 import Template
 
-from src.chaining import TokenChain
+from src.chaining import Chain
 
 
 @dataclasses.dataclass
@@ -14,7 +14,7 @@ class Coloring:
     title: str
     pipeline_name: str
     tokens: List[str]
-    chains: List[TokenChain]
+    chains: List[Chain]
 
 
 def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
@@ -37,7 +37,7 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
             source_dict[chain.source].append(color_num)
 
             for pos in range(last_target_pos, chain.target_begin_pos):
-                token_list.append({"color_num": color_num, "token": coloring.tokens[pos], "target_pos": pos})
+                token_list.append({"color_num": 0, "token": coloring.tokens[pos], "target_pos": pos})
 
             for pos, s_pos in zip(range(chain.target_begin_pos, chain.target_end_pos), chain.source_positions()):
                 if s_pos is None:

@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-from src import TokenChain
+from src import ElasticChain
 
 
 def test_mapping():
-    chain = TokenChain(
+    chain = ElasticChain(
         "1",
         8,
         6,
@@ -21,11 +21,11 @@ def test_mapping():
     expected_probs = np.array([0.9, 0.8, 0.7, 0.9, 0.0, 0.0, 0.7, 0.6, 0.8], dtype=np.float32)
     for i, y_true in enumerate(expected_probs):
         y_pred = chain.get_target_likelihood(i + 8)
-        assert y_pred.dtype == y_true.dtype and y_pred == y_true, f"position: {i} ({i+8})"
+        assert y_pred == y_true, f"position: {i} ({i+8})"
 
 
 def test_simple_chain():
-    chain = TokenChain("source1", 24, 42)
+    chain = ElasticChain("source1", 24, 42)
 
     assert chain.likelihoods.dtype == np.float32
     assert len(chain) == 0
@@ -60,7 +60,7 @@ def test_simple_chain():
 
 
 def test_trim():
-    chain = TokenChain("source1", 24, 42)
+    chain = ElasticChain("source1", 24, 42)
 
     chain.skip_forward(0.000003)
     chain.skip_forward(0.000007)
@@ -85,8 +85,8 @@ def test_trim():
 
 
 def test_add():
-    chain1 = TokenChain("source1", 24, 42)
-    chain2 = TokenChain("source1", 30, 48)
+    chain1 = ElasticChain("source1", 24, 42)
+    chain2 = ElasticChain("source1", 30, 48)
 
     chain1.skip_forward(0.000005)
     chain1.skip_forward(0.000003)
