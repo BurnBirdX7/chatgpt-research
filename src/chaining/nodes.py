@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Set, Callable, Tuple
+from typing import List, Dict, Any, Set, Callable, Tuple, Type
 
 import numpy as np
 import numpy.typing as npt
@@ -6,7 +6,8 @@ import numpy.typing as npt
 from ..config import EmbeddingBuilderConfig
 from ..pipeline import BaseNode
 from .descriptors import ChainListDescriptor, Pos2ChainMappingDescriptor
-from .elastic_chain import ElasticChain
+from .chain import Chain
+from .hard_chain import HardChain
 
 __all__ = ["ChainingNode", "FilterChainsNode", "Pos2ChainMapNode"]
 
@@ -17,24 +18,26 @@ class ChainingNode(BaseNode):
         name: str,
         embedding_builder_config: EmbeddingBuilderConfig,
         use_bidirectional_chaining: bool = False,
+        chain_class: Type[Chain] = HardChain,
     ):
         super().__init__(name, [str, list, dict], ChainListDescriptor())
         self.eb_config = embedding_builder_config
         self.use_bidirectional_chaining = use_bidirectional_chaining
+        self.chain_class = chain_class
 
     @property
-    def chaining_func(self) -> Callable[[npt.NDArray[np.float32], str, List[int], int], List[ElasticChain]]:
+    def chaining_func(self) -> Callable[[npt.NDArray[np.float32], str, List[int], int], List[Chain]]:
         if self.use_bidirectional_chaining:
-            return ElasticChain.generate_chains_bidirectional
+            return self.chain_class.generate_chains_bidirectional
         else:
-            return ElasticChain.generate_chains
+            return self.chain_class.generate_chains
 
     def process(
         self,
         input_text: str,
         sources: List[List[str]],
         source_likelihoods: Dict[str, npt.NDArray[np.float32]],
-    ) -> List[ElasticChain]:
+    ) -> List[Chain]:
         """
         Parameters
         ----------
@@ -45,7 +48,7 @@ class ChainingNode(BaseNode):
 
         Returns
         -------
-        ElasticChain
+        List[Chain]
 
         """
         tokenizer = self.eb_config.tokenizer
@@ -76,9 +79,9 @@ class FilterChainsNode(BaseNode):
     def __init__(self, name: str):
         super().__init__(name, [list], ChainListDescriptor())
 
-    def process(self, chains: List[ElasticChain]) -> List[ElasticChain]:
+    def process(self, chains: List[Chain]) -> List[Chain]:
         self.logger.debug(f"Chain count: {len(chains)}")
-        filtered_chains: List[ElasticChain] = []
+        filtered_chains: List[Chain] = []
         marked_positions: Set[int] = set()  # positions that are marked with some source
 
         chains = [chain for chain in chains if chain.significant_len() > 1]
@@ -109,12 +112,10 @@ class AttachMetaData(BaseNode):
         post = "".join(token_list[end : end + 3])
         return text, pre, post
 
-    def process(
-        self, chains: List[ElasticChain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]
-    ) -> Any:
+    def process(self, chains: List[Chain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]) -> Any:
         for chain in chains:
             source_tokens = source_tokens_dict[chain.source]
-            chain.attachment["source_tokens"] = source_tokens[chain.source_begin_pos : chain.source_end_pos]
+            chain.attachment["source_tokens"] = source_tokens
             chain.attachment["source_text"] = AttachMetaData.get_texts(
                 source_tokens, chain.source_begin_pos, chain.source_end_pos
             )
@@ -133,8 +134,8 @@ class Pos2ChainMapNode(BaseNode):
     def __init__(self, name: str):
         super().__init__(name, [list], Pos2ChainMappingDescriptor())
 
-    def process(self, chains: List[ElasticChain]) -> Dict[int, ElasticChain]:
-        pos2chain: Dict[int, ElasticChain] = {}
+    def process(self, chains: List[Chain]) -> Dict[int, Chain]:
+        pos2chain: Dict[int, Chain] = {}
         for i, chain in enumerate(chains):
             for pos in chain.get_target_token_positions():
                 pos2chain[pos] = chain

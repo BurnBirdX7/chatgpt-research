@@ -21,7 +21,8 @@ class HardChain(Chain):
         target_begin_pos: int,
         source_begin_pos: int,
         all_likelihoods: List[float] | npt.NDArray[np.float32] | None = None,
-        parent: HardChain | List[HardChain] | None = None,
+        parent: Chain | List[Chain] | None = None,
+        cause: str = "",
         end_skips: int = 0,
         begin_skips: int = 0,
     ):
@@ -46,64 +47,23 @@ class HardChain(Chain):
             Parent chain, intended for debug purposes.
             Generally is a chain that was reduced or transformed into this chain
         """
-        super().__init__(source, target_begin_pos, source_begin_pos)
-
-        self.target_begin_pos: int = target_begin_pos
-        self.source_begin_pos: int = source_begin_pos
+        super().__init__(source, target_begin_pos, source_begin_pos, parent, cause)
         self.all_likelihoods: npt.NDArray[np.float32] = np.array(
             [] if (all_likelihoods is None) else all_likelihoods, dtype=np.float32
         )
-        self.source = source
-        self.parent: HardChain | List[HardChain] | None = parent
-        self.attachment: Dict[str, Any] = {}
 
         self.begin_skips = begin_skips
         self.end_skips = end_skips
 
-    # --- #
-    # ABC #
-    # --- #
+    # ----- #
+    # Magic #
+    # ----- #
 
-    @property
-    def target_end_skips(self) -> int:
-        return self.end_skips
-
-    @property
-    def target_begin_skips(self) -> int:
-        return self.begin_skips
-
-    @property
-    def source_end_skips(self) -> int:
-        return self.end_skips
-
-    @property
-    def source_begin_skips(self) -> int:
-        return self.begin_skips
-
-    @property
-    def significant_likelihoods(self) -> npt.NDArray[np.float32]:
-        return self.likelihoods[self.likelihoods >= HardChain.likelihood_significance_threshold]
-
-    @property
-    def target_end_pos(self) -> int:
-        """Last (exclusive) token position of the chain in the target text"""
-        return self.target_begin_pos + len(self)
-
-    @property
-    def source_end_pos(self) -> int:
-        """Last (exclusive) token position of the chain in matched source text"""
-        return self.source_begin_pos + len(self)
-
-    @property
-    def likelihoods(self) -> npt.NDArray[np.float32]:
-        """Significant likelihoods"""
-        return self.all_likelihoods[self.all_likelihoods >= HardChain.likelihood_significance_threshold]
-
-    def get_target_likelihood(self, target_pos: int) -> float:
-        if target_pos < self.target_begin_pos or target_pos >= self.target_end_pos:
-            return -1.0
-
-        return float(self.all_likelihoods[target_pos - self.target_begin_pos])
+    def __len__(self) -> int:
+        """Length of the chain.
+        Amount of tokens covered by the chain in target and source texts
+        """
+        return len(self.all_likelihoods)
 
     def __eq__(self, other: HardChain | None) -> bool:
         if other is None:
@@ -132,45 +92,6 @@ class HardChain(Chain):
                 # all_likelihoods as skipped, as it is highly unlikely for 2 chains have different arrays
                 #   It's expensive (and unnecessary) to hash the array
             )
-        )
-
-    def __len__(self) -> int:
-        """Length of the chain.
-        Amount of tokens covered by the chain in target and source texts
-        """
-        return len(self.all_likelihoods)
-
-    def _print_parent(self) -> str:
-        if self.parent is None:
-            return "-"
-
-        if isinstance(self.parent, HardChain):
-            return str(self.parent).replace("\n\t", "\n\t\t")
-
-        return "[" + ", \n\t".join([str(chain) for chain in self.parent]).replace("\n\t", "\n\t\t") + "]"
-
-    def __str__(self) -> str:
-        return (
-            f"Chain(\n"
-            f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
-            f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
-            f"\tlen: {len(self)}  [sign len: {len(self.likelihoods)}]\n"
-            f"\tparent: {self._print_parent()}\n"
-            f"\tbegin_skips: {self.begin_skips}, end_skips: {self.end_skips}"
-            f")"
-        )
-
-    def __repr__(self) -> str:
-        return (
-            f"Chain("
-            f"target_begin_pos={self.target_begin_pos}, "
-            f"source_begin_pos={self.source_begin_pos,}"
-            f"all_likelihoods={self.all_likelihoods!r}"
-            f"source={self.source!r}, "
-            f"parent={self.parent!r}, "
-            f"begin_skips={self.begin_skips}, "
-            f"end_skips={self.end_skips}"
-            f")"
         )
 
     def __add__(self, other: HardChain) -> HardChain:
@@ -226,6 +147,107 @@ class HardChain(Chain):
 
         return chain
 
+    def __str__(self) -> str:
+        return (
+            f"Chain(\n"
+            f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
+            f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
+            f"\tlen: {len(self)}  [sign len: {len(self.significant_likelihoods)}]\n"
+            f"\tparent: {self.parent_str()}\n"
+            f"\tcause: {self.cause}\n"
+            f"\tbegin_skips: {self.begin_skips}, end_skips: {self.end_skips}"
+            f")"
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"Chain("
+            f"target_begin_pos={self.target_begin_pos}, "
+            f"source_begin_pos={self.source_begin_pos,}"
+            f"all_likelihoods={self.all_likelihoods!r}"
+            f"source={self.source!r}, "
+            f"parent={self.parent!r}, "
+            f"cause={self.cause!r}, "
+            f"begin_skips={self.begin_skips}, "
+            f"end_skips={self.end_skips}"
+            f")"
+        )
+
+    # --------- #
+    # Positions #
+    # --------- #
+
+    @property
+    def target_end_pos(self) -> int:
+        """Last (exclusive) token position of the chain in the target text"""
+        return self.target_begin_pos + len(self)
+
+    @property
+    def source_end_pos(self) -> int:
+        """Last (exclusive) token position of the chain in matched source text"""
+        return self.source_begin_pos + len(self)
+
+    def source_matches(self) -> Dict[int, int | None]:
+        return {
+            t: s
+            for t, s in zip(
+                range(self.target_begin_pos, self.target_end_pos), range(self.source_begin_pos, self.source_end_pos)
+            )
+        }
+
+    def get_target_token_positions(self) -> Set[int]:
+        return set(range(self.target_begin_pos, self.target_end_pos))
+
+    def get_source_token_positions(self) -> Set[int]:
+        return set(range(self.source_begin_pos, self.source_end_pos))
+
+    # ---------------- #
+    # Skip information #
+    # ---------------- #
+
+    @property
+    def target_begin_skips(self) -> int:
+        return self.begin_skips
+
+    @property
+    def target_end_skips(self) -> int:
+        return self.end_skips
+
+    @property
+    def source_begin_skips(self) -> int:
+        return self.begin_skips
+
+    @property
+    def source_end_skips(self) -> int:
+        return self.end_skips
+
+    # ----------- #
+    # Likelihoods #
+    # ----------- #
+
+    @property
+    def significant_likelihoods(self) -> npt.NDArray[np.float32]:
+        return self.all_likelihoods[self.all_likelihoods >= HardChain.likelihood_significance_threshold]
+
+    def get_target_likelihood(self, target_pos: int) -> float:
+        if target_pos < self.target_begin_pos or target_pos >= self.target_end_pos:
+            return -1.0
+
+        return float(self.all_likelihoods[target_pos - self.target_begin_pos])
+
+    def get_score(self) -> float:
+        # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
+        g_mean = np.exp(np.log(self.significant_likelihoods).mean())
+        score = g_mean * (len(self) ** 2)
+        return score
+
+    def significant_len(self) -> int:
+        return len(self.significant_likelihoods)
+
+    # ------------- #
+    # Serialization #
+    # ------------- #
+
     def to_dict(self) -> dict:
         # Parent and attachment aren't saved
         return {
@@ -237,8 +259,8 @@ class HardChain(Chain):
             "end_skips": self.end_skips,
         }
 
-    @staticmethod
-    def from_dict(d: dict) -> "HardChain":
+    @classmethod
+    def from_dict(cls, d: dict) -> "HardChain":
         return HardChain(
             target_begin_pos=d["target_begin_pos"],
             source_begin_pos=d["source_begin_pos"],
@@ -247,6 +269,10 @@ class HardChain(Chain):
             begin_skips=d["begin_skips"],
             end_skips=d.get("end_skips", d["end_skips:"]),
         )
+
+    # --------- #
+    # Expansion #
+    # --------- #
 
     def append_end(self, likelihood: float) -> None:
         """Appends significant likelihood to the chain"""
@@ -258,7 +284,7 @@ class HardChain(Chain):
         """Appends insignificant likelihood to the chain"""
         assert likelihood < HardChain.likelihood_significance_threshold
         self.end_skips += 1
-        if len(self.likelihoods) == 0:  # No significant likelihoods encountered yet
+        if len(self.significant_likelihoods) == 0:  # No significant likelihoods encountered yet
             self.begin_skips += 1
         self.all_likelihoods = np.append(self.all_likelihoods, np.float32(likelihood))
 
@@ -278,37 +304,6 @@ class HardChain(Chain):
 
         assert rev_chain.target_end_pos == self.target_begin_pos + 1
         return rev_chain
-
-    def trim(self):
-        """Trims insignificant likelihoods from the chain"""
-        if self.end_skips > 0:
-            self.all_likelihoods = self.all_likelihoods[self.begin_skips : -self.end_skips]
-        else:
-            self.all_likelihoods = self.all_likelihoods[self.begin_skips :]
-
-        self.target_begin_pos += self.begin_skips
-        self.source_begin_pos += self.begin_skips
-        self.begin_skips = 0
-        self.end_skips = 0
-
-    def trim_copy(self) -> HardChain:
-        """Produces a chain without insignificant likelihoods on the ends"""
-        obj = copy.deepcopy(self)
-        obj.trim()
-        obj.parent = self
-        return obj
-
-    def get_target_token_positions(self) -> Set[int]:
-        return set(range(self.target_begin_pos, self.target_end_pos))
-
-    def get_source_token_positions(self) -> Set[int]:
-        return set(range(self.source_begin_pos, self.source_end_pos))
-
-    def get_score(self) -> float:
-        # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
-        g_mean = np.exp(np.log(self.likelihoods).mean())
-        score = g_mean * (len(self) ** 2)
-        return score
 
     class _ChainExpansionDirection: ...
 
@@ -462,15 +457,12 @@ class HardChain(Chain):
                     continue
 
                 chain: HardChain = backward_chain + forward_chain
-                chain.trim()
                 result_chains.add(chain)
 
             # Add uni-directional chains to the set
             for chain in forward_chains:
                 result_chains.add(chain)
-                result_chains.add(chain.trim_copy())
             for chain in backward_chains:
                 result_chains.add(chain)
-                result_chains.add(chain.trim_copy())
 
         return list(result_chains)

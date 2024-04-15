@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import itertools
+from collections import defaultdict
 
 import numpy as np
 import numpy.typing as npt
@@ -23,7 +24,7 @@ class ElasticChain(Chain):
         likelihoods: List[float] | npt.NDArray[np.float32] | None = None,
         target_mask: List[bool | int | float] | npt.NDArray[np.bool_] | None = None,
         source_mask: List[bool | int | float] | npt.NDArray[np.bool_] | None = None,
-        parent: ElasticChain | List[ElasticChain] | None = None,
+        parent: Chain | List[Chain] | None = None,
         cause: str = "",
     ):
         """Create chain
@@ -62,9 +63,6 @@ class ElasticChain(Chain):
         if likelihoods is not None and (target_mask is None or source_mask is None):
             raise ValueError("If likelihoods are provided, masks should be provided too")
 
-        self.target_begin_pos: int = target_begin_pos
-        self.source_begin_pos: int = source_begin_pos
-
         self.likelihoods: npt.NDArray[np.float32] = np.array(
             [] if likelihoods is None else likelihoods, dtype=np.float32
         )
@@ -76,64 +74,15 @@ class ElasticChain(Chain):
             source_mask if source_mask is not None else [], dtype=np.bool_
         )
 
-        self.source = source
-        self.parent: ElasticChain | List[ElasticChain] | None = parent
-        self.cause: str | None = cause
-        self.attachment: Dict[str, Any] = {}
+    # ----- #
+    # Magic #
+    # ----- #
 
-    @property
-    def target_end_pos(self) -> int:
-        """Last (exclusive) token position of the chain in the target text"""
-        return self.target_begin_pos + len(self.target_mask)
-
-    @property
-    def source_end_pos(self) -> int:
-        """Last (exclusive) token position of the chain in matched source text"""
-        return self.source_begin_pos + len(self.source_mask)
-
-    @staticmethod
-    def _end_skips(mask: npt.NDArray[np.bool_]) -> int:
-        skips: int = 0
-        while skips < len(mask) and not mask[-skips - 1]:
-            skips += 1
-        return skips
-
-    @property
-    def target_end_skips(self):
-        return ElasticChain._end_skips(self.target_mask)
-
-    @property
-    def target_begin_skips(self):
-        return ElasticChain._begin_skips(self.target_mask)
-
-    @property
-    def source_end_skips(self):
-        return ElasticChain._end_skips(self.source_mask)
-
-    @property
-    def source_begin_skips(self):
-        return ElasticChain._begin_skips(self.source_mask)
-
-    @staticmethod
-    def _begin_skips(mask: npt.NDArray[np.bool_]) -> int:
-        skips: int = 0
-        while skips < len(mask) and not mask[skips]:
-            skips += 1
-        return skips
-
-    @property
-    def significant_likelihoods(self) -> npt.NDArray[np.float32]:
-        """Significant likelihoods"""
-        return self.likelihoods[self.target_mask]
-
-    def get_target_likelihood(self, target_pos: int) -> float:
-        if target_pos < self.target_begin_pos or target_pos >= self.target_end_pos:
-            raise ValueError(
-                f"Illegal position, expected in range [{self.target_begin_pos};{self.target_end_pos}), "
-                f"got: {target_pos}"
-            )
-
-        return self.likelihoods[target_pos - self.target_begin_pos].item()
+    def __len__(self) -> int:
+        """Length of the chain.
+        Amount of tokens covered by the chain in target and source texts
+        """
+        return len(self.target_mask)
 
     def __eq__(self, other: ElasticChain | None) -> bool:
         if other is None:
@@ -162,42 +111,6 @@ class ElasticChain(Chain):
                 # likelihoods are skipped, as it is highly unlikely for 2 chains have different arrays
                 #   It's expensive (and unnecessary) to hash the array
             )
-        )
-
-    def __len__(self) -> int:
-        """Length of the chain.
-        Amount of tokens covered by the chain in target and source texts
-        """
-        return len(self.target_mask)
-
-    def significant_len(self):
-        return self.target_mask.sum()
-
-    def __str__(self) -> str:
-        cause =  f"lost[{self.cause}]" if self.cause != "" else ""
-
-        return (
-            f"Chain(\n"
-            f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
-            f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
-            f"\tlen: {len(self)}  [sign len: {len(self.significant_likelihoods)}]\n"
-            f"\tparent: {self.parent_str()}\n"
-            f"\tcause: {cause}"
-            f")"
-        )
-
-    def __repr__(self) -> str:
-        return (
-            f"Chain("
-            f"target_begin_pos={self.target_begin_pos}, "
-            f"source_begin_pos={self.source_begin_pos,}"
-            f"likelihoods={self.likelihoods!r}, "
-            f"source_mask={self.source_mask!r}, "
-            f"target_mask={self.target_mask!r}, "
-            f"source={self.source!r}, "
-            f"parent={self.parent!r}, "
-            f"cause={self.cause!r}"
-            f")"
         )
 
     def __add__(self, other: ElasticChain) -> ElasticChain:
@@ -253,6 +166,106 @@ class ElasticChain(Chain):
         assert len(chain) == (len(self) + len(other) - 1)
 
         return chain
+
+    def __str__(self) -> str:
+        cause = f"lost[{self.cause}]" if self.cause != "" else ""
+
+        return (
+            f"Chain(\n"
+            f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
+            f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
+            f"\tlen: {len(self)}  [sign len: {len(self.significant_likelihoods)}]\n"
+            f"\tparent: {self.parent_str()}\n"
+            f"\tcause: {cause}"
+            f")"
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"Chain("
+            f"target_begin_pos={self.target_begin_pos}, "
+            f"source_begin_pos={self.source_begin_pos,}"
+            f"likelihoods={self.likelihoods!r}, "
+            f"source_mask={self.source_mask!r}, "
+            f"target_mask={self.target_mask!r}, "
+            f"source={self.source!r}, "
+            f"parent={self.parent!r}, "
+            f"cause={self.cause!r}"
+            f")"
+        )
+
+    # --------- #
+    # Positions #
+    # --------- #
+
+    @property
+    def target_end_pos(self) -> int:
+        """Last (exclusive) token position of the chain in the target text"""
+        return self.target_begin_pos + len(self.target_mask)
+
+    @property
+    def source_end_pos(self) -> int:
+        """Last (exclusive) token position of the chain in matched source text"""
+        return self.source_begin_pos + len(self.source_mask)
+
+    # ---------------- #
+    # Skip information #
+    # ---------------- #
+
+    @staticmethod
+    def _begin_skips(mask: npt.NDArray[np.bool_]) -> int:
+        skips: int = 0
+        while skips < len(mask) and not mask[skips]:
+            skips += 1
+        return skips
+
+    @staticmethod
+    def _end_skips(mask: npt.NDArray[np.bool_]) -> int:
+        skips: int = 0
+        while skips < len(mask) and not mask[-skips - 1]:
+            skips += 1
+        return skips
+
+    @property
+    def target_begin_skips(self):
+        return ElasticChain._begin_skips(self.target_mask)
+
+    @property
+    def target_end_skips(self):
+        return ElasticChain._end_skips(self.target_mask)
+
+    @property
+    def source_begin_skips(self):
+        return ElasticChain._begin_skips(self.source_mask)
+
+    @property
+    def source_end_skips(self):
+        return ElasticChain._end_skips(self.source_mask)
+
+    # ----------- #
+    # likelihoods #
+    # ----------- #
+
+    @property
+    def significant_likelihoods(self) -> npt.NDArray[np.float32]:
+        """Significant likelihoods"""
+        return self.likelihoods[self.target_mask]
+
+    def get_target_likelihood(self, target_pos: int) -> float:
+        if target_pos < self.target_begin_pos or target_pos >= self.target_end_pos:
+            raise ValueError(
+                f"Illegal position, expected in range [{self.target_begin_pos};{self.target_end_pos}), "
+                f"got: {target_pos}"
+            )
+
+        return self.likelihoods[target_pos - self.target_begin_pos].item()
+
+    # ------------- #
+    # Serialization #
+    # ------------- #
+
+    def significant_len(self):
+        return self.target_mask.sum()
 
     def to_dict(self) -> dict:
         # Parent and attachment aren't saved
@@ -399,7 +412,7 @@ class ElasticChain(Chain):
 
         return target_skip, source_skip
 
-    def source_positions(self) -> List[int | None]:
+    def source_matches(self) -> Dict[int, int | None]:
         """
         Returns relative source positions that
         """
@@ -407,8 +420,8 @@ class ElasticChain(Chain):
 
         s_pos = 0
 
-        lst: List[int | None] = [None] * len(self)
-        for i in range(len(lst)):
+        d: Dict[int, int | None] = defaultdict(lambda: None)
+        for i in range(len(self)):
             if not self.target_mask[i]:
                 continue
 
@@ -416,10 +429,10 @@ class ElasticChain(Chain):
             while not self.source_mask[s_pos]:
                 s_pos += 1
 
-            lst[i] = s_pos
+            d[i] = s_pos + self.source_begin_pos
             s_pos += 1
 
-        return lst
+        return d
 
     def _trim(self, mask: npt.NDArray, *targets: str) -> int:
         begin_trim = ElasticChain._begin_skips(mask)

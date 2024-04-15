@@ -36,28 +36,28 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
             source_tokens = chain.attachment["source_tokens"]
             source_dict[chain.source].append(color_num)
 
-            for pos in range(last_target_pos, chain.target_begin_pos):
-                token_list.append({"color_num": 0, "token": coloring.tokens[pos], "target_pos": pos})
+            for t_pos in range(last_target_pos, chain.target_begin_pos):
+                token_list.append({"color_num": 0, "token": coloring.tokens[t_pos], "target_pos": t_pos})
 
-            for pos, s_pos in zip(range(chain.target_begin_pos, chain.target_end_pos), chain.source_positions()):
+            source_matches = chain.source_matches()
+            for t_pos in range(chain.target_begin_pos, chain.target_end_pos):
+                s_pos = source_matches[t_pos]
                 if s_pos is None:
                     matched_token = "[skipped]"
-                    matched_pos: str | int = "skipped"
                 else:
                     matched_token = source_tokens[s_pos]
-                    matched_pos = s_pos + chain.source_begin_pos
                 token_list.append(
                     {
                         "url": chain.source,
                         "color_num": color_num,
                         "score": chain.get_score(),
-                        "target_pos": pos,
-                        "target_likelihood": chain.get_target_likelihood(pos),
+                        "target_pos": t_pos,
+                        "target_likelihood": chain.get_target_likelihood(t_pos),
                         "target_text": chain.attachment["target_text"],
                         "source_text": chain.attachment["source_text"],
-                        "source_pos": matched_pos,
+                        "source_pos": s_pos,
                         "chain": str(chain),
-                        "token": coloring.tokens[pos],
+                        "token": coloring.tokens[t_pos],
                         "source_token": matched_token,
                     }
                 )
