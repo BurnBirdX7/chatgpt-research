@@ -6,7 +6,7 @@ import itertools
 import numpy as np
 import numpy.typing as npt
 import torch
-from typing import Optional, List, Set, Dict, Any
+from typing import List, Set, Dict, Any, Tuple
 
 
 class TokenChain:
@@ -18,10 +18,11 @@ class TokenChain:
         source: str,
         target_begin_pos: int,
         source_begin_pos: int,
-        all_likelihoods: List[float] | npt.NDArray[np.float32] | None = None,
+        likelihoods: List[float] | npt.NDArray[np.float32] | None = None,
+        target_mask: List[bool | int | float] | npt.NDArray[np.bool_] | None = None,
+        source_mask: List[bool | int | float] | npt.NDArray[np.bool_] | None = None,
         parent: TokenChain | List[TokenChain] | None = None,
-        end_skips: int = 0,
-        begin_skips: int = 0,
+        cause: str | None = None,
     ):
         """Create chain
 
@@ -45,38 +46,81 @@ class TokenChain:
             Generally is a chain that was reduced or transformed into this chain
         """
 
+        if likelihoods is not None and (target_mask is None or source_mask is None):
+            raise ValueError("If likelihoods are provided, masks should be provided too")
+
         self.target_begin_pos: int = target_begin_pos
         self.source_begin_pos: int = source_begin_pos
-        self.all_likelihoods: npt.NDArray[np.float32] = np.array(
-            [] if (all_likelihoods is None) else all_likelihoods, dtype=np.float32
+
+        self.likelihoods: npt.NDArray[np.float32] = np.array(
+            [] if likelihoods is None else likelihoods, dtype=np.float32
         )
+
+        self.target_mask: npt.NDArray[np.bool_] = np.array(
+            target_mask if target_mask is not None else [], dtype=np.bool_
+        )
+        self.source_mask: npt.NDArray[np.bool_] = np.array(
+            source_mask if source_mask is not None else [], dtype=np.bool_
+        )
+
         self.source = source
         self.parent: TokenChain | List[TokenChain] | None = parent
+        self.cause: str | None = cause
         self.attachment: Dict[str, Any] = {}
-
-        self.begin_skips = begin_skips
-        self.end_skips = end_skips
 
     @property
     def target_end_pos(self) -> int:
         """Last (exclusive) token position of the chain in the target text"""
-        return self.target_begin_pos + len(self)
+        return self.target_begin_pos + len(self.target_mask)
 
     @property
     def source_end_pos(self) -> int:
         """Last (exclusive) token position of the chain in matched source text"""
-        return self.source_begin_pos + len(self)
+        return self.source_begin_pos + len(self.source_mask)
+
+    @staticmethod
+    def _end_skips(mask: npt.NDArray[np.bool_]) -> int:
+        skips: int = 0
+        while skips < len(mask) and not mask[-skips - 1]:
+            skips += 1
+        return skips
 
     @property
-    def likelihoods(self) -> npt.NDArray[np.float32]:
+    def target_end_skips(self):
+        return TokenChain._end_skips(self.target_mask)
+
+    @property
+    def target_begin_skips(self):
+        return TokenChain._begin_skips(self.target_mask)
+
+    @property
+    def source_end_skips(self):
+        return TokenChain._end_skips(self.source_mask)
+
+    @property
+    def source_begin_skips(self):
+        return TokenChain._begin_skips(self.source_mask)
+
+    @staticmethod
+    def _begin_skips(mask: npt.NDArray[np.bool_]) -> int:
+        skips: int = 0
+        while skips < len(mask) and not mask[skips]:
+            skips += 1
+        return skips
+
+    @property
+    def significant_likelihoods(self) -> npt.NDArray[np.float32]:
         """Significant likelihoods"""
-        return self.all_likelihoods[self.all_likelihoods >= TokenChain.likelihood_significance_threshold]
+        return self.likelihoods[self.likelihoods >= TokenChain.likelihood_significance_threshold]
 
-    def get_target_likelihood(self, target_pos: int) -> float:
+    def get_target_likelihood(self, target_pos: int) -> np.float32:
         if target_pos < self.target_begin_pos or target_pos >= self.target_end_pos:
-            return -1.0
+            raise ValueError(
+                f"Illegal position, expected in range [{self.target_begin_pos};{self.target_end_pos}), "
+                f"got: {target_pos}"
+            )
 
-        return float(self.all_likelihoods[target_pos - self.target_begin_pos])
+        return self.likelihoods[target_pos - self.target_begin_pos]
 
     def __eq__(self, other: TokenChain | None) -> bool:
         if other is None:
@@ -89,9 +133,9 @@ class TokenChain:
             self.source == other.source
             and self.target_begin_pos == other.target_begin_pos
             and self.source_begin_pos == other.source_begin_pos
-            and self.begin_skips == other.begin_skips
-            and self.end_skips == other.end_skips
-            and np.array_equal(self.all_likelihoods, other.all_likelihoods)
+            and np.array_equal(self.target_mask, other.target_mask)
+            and np.array_equal(self.source_mask, other.source_mask)
+            and np.array_equal(self.likelihoods, other.likelihoods)
         )
 
     def __hash__(self):
@@ -100,9 +144,9 @@ class TokenChain:
                 self.source,
                 self.target_begin_pos,
                 self.source_begin_pos,
-                self.begin_skips,
-                self.end_skips,
-                # all_likelihoods as skipped, as it is highly unlikely for 2 chains have different arrays
+                len(self.target_mask),
+                len(self.source_mask),
+                # likelihoods are skipped, as it is highly unlikely for 2 chains have different arrays
                 #   It's expensive (and unnecessary) to hash the array
             )
         )
@@ -111,7 +155,7 @@ class TokenChain:
         """Length of the chain.
         Amount of tokens covered by the chain in target and source texts
         """
-        return len(self.all_likelihoods)
+        return self.target_mask.sum()
 
     def _print_parent(self) -> str:
         if self.parent is None:
@@ -123,13 +167,15 @@ class TokenChain:
         return "[" + ", \n\t".join([str(chain) for chain in self.parent]).replace("\n\t", "\n\t\t") + "]"
 
     def __str__(self) -> str:
+        cause = self.cause if self.cause is not None else f"lost[{self.cause}]"
+
         return (
             f"Chain(\n"
             f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
             f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
-            f"\tlen: {len(self)}  [sign len: {len(self.likelihoods)}]\n"
+            f"\tlen: {len(self)}  [sign len: {len(self.significant_likelihoods)}]\n"
             f"\tparent: {self._print_parent()}\n"
-            f"\tbegin_skips: {self.begin_skips}, end_skips: {self.end_skips}"
+            f"\tcause: {cause}"
             f")"
         )
 
@@ -138,11 +184,12 @@ class TokenChain:
             f"Chain("
             f"target_begin_pos={self.target_begin_pos}, "
             f"source_begin_pos={self.source_begin_pos,}"
-            f"all_likelihoods={self.all_likelihoods!r}"
+            f"likelihoods={self.likelihoods!r}, "
+            f"source_mask={self.source_mask!r}, "
+            f"target_mask={self.target_mask!r}, "
             f"source={self.source!r}, "
             f"parent={self.parent!r}, "
-            f"begin_skips={self.begin_skips}, "
-            f"end_skips={self.end_skips}"
+            f"cause={self.cause!r}"
             f")"
         )
 
@@ -177,25 +224,26 @@ class TokenChain:
                 f"Got chains:\n{self}\nand\n{other}"
             )
 
-        if self.all_likelihoods[-1] != other.all_likelihoods[0]:
+        if self.likelihoods[-1] != other.likelihoods[0]:
             raise ValueError(
                 "Added chains must have one common likelihood"
                 "on the end of left chain and beginning of the right chain. "
                 f"Got chains:\n{self}\nand\n{other}"
-                f"with likelihoods: {other.all_likelihoods[-1]} and {other.all_likelihoods[0]}"
+                f"with likelihoods: {other.likelihoods[-1]} and {other.likelihoods[0]}"
             )
 
         chain = TokenChain(
             source=self.source,
             target_begin_pos=self.target_begin_pos,
             source_begin_pos=self.source_begin_pos,
-            all_likelihoods=np.concatenate([self.all_likelihoods[:-1], other.all_likelihoods]),
+            likelihoods=np.concatenate([self.likelihoods[:-1], other.likelihoods]),
+            source_mask=np.concatenate([self.source_mask[:-1], other.source_mask]),
+            target_mask=np.concatenate([self.target_mask[:-1], other.target_mask]),
+            parent=[self, other],
+            cause="add",
         )
 
         assert len(chain) == (len(self) + len(other) - 1)
-        chain.begin_skips = self.begin_skips
-        chain.end_skips = other.end_skips
-        chain.parent = [self, other]
 
         return chain
 
@@ -204,71 +252,119 @@ class TokenChain:
         return {
             "target_begin_pos": self.target_begin_pos,
             "source_begin_pos": self.source_begin_pos,
-            "all_likelihoods": self.all_likelihoods.tolist(),
+            "likelihoods": self.likelihoods.tolist(),
             "source": self.source,
-            "begin_skips": self.begin_skips,
-            "end_skips": self.end_skips,
+            "source_len": len(self.source_mask),
+            "source_skipped": np.flatnonzero(~self.source_mask),
+            "target_len": len(self.target_mask),
+            "target_skipped": np.flatnonzero(~self.target_mask),
+            "cause": None if self.cause is None else f"{self.cause}",
         }
 
     @staticmethod
     def from_dict(d: dict) -> "TokenChain":
+        source_len = d["source_len"]
+        source_mask = np.ones(source_len, dtype=np.bool_)
+        source_mask[d["source_skipped"]] = False
+
+        target_len = d["target_len"]
+        target_mask = np.ones(target_len, dtype=np.bool_)
+        target_mask[d["target_skipped"]] = False
+
         return TokenChain(
+            source=d["source"],
             target_begin_pos=d["target_begin_pos"],
             source_begin_pos=d["source_begin_pos"],
-            all_likelihoods=np.array(d["all_likelihoods"]),
-            source=d["source"],
-            begin_skips=d["begin_skips"],
-            end_skips=d.get("end_skips", d["end_skips:"]),
+            likelihoods=np.array(d["likelihoods"]),
+            source_mask=source_mask,
+            target_mask=target_mask,
+            cause=d["cause"],
         )
 
-    def append_end(self, likelihood: float) -> None:
-        """Appends significant likelihood to the chain"""
-        assert likelihood >= TokenChain.likelihood_significance_threshold
-        self.all_likelihoods = np.append(self.all_likelihoods, np.float32(likelihood))
-        self.end_skips = 0
+    def copy(self, cause: str | None = "copy") -> TokenChain:
+        c = copy.copy(self)
+        if cause is not None:
+            c.parent = self
+            c.cause = cause
+        return c
 
-    def skip_end(self, likelihood: float) -> None:
-        """Appends insignificant likelihood to the chain"""
-        assert likelihood < TokenChain.likelihood_significance_threshold
-        self.end_skips += 1
-        if len(self.likelihoods) == 0:  # No significant likelihoods encountered yet
-            self.begin_skips += 1
-        self.all_likelihoods = np.append(self.all_likelihoods, np.float32(likelihood))
+    def expand_forward(self, likelihood: float):
+        self.likelihoods = np.append(self.likelihoods, np.float32(likelihood))
+        self.target_mask = np.append(self.target_mask, True)
+        self.source_mask = np.append(self.source_mask, True)
 
-    def reverse(self) -> TokenChain:
-        rev_chain = TokenChain(
-            source=self.source,
-            target_begin_pos=self.target_begin_pos - len(self) + 1,
-            source_begin_pos=self.source_begin_pos - len(self) + 1,
-            all_likelihoods=np.flip(self.all_likelihoods, axis=0),
-            parent=self,
-        )
+    def expand_backward(self, likelihood: float):
+        self.likelihoods = np.append(np.float32(likelihood), self.likelihoods)
+        self.target_mask = np.append(True, self.target_mask)
+        self.source_mask = np.append(True, self.source_mask)
+        self.target_begin_pos -= 1
+        self.source_begin_pos -= 1
 
-        rev_chain.begin_skips, rev_chain.end_skips = (
-            self.end_skips,
-            self.begin_skips,
-        )
+    def skip_forward(self, likelihood: float) -> Tuple[TokenChain, TokenChain]:
+        target_skip = self.copy("fork/target")
+        target_skip.target_mask = np.append(target_skip.target_mask, False)
+        target_skip.likelihoods = np.append(target_skip.likelihoods, 0.0)
 
-        assert rev_chain.target_end_pos == self.target_begin_pos + 1
-        return rev_chain
+        source_skip = self.copy("fork/source")
+        source_skip.source_mask = np.append(source_skip.source_mask, False)
+
+        self.source_mask = source_skip.source_mask
+        self.target_mask = target_skip.target_mask
+        self.likelihoods = np.append(self.likelihoods, np.float32(likelihood))
+
+        return target_skip, source_skip
+
+    def skip_backward(self, likelihood: float) -> Tuple[TokenChain, TokenChain]:
+        target_skip = self.copy("fork/target")
+        target_skip.target_mask = np.append(False, target_skip.target_mask)
+        target_skip.likelihoods = np.append(0.0, target_skip.likelihoods)
+
+        source_skip = self.copy("fork/source")
+        source_skip.source_mask = np.append(False, source_skip.source_mask)
+
+        self.source_mask = source_skip.source_mask
+        self.target_mask = target_skip.target_mask
+        self.likelihoods = np.append(np.float32(likelihood), self.likelihoods)
+
+        return target_skip, source_skip
+
+    def source_positions(self) -> List[int | None]:
+        assert self.target_mask.sum() == self.source_mask.sum()
+
+        s_pos = self.source_begin_pos
+
+        lst: List[int | None] = [None] * len(self)
+        for i in range(len(self)):
+            if not self.target_mask[i]:
+                continue
+
+            # Ship all source skips
+            while not self.source_mask[s_pos - self.source_begin_pos]:
+                s_pos += 1
+
+            lst[i] = s_pos
+            s_pos += 1
+
+        return lst
+
+    def _trim(self, mask: npt.NDArray, *targets: str) -> int:
+        begin_trim = TokenChain._begin_skips(mask)
+        end_trim = len(mask) - TokenChain._end_skips(mask)
+
+        for target in targets:
+            old_value = getattr(self, target)
+            setattr(self, target, old_value[begin_trim:end_trim])
+
+        return begin_trim
 
     def trim(self):
-        """Trims insignificant likelihoods from the chain"""
-        if self.end_skips > 0:
-            self.all_likelihoods = self.all_likelihoods[self.begin_skips : -self.end_skips]
-        else:
-            self.all_likelihoods = self.all_likelihoods[self.begin_skips :]
-
-        self.target_begin_pos += self.begin_skips
-        self.source_begin_pos += self.begin_skips
-        self.begin_skips = 0
-        self.end_skips = 0
+        self.target_begin_pos += self._trim(self.target_mask, "target_mask", "likelihoods")
+        self.source_begin_pos += self._trim(self.source_mask, "source_mask")
 
     def trim_copy(self) -> TokenChain:
         """Produces a chain without insignificant likelihoods on the ends"""
-        obj = copy.deepcopy(self)
+        obj = self.copy("trim")
         obj.trim()
-        obj.parent = self
         return obj
 
     def get_target_token_positions(self) -> Set[int]:
@@ -279,45 +375,57 @@ class TokenChain:
 
     def get_score(self) -> float:
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
-        g_mean = np.exp(np.log(self.likelihoods).mean())
+        g_mean = np.exp(np.log(self.significant_likelihoods).mean())
         score = g_mean * (len(self) ** 2)
         return score
+
+    def reached_skip_limit(self, skip_limit: int) -> bool:
+        def reached_limit(mask):
+            return len(mask) >= skip_limit and not (mask[-skip_limit:].any() and mask[:skip_limit].any())
+
+        return reached_limit(self.target_mask) or reached_limit(self.source_mask)
 
     class _ChainExpansionDirection: ...
 
     FORWARD_DIRECTION = _ChainExpansionDirection()
     BACKWARD_DIRECTION = _ChainExpansionDirection()
 
-    @classmethod
-    def expand_chain(
-        cls,
+    def _expand_chain(
+        self: TokenChain,
         expansion_direction: _ChainExpansionDirection,
-        starting_target_pos: int,
         target_token_ids: List[int],
-        starting_source_pos: int,
         source_likelihoods: npt.NDArray[np.float32],
-        source: str,
         skip_limit: int = DEFAULT_MAX_SKIPS,
+        depth: int = 0,
     ) -> List[TokenChain]:
 
-        skips: int = 0
+        if self.reached_skip_limit(skip_limit):
+            return []
 
-        if expansion_direction == cls.FORWARD_DIRECTION:
+        # SETUP:
+        if expansion_direction == self.FORWARD_DIRECTION:
+            expand_f = TokenChain.expand_forward
+            skip_f = TokenChain.skip_forward
             shift_upper_bound = min(
-                len(target_token_ids) - starting_target_pos, len(source_likelihoods) - starting_source_pos
+                len(source_likelihoods) - self.source_end_pos, len(target_token_ids) - self.target_end_pos
             )
+            target_start_pos = self.target_end_pos
+            source_start_pos = self.source_end_pos
             shift_multiplier = 1
-            reverse = False
-        else:
-            shift_upper_bound = min(starting_source_pos, starting_target_pos)
-            shift_multiplier = -1
-            reverse = True
 
-        chain = TokenChain(source, starting_target_pos, starting_source_pos)
+        else:
+            expand_f = TokenChain.expand_backward
+            skip_f = TokenChain.skip_backward
+            shift_upper_bound = min(self.source_begin_pos, self.target_begin_pos)
+            target_start_pos = self.target_begin_pos - 1
+            source_start_pos = self.source_begin_pos - 1
+            shift_multiplier = -1
+
+        # GENERATION:
         result_chains = []
         for shift in range(0, shift_upper_bound):
-            target_pos = starting_target_pos + (shift_multiplier * shift)
-            source_pos = starting_source_pos + (shift_multiplier * shift)
+            target_pos = target_start_pos + (shift_multiplier * shift)
+            source_pos = source_start_pos + (shift_multiplier * shift)
 
             assert 0 <= target_pos < len(target_token_ids)
             assert 0 <= source_pos < len(source_likelihoods)
@@ -326,16 +434,20 @@ class TokenChain:
             token_curr_likelihood = source_likelihoods[source_pos][token_curr_id].item()
 
             if token_curr_likelihood < TokenChain.likelihood_significance_threshold:
-                chain.skip_end(token_curr_likelihood)
-                skips += 1
-                if skips > skip_limit:
+                fork1, fork2 = skip_f(self, token_curr_likelihood)
+                result_chains += fork1._expand_chain(
+                    expansion_direction, target_token_ids, source_likelihoods, skip_limit, depth + 1
+                )
+                result_chains += fork2._expand_chain(
+                    expansion_direction, target_token_ids, source_likelihoods, skip_limit, depth + 1,
+                )
+                if self.reached_skip_limit(skip_limit):
+                    # TODO: Reject depth == 0 and shift == 0 check is made to prevent re-matching of the same sequences
                     break
+
             else:
-                chain.append_end(token_curr_likelihood)
-                if len(chain) > 1 and not reverse:
-                    result_chains.append(copy.copy(chain))
-                elif len(chain) > 1:
-                    result_chains.append(chain.reverse())
+                expand_f(self, token_curr_likelihood)
+                result_chains.append(self.copy(None))
 
         return result_chains
 
@@ -369,13 +481,11 @@ class TokenChain:
 
         for source_start_pos in range(0, source_len):
             # FORWARD CHAINING:
-            result_chains += TokenChain.expand_chain(
+            chain = TokenChain(source_name, target_start_pos, source_start_pos)
+            result_chains += chain._expand_chain(
                 cls.FORWARD_DIRECTION,
-                target_start_pos,
                 target_token_ids,
-                source_start_pos,
                 source_likelihoods,
-                source_name,
             )
 
         return result_chains
@@ -409,41 +519,34 @@ class TokenChain:
 
         for source_start_pos in range(0, source_len):
             # FORWARD CHAINING:
-            forward_chains = TokenChain.expand_chain(
-                cls.FORWARD_DIRECTION,
-                target_start_pos,
-                target_token_ids,
-                source_start_pos,
-                source_likelihoods,
-                source_name,
+            forward_chains = TokenChain(source_name, target_start_pos, source_start_pos)._expand_chain(
+                cls.FORWARD_DIRECTION, target_token_ids, source_likelihoods
             )
 
             # BACKWARD CHAINING:
-            backward_chains = TokenChain.expand_chain(
-                cls.BACKWARD_DIRECTION,
-                target_start_pos,
-                target_token_ids,
-                source_start_pos,
-                source_likelihoods,
-                source_name,
+            backward_chains = TokenChain(source_name, target_start_pos, source_start_pos)._expand_chain(
+                cls.BACKWARD_DIRECTION, target_token_ids, source_likelihoods
             )
 
             # COMBINE CHAINS:
             for backward_chain, forward_chain in itertools.product(backward_chains, forward_chains):
-                if backward_chain.end_skips + forward_chain.begin_skips > TokenChain.DEFAULT_MAX_SKIPS:
+                if (
+                    backward_chain.source_end_skips + forward_chain.source_begin_skips > TokenChain.DEFAULT_MAX_SKIPS
+                    or backward_chain.target_end_skips + forward_chain.target_begin_skips > TokenChain.DEFAULT_MAX_SKIPS
+                ):
                     # Reject chain combinations with a large gap in the middle
                     continue
-
-                chain: TokenChain = backward_chain + forward_chain
-                chain.trim()
-                result_chains.add(chain)
+                try:
+                    chain: TokenChain = backward_chain + forward_chain
+                    chain.trim()
+                    result_chains.add(chain)
+                except ValueError:
+                    ...
 
             # Add uni-directional chains to the set
             for chain in forward_chains:
                 result_chains.add(chain)
-                result_chains.add(chain.trim_copy())
             for chain in backward_chains:
                 result_chains.add(chain)
-                result_chains.add(chain.trim_copy())
 
         return list(result_chains)

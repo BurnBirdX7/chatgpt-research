@@ -5,9 +5,10 @@ import json
 import logging
 import os.path
 import pathlib
-import time
 from collections import defaultdict
-from typing import Any, Dict, Set, List, Tuple
+from typing import Any, Dict, Set, List
+
+import ujson
 
 from src.pipeline.base_nodes import Node
 from .pipeline_result import PipelineResult, PipelineHistory, NodeStatistics
@@ -408,7 +409,7 @@ class Pipeline:
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
-            self.__save_history(beginning_time, history)
+            self.__store_history(beginning_time, history)
 
     def resume_from_cache(self: Pipeline, pipeline_result: PipelineResult, node_name: str) -> PipelineResult:
         """Resumes already finished execution from specified point
@@ -453,7 +454,7 @@ class Pipeline:
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
-            self.__save_history(start_time, history)
+            self.__store_history(start_time, history)
 
     def resume_from_disk(self: Pipeline, historyfile_path: str, node_name: str) -> PipelineResult:
         """Resumes already finished execution from specified point
@@ -524,7 +525,7 @@ class Pipeline:
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
         finally:
-            self.__save_history(start_time, history)
+            self.__store_history(start_time, history)
 
     def cleanup(self, history_dic: PipelineHistory):
         self.logger.info("Cleanup")
@@ -608,7 +609,7 @@ class Pipeline:
         # Inject logger
         new_node.logger = logging.getLogger(f"{self.logger.name}.<{new_node.name}>")
 
-    def __save_history(self, time_: datetime.datetime, history: PipelineHistory):
+    def __store_history(self, time_: datetime.datetime, history: PipelineHistory):
         """Saves history file to the disk
         Does nothing if ``self.store_intermediate_data`` is set to `False`
 
@@ -632,7 +633,7 @@ class Pipeline:
 
         self.logger.info(f"Saving history [path: {pipeline_history_file}]")
         with open(pipeline_history_file, "w") as file:
-            file.write(json.dumps(history))
+            ujson.dump(history, file, indent=2)
 
     def __run(
         self,
@@ -745,8 +746,7 @@ class Pipeline:
         dic_name = f"pipe_{node.name}_{self.get_timestamp_str()}.json"
         pipefile_path = os.path.abspath(os.path.join(self.artifacts_folder, dic_name))
         with open(pipefile_path, "w") as file:
-            dic_str = json.dumps(dic)
-            file.write(dic_str)
+            ujson.dump(dic, file, indent=2)
 
         history[node.name] = pipefile_path
 

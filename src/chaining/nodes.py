@@ -33,7 +33,7 @@ class ChainingNode(BaseNode):
         self,
         input_text: str,
         sources: List[List[str]],
-        source_batched_likelihoods: Dict[str, npt.NDArray[np.float32]],
+        source_likelihoods: Dict[str, npt.NDArray[np.float32]],
     ) -> List[TokenChain]:
         """
         Parameters
@@ -41,7 +41,7 @@ class ChainingNode(BaseNode):
         input_text : str
             Text that was supplied to the pipeline
         sources
-        source_batched_likelihoods
+        source_likelihoods
 
         Returns
         -------
@@ -55,14 +55,11 @@ class ChainingNode(BaseNode):
         for token_pos, (token_id, token_sources) in enumerate(zip(input_token_ids, sources)):
             self.logger.debug(f"position: {token_pos + 1} / {len(input_token_ids)}")
 
-            for source in token_sources:
-                batched_likelihoods = source_batched_likelihoods[source]
-                self.logger.debug(
-                    f"\tbatch size: {len(batched_likelihoods)}, " f"token id: {token_id}, " f"source: {source}"
-                )
-
+            for source in set(token_sources):
+                likelihoods = source_likelihoods[source]
+                self.logger.debug(f"\tsequence length: {len(likelihoods)}, token id: {token_id}, source: {source}")
                 result_chains += self.chaining_func(
-                    batched_likelihoods,
+                    likelihoods,
                     source,
                     input_token_ids,
                     token_pos,
@@ -84,7 +81,6 @@ class FilterChainsNode(BaseNode):
         filtered_chains: List[TokenChain] = []
         marked_positions: Set[int] = set()  # positions that are marked with some source
 
-        chains = [chain.trim_copy() for chain in chains]
         chains = [chain for chain in chains if len(chain) > 1]
 
         for chain in sorted(chains, key=lambda x: x.get_score(), reverse=True):
