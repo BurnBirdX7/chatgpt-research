@@ -1,12 +1,10 @@
-import copy
 import itertools
-from typing import Any, List, Dict, Tuple
 
 from transformers import RobertaForMaskedLM
 
-from src import QueryColbertServerNode, TokenChain
-from src.chaining import ChainingNode, FilterChainsNode, Pos2ChainMapNode
-from src.chaining.descriptors import ChainListDescriptor
+from src import QueryColbertServerNode
+from src.chaining import ChainingNode, FilterChainsNode
+from src.chaining.nodes import AttachMetaData
 from src.embeddings_builder import (
     EmbeddingsFromTextNode,
     TokenizeTextNode,
@@ -29,34 +27,6 @@ def FilterDict(dict_: dict, keys: list) -> dict:
     # Keys is a list of lists
     unique_keys = set(itertools.chain.from_iterable(keys))
     return {k: dict_[k] for k in unique_keys}
-
-
-class AttachMetaData(BaseNode):
-
-    def __init__(self, name: str):
-        super().__init__(name, [list, list, dict], ChainListDescriptor())
-
-    @staticmethod
-    def get_texts(token_list: List[str], beg: int, end: int) -> Tuple[str, str, str]:
-        text = "".join(token_list[beg:end])
-        pre = "".join(token_list[max(beg - 3, 0) : beg])
-        post = "".join(token_list[end : end + 3])
-        return text, pre, post
-
-    def process(
-        self, chains: List[TokenChain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]
-    ) -> Any:
-        for chain in chains:
-            source_tokens = source_tokens_dict[chain.source]
-            chain.attachment["source_tokens"] = source_tokens[chain.source_begin_pos : chain.source_end_pos]
-            chain.attachment["source_text"] = AttachMetaData.get_texts(
-                source_tokens, chain.source_begin_pos, chain.source_end_pos
-            )
-            chain.attachment["target_text"] = AttachMetaData.get_texts(
-                target_tokens, chain.target_begin_pos, chain.target_end_pos
-            )
-
-        return chains
 
 
 def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
@@ -113,9 +83,6 @@ def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
 
     # Filter overlapping chains out
     pipeline.attach_back(FilterChainsNode("filtered-chains"))
-
-    # Map every token-position onto corresponding chain
-    pipeline.attach_back(Pos2ChainMapNode("token2chain"))
 
     return pipeline
 

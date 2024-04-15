@@ -111,7 +111,7 @@ class TokenChain:
     @property
     def significant_likelihoods(self) -> npt.NDArray[np.float32]:
         """Significant likelihoods"""
-        return self.likelihoods[self.likelihoods >= TokenChain.likelihood_significance_threshold]
+        return self.likelihoods[self.target_mask]
 
     def get_target_likelihood(self, target_pos: int) -> np.float32:
         if target_pos < self.target_begin_pos or target_pos >= self.target_end_pos:
@@ -155,6 +155,9 @@ class TokenChain:
         """Length of the chain.
         Amount of tokens covered by the chain in target and source texts
         """
+        return len(self.target_mask)
+
+    def significant_len(self):
         return self.target_mask.sum()
 
     def _print_parent(self) -> str:
@@ -301,6 +304,63 @@ class TokenChain:
         self.source_begin_pos -= 1
 
     def skip_forward(self, likelihood: float) -> Tuple[TokenChain, TokenChain]:
+        """
+        Marks following token-positions as skipped
+
+        Parameters
+        ----------
+        likelihood
+
+        Returns
+        -------
+        Tuple[TokenChain, TokenChain]
+            Tuple of chains, where token-pos is skipped only in target text and where its skipped only in source text
+
+        Examples
+        --------
+
+        Say we tokens in target and source texts: ``[t0,t1,t2,t3,t4,t5]`` and ``[s0,s1,s2,s3,s4,s5]``
+
+        And we matched these token sequences up to 't3' and 's3' tokens, so we have TokenChain:
+        >>> the_chain = TokenChain (
+        ...    source="some_source",
+        ...    target_begin_pos=17,
+        ...    source_begin_pos=13,
+        ...    likelihoods=[0.9, 0.8, 0.9],
+        ...    target_mask=[1, 1, 1],
+        ...    source_mask=[1, 1, 1],
+        ... )
+        That matches sequences [t0, t1, t2] and [s0, s1, s2]
+
+        Let's skip next position:
+        >>> fork1, fork2 = the_chain.skip_forward(0.1) # Our tokens are identical, so likelihood is likely to be high :)
+
+        ``the_chain`` is now matches sequences ``[t0,t1,t2,t3]`` and ``[s0,s1,s2,s3]``,
+            but ``t3`` and ``s3`` tokens are skipped
+        It can describe a situation where tokens ``t0``-``t2`` are likely to appear in place of ``s0``-``s2``
+                but ``t3`` isn't likely to appear instead of ``s3``.
+
+        Simplified: where ``t0``-``t2`` are equal to ``s0``-``s2``, but ``t3`` and ``s3`` are different
+
+        The method produces 2 forks, that skip positions only in one place (target tokens or source tokens)
+
+        It would match [a, b, c, x, e] and [a, b, c, y, e] sequences pretty good
+
+        >>> fork1.expand_forward(0.9)
+        ... fork2.expand_forward(0.8)
+
+        After that ``fork1`` will match target sequence ``[t0,t1,t2,t3,t4]`` to ``[s0,s1,s2,s3]``,
+            where ``t3`` is skipped and ``t4`` is matched against ``s3``,
+
+            ``t3`` has likelihood of `0.0` and matches against `None`
+
+            It would match sequences [a, b, c, d, e, f] and [a, b, c, e, f]
+
+        And ``fork2`` will match target sequence ``[t0,t1,t2,t3]`` to ``[s0,s1,s2,s3,s4]``,
+            where ``s3`` is skipped and ``t3`` is matched against ``s4``
+
+            It would match sequences [a, b, c, e, f] and [a, b, c, d, e, f]
+        """
         target_skip = self.copy("fork/target")
         target_skip.target_mask = np.append(target_skip.target_mask, False)
         target_skip.likelihoods = np.append(target_skip.likelihoods, 0.0)
@@ -315,6 +375,13 @@ class TokenChain:
         return target_skip, source_skip
 
     def skip_backward(self, likelihood: float) -> Tuple[TokenChain, TokenChain]:
+        """
+        Reversed versio  of ``skip_forward``
+
+        See Also
+        --------
+        skip_forward : skips token in front of a sequence, has detailed docstring
+        """
         target_skip = self.copy("fork/target")
         target_skip.target_mask = np.append(False, target_skip.target_mask)
         target_skip.likelihoods = np.append(0.0, target_skip.likelihoods)
@@ -329,17 +396,20 @@ class TokenChain:
         return target_skip, source_skip
 
     def source_positions(self) -> List[int | None]:
+        """
+        Returns relative source positions that
+        """
         assert self.target_mask.sum() == self.source_mask.sum()
 
-        s_pos = self.source_begin_pos
+        s_pos = 0
 
         lst: List[int | None] = [None] * len(self)
-        for i in range(len(self)):
+        for i in range(len(lst)):
             if not self.target_mask[i]:
                 continue
 
             # Ship all source skips
-            while not self.source_mask[s_pos - self.source_begin_pos]:
+            while not self.source_mask[s_pos]:
                 s_pos += 1
 
             lst[i] = s_pos
@@ -439,10 +509,14 @@ class TokenChain:
                     expansion_direction, target_token_ids, source_likelihoods, skip_limit, depth + 1
                 )
                 result_chains += fork2._expand_chain(
-                    expansion_direction, target_token_ids, source_likelihoods, skip_limit, depth + 1,
+                    expansion_direction,
+                    target_token_ids,
+                    source_likelihoods,
+                    skip_limit,
+                    depth + 1,
                 )
-                if self.reached_skip_limit(skip_limit):
-                    # TODO: Reject depth == 0 and shift == 0 check is made to prevent re-matching of the same sequences
+                if (depth == 0 and shift == 0) or self.reached_skip_limit(skip_limit):
+                    # Reject depth == 0 and shift == 0 check is made to prevent re-matching of the same sequences
                     break
 
             else:
@@ -536,7 +610,7 @@ class TokenChain:
                 ):
                     # Reject chain combinations with a large gap in the middle
                     continue
-                try:
+                try:  # Try adding chain, if fails - skip
                     chain: TokenChain = backward_chain + forward_chain
                     chain.trim()
                     result_chains.add(chain)

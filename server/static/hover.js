@@ -27,6 +27,7 @@ function getKey(elem) {
 async function updatePopup(event, target) {
     const source_url = target.getAttribute('data-source-url');
     const target_pos = target.getAttribute('data-target-pos');
+    const source_pos = target.getAttribute('data-source-pos');
     const target_likelihood = target.getAttribute('data-target-likelihood');
     const key = getKey(target);
     let color_class = 'color0';
@@ -43,8 +44,8 @@ async function updatePopup(event, target) {
         <span class="${color_class}">⏺</span>
         <a href="${source_url}" target="_blank" class="source_reference">${source_url}</a><br>
         
-        This token: \`<code>${target.innerText}</code>\`
-        Matched token: \`<code>${target.getAttribute("data-source-token")}</code>\`
+        This token: \`<code>${target.innerText}</code>\` [${target_pos}]
+        Matched token: \`<code>${target.getAttribute("data-source-token")}</code>\` [${source_pos}]
         
         <table>
         <tr><td><b>Target text</b></td><td>
@@ -55,11 +56,10 @@ async function updatePopup(event, target) {
         </td></tr>    
         </table>
         <b>Score: </b> ${target.getAttribute('data-score')}
-        <b>Pos: </b> ${target_pos}
         <b>Likelihood: </b> ${parseFloat(target_likelihood).toFixed(6)}
         <br>`
     } else {
-        popup.innerHTML = `This token: \`<code>${target.innerText}</code>\`, Pos: ${target_pos} <br>`
+        popup.innerHTML = `This token: \`<code>${target.innerText}</code>\` [${target_pos}] <br>`
     }
 
     if (loadImages) {

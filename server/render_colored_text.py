@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Optional, List, Dict
+from typing import List
 
 from jinja2 import Template
 
@@ -14,7 +14,7 @@ class Coloring:
     title: str
     pipeline_name: str
     tokens: List[str]
-    pos2chain: Dict[int, TokenChain]
+    chains: List[TokenChain]
 
 
 def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
@@ -24,52 +24,45 @@ def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
 
     for coloring in colorings:
 
-        def get_chain(pos: int) -> TokenChain | None:
-            if pos not in coloring.pos2chain:
-                return None
-            return coloring.pos2chain[pos]
+        sorted_chains = sorted(coloring.chains, key=lambda ch: ch.target_begin_pos)
 
         source_dict = defaultdict(list)
         token_list = []
 
         # Track progress
-        color_num: int = 0
-        last_chain: Optional[TokenChain] = None
-        relative_pos = 0
+        last_target_pos = 0
 
-        for pos, token in enumerate(coloring.tokens):
-            chain = get_chain(pos)
-
-            if chain is None:
-                token_list.append({"color_num": 0, "token": token, "target_pos": pos})
-                continue
-
-            if chain is not last_chain:
-                color_num += 1
-                source_dict[chain.source].append(color_num)
-                last_chain = chain
-                relative_pos = 0
-
+        for color_num, chain in enumerate(sorted_chains, 1):
             source_tokens = chain.attachment["source_tokens"]
-            if len(source_tokens) > relative_pos:
-                matched_token = source_tokens[relative_pos]
-            else:
-                matched_token = f"<UNMATCHED ({relative_pos}/{len(source_tokens)})>"
-            token_list.append(
-                {
-                    "url": chain.source,
-                    "color_num": color_num,
-                    "score": chain.get_score(),
-                    "target_pos": pos,
-                    "target_likelihood": chain.get_target_likelihood(pos),
-                    "target_text": chain.attachment["target_text"],
-                    "source_text": chain.attachment["source_text"],
-                    "chain": str(chain),
-                    "token": token,
-                    "source_token": matched_token,
-                }
-            )
-            relative_pos += 1
+            source_dict[chain.source].append(color_num)
+
+            for pos in range(last_target_pos, chain.target_begin_pos):
+                token_list.append({"color_num": color_num, "token": coloring.tokens[pos], "target_pos": pos})
+
+            for pos, s_pos in zip(range(chain.target_begin_pos, chain.target_end_pos), chain.source_positions()):
+                if s_pos is None:
+                    matched_token = "[skipped]"
+                    matched_pos: str | int = "skipped"
+                else:
+                    matched_token = source_tokens[s_pos]
+                    matched_pos = s_pos + chain.source_begin_pos
+                token_list.append(
+                    {
+                        "url": chain.source,
+                        "color_num": color_num,
+                        "score": chain.get_score(),
+                        "target_pos": pos,
+                        "target_likelihood": chain.get_target_likelihood(pos),
+                        "target_text": chain.attachment["target_text"],
+                        "source_text": chain.attachment["source_text"],
+                        "source_pos": matched_pos,
+                        "chain": str(chain),
+                        "token": coloring.tokens[pos],
+                        "source_token": matched_token,
+                    }
+                )
+
+            last_target_pos = chain.target_end_pos
 
         source_list = list(sorted(source_dict.items(), key=lambda item: len(item[1]), reverse=True))
 

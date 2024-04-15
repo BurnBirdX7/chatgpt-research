@@ -164,7 +164,7 @@ def color_text(text: str | None, override_data: bool, resume_node: str = "all-ch
             title="Unidirectional chaining",
             pipeline_name=unidir_pipeline.name,
             tokens=result.cache["input-tokenized"],
-            pos2chain=result.last_node_result,
+            chains=result.last_node_result,
         )
     )
     chain_dicts[unidir_pipeline.name] = result.cache["all-chains"]
@@ -186,7 +186,7 @@ def color_text(text: str | None, override_data: bool, resume_node: str = "all-ch
             title="Bidirectional chaining",
             pipeline_name=bidir_pipeline.name,
             tokens=result.cache["input-tokenized"],
-            pos2chain=result.last_node_result,
+            chains=result.last_node_result,
         )
     )
     chain_dicts[bidir_pipeline.name] = result.cache["all-chains"]

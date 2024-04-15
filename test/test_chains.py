@@ -16,7 +16,7 @@ def test_mapping():
 
     s_pos = chain.source_positions()
 
-    assert s_pos == [0 + 6, 2 + 6, 3 + 6, 4 + 6, None, None, 5 + 6, 6 + 6, 8 + 6]
+    assert s_pos == [0, 2, 3, 4, None, None, 5, 6, 8]
 
     expected_probs = np.array([0.9, 0.8, 0.7, 0.9, 0.0, 0.0, 0.7, 0.6, 0.8], dtype=np.float32)
     for i, y_true in enumerate(expected_probs):

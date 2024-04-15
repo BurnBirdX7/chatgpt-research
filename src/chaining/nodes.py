@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Set, Callable
+from typing import List, Dict, Any, Set, Callable, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -81,7 +81,7 @@ class FilterChainsNode(BaseNode):
         filtered_chains: List[TokenChain] = []
         marked_positions: Set[int] = set()  # positions that are marked with some source
 
-        chains = [chain for chain in chains if len(chain) > 1]
+        chains = [chain for chain in chains if chain.significant_len() > 1]
 
         for chain in sorted(chains, key=lambda x: x.get_score(), reverse=True):
             if len(chain) < 2:
@@ -95,6 +95,34 @@ class FilterChainsNode(BaseNode):
 
         self.logger.debug(f"Filtered chains count: {len(filtered_chains)}")
         return filtered_chains
+
+
+class AttachMetaData(BaseNode):
+
+    def __init__(self, name: str):
+        super().__init__(name, [list, list, dict], ChainListDescriptor())
+
+    @staticmethod
+    def get_texts(token_list: List[str], beg: int, end: int) -> Tuple[str, str, str]:
+        text = "".join(token_list[beg:end])
+        pre = "".join(token_list[max(beg - 3, 0) : beg])
+        post = "".join(token_list[end : end + 3])
+        return text, pre, post
+
+    def process(
+        self, chains: List[TokenChain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]
+    ) -> Any:
+        for chain in chains:
+            source_tokens = source_tokens_dict[chain.source]
+            chain.attachment["source_tokens"] = source_tokens[chain.source_begin_pos : chain.source_end_pos]
+            chain.attachment["source_text"] = AttachMetaData.get_texts(
+                source_tokens, chain.source_begin_pos, chain.source_end_pos
+            )
+            chain.attachment["target_text"] = AttachMetaData.get_texts(
+                target_tokens, chain.target_begin_pos, chain.target_end_pos
+            )
+
+        return chains
 
 
 class Pos2ChainMapNode(BaseNode):
