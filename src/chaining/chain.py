@@ -24,10 +24,6 @@ class Chain(ABC):
     # ----- #
     # Magic #
     # ----- #
-
-    @abstractmethod
-    def __len__(self) -> int: ...
-
     @abstractmethod
     def __eq__(self, other) -> bool: ...
 
@@ -47,22 +43,29 @@ class Chain(ABC):
     # Positions #
     # --------- #
 
-    @property
     @abstractmethod
-    def target_end_pos(self) -> int: ...
+    def target_len(self) -> int: ...
+
+    @abstractmethod
+    def source_len(self) -> int: ...
 
     @property
-    @abstractmethod
-    def source_end_pos(self) -> int: ...
+    def target_end_pos(self) -> int:
+        return self.target_begin_pos + self.target_len()
+
+    @property
+    def source_end_pos(self) -> int:
+        return self.source_begin_pos + self.source_len()
 
     @abstractmethod
     def source_matches(self) -> Dict[int, int | None]: ...
 
-    @abstractmethod
-    def get_target_token_positions(self) -> Set[int]: ...
+    def get_target_token_positions(self) -> Set[int]:
+        return set(range(self.target_begin_pos, self.target_end_pos))
 
     @abstractmethod
-    def get_source_token_positions(self) -> Set[int]: ...
+    def get_source_token_positions(self) -> Set[int]:
+        return set(range(self.source_begin_pos, self.source_end_pos))
 
     # ---------------- #
     # Skip information #
@@ -87,10 +90,6 @@ class Chain(ABC):
     # ----------- #
     # likelihoods #
     # ----------- #
-
-    @property
-    @abstractmethod
-    def significant_likelihoods(self) -> npt.NDArray[np.float32]: ...
 
     @abstractmethod
     def get_target_likelihood(self, target_pos: int) -> float: ...
@@ -128,7 +127,7 @@ class Chain(ABC):
 
     @classmethod
     @abstractmethod
-    def generate_chains_bidirectional(
+    def generate_chains_bidirectionally(
         cls,
         source_likelihoods: npt.NDArray[np.float32],
         source_name: str,

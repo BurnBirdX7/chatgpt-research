@@ -106,7 +106,7 @@ def _chain2dict(chain: ElasticChain) -> dict[str, str | int | float]:
     return {
         "text": "".join(input_tokenized[chain.target_begin_pos : chain.target_end_pos]),
         "score": chain.get_score(),
-        "len": len(chain),
+        "len": chain.target_len(),
         "debug": str(chain),
     }
 

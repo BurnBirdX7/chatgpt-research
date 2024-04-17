@@ -59,10 +59,7 @@ class HardChain(Chain):
     # Magic #
     # ----- #
 
-    def __len__(self) -> int:
-        """Length of the chain.
-        Amount of tokens covered by the chain in target and source texts
-        """
+    def __len__(self):
         return len(self.all_likelihoods)
 
     def __eq__(self, other: HardChain | None) -> bool:
@@ -138,18 +135,17 @@ class HardChain(Chain):
             target_begin_pos=self.target_begin_pos,
             source_begin_pos=self.source_begin_pos,
             all_likelihoods=np.concatenate([self.all_likelihoods[:-1], other.all_likelihoods]),
+            begin_skips=self.begin_skips,
+            end_skips=other.end_skips,
+            parent=[self, other],
+            cause="add",
         )
-
-        assert len(chain) == (len(self) + len(other) - 1)
-        chain.begin_skips = self.begin_skips
-        chain.end_skips = other.end_skips
-        chain.parent = [self, other]
 
         return chain
 
     def __str__(self) -> str:
         return (
-            f"Chain(\n"
+            f"HardChain(\n"
             f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
             f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
             f"\tlen: {len(self)}  [sign len: {len(self.significant_likelihoods)}]\n"
@@ -161,10 +157,10 @@ class HardChain(Chain):
 
     def __repr__(self) -> str:
         return (
-            f"Chain("
+            f"HardChain("
             f"target_begin_pos={self.target_begin_pos}, "
-            f"source_begin_pos={self.source_begin_pos,}"
-            f"all_likelihoods={self.all_likelihoods!r}"
+            f"source_begin_pos={self.source_begin_pos,}, "
+            f"all_likelihoods={self.all_likelihoods!r}, "
             f"source={self.source!r}, "
             f"parent={self.parent!r}, "
             f"cause={self.cause!r}, "
@@ -176,6 +172,9 @@ class HardChain(Chain):
     # --------- #
     # Positions #
     # --------- #
+
+    target_len = __len__
+    source_len = __len__
 
     @property
     def target_end_pos(self) -> int:
@@ -403,7 +402,7 @@ class HardChain(Chain):
         return result_chains
 
     @classmethod
-    def generate_chains_bidirectional(
+    def generate_chains_bidirectionally(
         cls,
         source_likelihoods: npt.NDArray[np.float32],
         source_name: str,

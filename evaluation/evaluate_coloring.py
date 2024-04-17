@@ -26,8 +26,8 @@ def overall_cover(tokens: list[str], pos2chain: dict[int, ElasticChain]) -> floa
 
 def longest_chain_cover(tokens: list[str], pos2chain: dict[int, ElasticChain]):
     chains = pos2chain.values()
-    max_chain = max(chains, key=lambda ch: len(ch))
-    return len(max_chain) / len(tokens)
+    max_chain = max(chains, key=lambda ch: ch.target_len())
+    return max_chain.target_len() / len(tokens)
 
 
 def prob2bool(func: Callable) -> List[Callable]:

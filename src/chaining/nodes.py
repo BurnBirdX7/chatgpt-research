@@ -28,7 +28,7 @@ class ChainingNode(BaseNode):
     @property
     def chaining_func(self) -> Callable[[npt.NDArray[np.float32], str, List[int], int], List[Chain]]:
         if self.use_bidirectional_chaining:
-            return self.chain_class.generate_chains_bidirectional
+            return self.chain_class.generate_chains_bidirectionally
         else:
             return self.chain_class.generate_chains
 
@@ -87,7 +87,7 @@ class FilterChainsNode(BaseNode):
         chains = [chain for chain in chains if chain.significant_len() > 1]
 
         for chain in sorted(chains, key=lambda x: x.get_score(), reverse=True):
-            if len(chain) < 2:
+            if chain.target_len() < 2:
                 continue
 
             positions = chain.get_target_token_positions()

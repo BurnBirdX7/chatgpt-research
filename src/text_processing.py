@@ -18,6 +18,16 @@ from .pipeline import (
 class _FuncWrapper:
     """
     Wrapper that allows 'or' operation on functions for chaining function calls
+
+    Examples
+    --------
+    Given wrapped functions ``f1``, ``f2`` and ``f3``
+    >>> r = (f1 | f2 | f3)("hello")
+
+    is Equal to
+
+    >>> r = f3(f2(f1("hello")))
+
     """
 
     def __init__(self, func: Callable[[str], str]):
@@ -44,6 +54,12 @@ class _FuncWrapper:
 
         return _FuncWrapper._wrap_or(self._func, other._func)
 
+    def __ror__(self, other: Callable[[str], str]):
+        # other is not a _FuncWrapper, because __or__ would be called
+        if not callable(other):
+            return NotImplemented
+
+        return _FuncWrapper._wrap_or(other, self._func)
 
 @_FuncWrapper
 def remove_punctuation(text: str) -> str:

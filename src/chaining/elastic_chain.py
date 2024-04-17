@@ -78,12 +78,6 @@ class ElasticChain(Chain):
     # Magic #
     # ----- #
 
-    def __len__(self) -> int:
-        """Length of the chain.
-        Amount of tokens covered by the chain in target and source texts
-        """
-        return len(self.target_mask)
-
     def __eq__(self, other: ElasticChain | None) -> bool:
         if other is None:
             return False
@@ -134,7 +128,7 @@ class ElasticChain(Chain):
         if self.source != other.source:
             raise ValueError(f"Added chain must have same source, got: {self.source} and {other.source}")
 
-        if len(self) == 0 or len(other) == 0:
+        if self.target_len() == 0 or self.source_len() == 0 or other.target_len() == 0 or other.source_len() == 0:
             raise ValueError("Chains can't be empty")
 
         if (self.target_end_pos - 1 != other.target_begin_pos) or (self.source_end_pos - 1 != other.source_begin_pos):
@@ -163,18 +157,16 @@ class ElasticChain(Chain):
             cause="add",
         )
 
-        assert len(chain) == (len(self) + len(other) - 1)
-
         return chain
 
     def __str__(self) -> str:
         cause = f"lost[{self.cause}]" if self.cause != "" else ""
 
         return (
-            f"Chain(\n"
+            f"ElasticChain(\n"
             f"\ttarget: [{self.target_begin_pos};{self.target_end_pos}) ~ {self.get_score()}\n"
             f'\tsource: [{self.source_begin_pos};{self.source_end_pos}) ~ "{self.source}"\n'
-            f"\tlen: {len(self)}  [sign len: {len(self.significant_likelihoods)}]\n"
+            f"\tlen: {self.target_len()}  [sign len: {len(self.significant_likelihoods)}]\n"
             f"\tparent: {self.parent_str()}\n"
             f"\tcause: {cause}"
             f")"
@@ -182,9 +174,9 @@ class ElasticChain(Chain):
 
     def __repr__(self) -> str:
         return (
-            f"Chain("
+            f"ElasticChain("
             f"target_begin_pos={self.target_begin_pos}, "
-            f"source_begin_pos={self.source_begin_pos,}"
+            f"source_begin_pos={self.source_begin_pos,}, "
             f"likelihoods={self.likelihoods!r}, "
             f"source_mask={self.source_mask!r}, "
             f"target_mask={self.target_mask!r}, "
@@ -197,6 +189,12 @@ class ElasticChain(Chain):
     # --------- #
     # Positions #
     # --------- #
+
+    def target_len(self) -> int:
+        return len(self.target_mask)
+
+    def source_len(self) -> int:
+        return len(self.source_mask)
 
     @property
     def target_end_pos(self) -> int:
@@ -421,7 +419,7 @@ class ElasticChain(Chain):
         s_pos = 0
 
         d: Dict[int, int | None] = defaultdict(lambda: None)
-        for i in range(len(self)):
+        for i in range(self.target_len()):
             if not self.target_mask[i]:
                 continue
 
@@ -463,7 +461,7 @@ class ElasticChain(Chain):
     def get_score(self) -> float:
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
         g_mean = np.exp(np.log(self.significant_likelihoods).mean())
-        score = g_mean * (len(self) ** 2)
+        score = g_mean * (self.target_len() ** 2)
         return score
 
     def reached_skip_limit(self, skip_limit: int) -> bool:
@@ -583,7 +581,7 @@ class ElasticChain(Chain):
         return result_chains
 
     @classmethod
-    def generate_chains_bidirectional(
+    def generate_chains_bidirectionally(
         cls,
         source_likelihoods: npt.NDArray[np.float32],
         source_name: str,
