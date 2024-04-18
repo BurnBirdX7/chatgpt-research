@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Set, Callable, Tuple, Type
+from typing import List, Dict, Any, Set, Callable, Tuple, Type, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -26,7 +26,7 @@ class ChainingNode(BaseNode):
         self.chain_class = chain_class
 
     @property
-    def chaining_func(self) -> Callable[[npt.NDArray[np.float32], str, List[int], int], List[Chain]]:
+    def chaining_func(self) -> Callable[[npt.NDArray[np.float32], str, List[int], int], Sequence[Chain]]:
         if self.use_bidirectional_chaining:
             return self.chain_class.generate_chains_bidirectionally
         else:
@@ -54,7 +54,7 @@ class ChainingNode(BaseNode):
         tokenizer = self.eb_config.tokenizer
 
         input_token_ids = tokenizer.encode(input_text, add_special_tokens=False)
-        result_chains = []
+        result_chains: List[Chain] = []
         for token_pos, (token_id, token_sources) in enumerate(zip(input_token_ids, sources)):
             self.logger.debug(f"position: {token_pos + 1} / {len(input_token_ids)}")
 

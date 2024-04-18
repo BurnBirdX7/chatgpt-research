@@ -14,6 +14,7 @@ exclude = '''(?x)(
           )'''
 disable_error_code = ['override', 'import-untyped']
 allow_redefinition = true
+plugins = 'numpy.typing.mypy_plugin'
 
 [[tool.mypy.overrides]]
 module = ["search", "search.Searcher"]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Set, Any, Dict
+from typing import List, Set, Any, Dict, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -63,7 +63,6 @@ class Chain(ABC):
     def get_target_token_positions(self) -> Set[int]:
         return set(range(self.target_begin_pos, self.target_end_pos))
 
-    @abstractmethod
     def get_source_token_positions(self) -> Set[int]:
         return set(range(self.source_begin_pos, self.source_end_pos))
 
@@ -133,7 +132,7 @@ class Chain(ABC):
         source_name: str,
         target_token_ids: List[int],
         target_start_pos: int,
-    ) -> List[Chain]: ...
+    ) -> Sequence[Chain]: ...
 
     # ------- #
     # Parents #
