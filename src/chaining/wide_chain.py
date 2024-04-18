@@ -34,10 +34,9 @@ class WideChain(Chain):
         if not isinstance(other, WideChain):
             return False
 
-        return (
-                self.source == other.source and self.source_begin_pos == other.source_begin_pos and len(self) == len(
-            other)
-        )
+        return (self.source == other.source
+                and self.source_begin_pos == other.source_begin_pos
+                and len(self) == len(other))
 
     def __hash__(self):
         return hash((self.source, self.source_begin_pos, len(self)))

@@ -61,6 +61,7 @@ class _FuncWrapper:
 
         return _FuncWrapper._wrap_or(other, self._func)
 
+
 @_FuncWrapper
 def remove_punctuation(text: str) -> str:
     def pred(i: int):

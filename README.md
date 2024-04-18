@@ -4,18 +4,19 @@
 
 [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) is required.
 
-Create environment:
-```shell
-conda env create --file fact-checking-env.yml
-```
+Provided conda environments:
+ * CPU-only:
+   * `factcheck-env-cpu.yml`
+   * `factcheck-env-cpu-dev.yml`
+ * CUDA:
+   * `factcheck-env.yml`
+   * `factcheck-env-dev.yml`
 
-Or a CPU-only environment:
-```shell
-conda env create --file fact-checking-env-cpu.yml
-```
+`-dev` environments contain additional packages for testing and maintaining the code.
 
-Activate:
+Import and activate chosen environment:
 ```shell
+conda env create --file <ENV_FILE>
 conda activate factcheck
 ```
 

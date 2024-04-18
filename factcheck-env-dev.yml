@@ -1,6 +1,7 @@
 name: factcheck
 channels:
   - pytorch
+  - nvidia
   - conda-forge
   - defaults
 dependencies:
@@ -8,15 +9,17 @@ dependencies:
   - pytorch
   - torchvision
   - torchaudio
-  - cpuonly
+  - scipy
+  - pytorch-cuda=11.8
   - numpy
   - pandas
   - wikipedia-api
   - transformers
-  - faiss
+  - faiss-gpu
   - progress
   - matplotlib
   - flake8
+  - black
   - mypy
   - openai
   - flask
