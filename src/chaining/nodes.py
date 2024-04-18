@@ -1,15 +1,27 @@
 from typing import List, Dict, Any, Set, Callable, Tuple, Type, Sequence
 
+import matplotlib as mpl
 import numpy as np
 import numpy.typing as npt
+from sklearn.preprocessing import normalize
 
 from ..config import EmbeddingBuilderConfig
-from ..pipeline import BaseNode
+from ..embeddings_builder import NDArrayDescriptor
+from ..pipeline import BaseNode, ListDescriptor
 from .descriptors import ChainListDescriptor, Pos2ChainMappingDescriptor
 from .chain import Chain
 from .hard_chain import HardChain
+from .wide_chain import WideChain
 
-__all__ = ["ChainingNode", "FilterChainsNode", "Pos2ChainMapNode"]
+__all__ = [
+    "ChainingNode",
+    "FilterOverlappingChainsNode",
+    "Pos2ChainMapNode",
+    "AttachMetaData",
+    "WideChaining",
+    "CollectTokenScoreNode",
+    "Score2ColorsNode",
+]
 
 
 class ChainingNode(BaseNode):
@@ -71,7 +83,7 @@ class ChainingNode(BaseNode):
         return result_chains
 
 
-class FilterChainsNode(BaseNode):
+class FilterOverlappingChainsNode(BaseNode):
     """
     Removes intersections between chains giving priority to chains with higher score
     """
@@ -141,3 +153,58 @@ class Pos2ChainMapNode(BaseNode):
                 pos2chain[pos] = chain
 
         return pos2chain
+
+
+class WideChaining(BaseNode):
+
+    def __init__(self, name, eb_config: EmbeddingBuilderConfig):
+        super().__init__(name, [str, list, dict], NDArrayDescriptor())
+        self.eb_config = eb_config
+
+    def process(
+        self, input_text: str, sources: List[List[str]], source_likelihoods: Dict[str, npt.NDArray[np.float32]]
+    ) -> List[Chain]:
+        tokenizer = self.eb_config.tokenizer
+        input_token_ids = tokenizer.encode(input_text, add_special_tokens=False)
+
+        source_chains: Dict[str, Sequence[Chain]] = {}
+
+        for token_pos, (token_id, token_sources) in enumerate(zip(input_token_ids, sources)):
+            self.logger.debug(f"position: {token_pos + 1} / {len(input_token_ids)}")
+            for source in token_sources:
+                if source in source_chains:
+                    continue
+
+                source_chains[source] = WideChain.generate_chains_bidirectionally(
+                    source_likelihoods[source], source, input_token_ids, 0  # ignored
+                )
+
+        return [chain for chains in source_chains.values() for chain in chains]
+
+
+class CollectTokenScoreNode(BaseNode):
+
+    @staticmethod
+    def default_score(slice_: npt.NDArray[np.float32]) -> np.float32:
+        return np.log(slice_).sum() / len(slice_)
+
+    def __init__(self, name: str):
+        super().__init__(name, [list, list], ListDescriptor())
+        self.func = CollectTokenScoreNode.default_score
+
+    def process(self, tokens: List[str], chains: List[WideChain]) -> npt.NDArray[np.float32]:
+        likelihood_table = np.zeros(shape=(len(chains), len(tokens)), dtype=np.float32)
+        for idx, chain in enumerate(chains):
+            likelihood_table[idx, chain.target_begin_pos : chain.target_end_pos] = chain.likelihoods
+        return np.apply_along_axis(self.func, 0, likelihood_table)
+
+
+class Score2ColorsNode(BaseNode):
+
+    def __init__(self, name: str, cmap_name: str = "plasma"):
+        super().__init__(name, [np.ndarray], ListDescriptor())
+        self.cmap = mpl.colormaps[cmap_name]
+
+    def process(self, scores: npt.NDArray[np.float32]) -> List[str]:
+        norm = normalize(scores) * 0.7
+        return [f"#{r:02x}{g:02x}{b:02x}" for r, g, b, _ in self.cmap(norm)]

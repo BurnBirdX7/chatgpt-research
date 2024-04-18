@@ -11,11 +11,11 @@ from src.chaining import Chain
 class WideChain(Chain):
 
     def __init__(
-            self,
-            source: str,
-            target_begin_pos: int,
-            source_begin_pos: int,
-            likelihoods: List[float] | npt.NDArray[np.float32] | None = None,
+        self,
+        source: str,
+        target_begin_pos: int,
+        source_begin_pos: int,
+        likelihoods: List[float] | npt.NDArray[np.float32] | None = None,
     ):
         super().__init__(source, target_begin_pos, source_begin_pos, None, "")
         self.likelihoods = np.array([] if likelihoods is None else likelihoods, dtype=np.float32)
@@ -34,9 +34,9 @@ class WideChain(Chain):
         if not isinstance(other, WideChain):
             return False
 
-        return (self.source == other.source
-                and self.source_begin_pos == other.source_begin_pos
-                and len(self) == len(other))
+        return (
+            self.source == other.source and self.source_begin_pos == other.source_begin_pos and len(self) == len(other)
+        )
 
     def __hash__(self):
         return hash((self.source, self.source_begin_pos, len(self)))
@@ -107,38 +107,38 @@ class WideChain(Chain):
 
     def to_dict(self) -> dict:
         return {
-            'source': self.source,
-            'target_begin_pos': self.target_begin_pos,
-            'source_begin_pos': self.source_begin_pos,
-            'likelihoods': self.likelihoods.tolist()
+            "source": self.source,
+            "target_begin_pos": self.target_begin_pos,
+            "source_begin_pos": self.source_begin_pos,
+            "likelihoods": self.likelihoods.tolist(),
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "Chain":
         return WideChain(
-            source=d['source'],
-            target_begin_pos=d['target_begin_pos'],
-            source_begin_pos=d['source_begin_pos'],
-            likelihoods=d['likelihoods']
+            source=d["source"],
+            target_begin_pos=d["target_begin_pos"],
+            source_begin_pos=d["source_begin_pos"],
+            likelihoods=d["likelihoods"],
         )
 
     @classmethod
     def generate_chains(
-            cls,
-            source_likelihoods: npt.NDArray[np.float32],
-            source_name: str,
-            target_token_ids: List[int],
-            target_start_pos: int,
+        cls,
+        source_likelihoods: npt.NDArray[np.float32],
+        source_name: str,
+        target_token_ids: List[int],
+        target_start_pos: int,
     ) -> List[Chain]:
         raise NotImplementedError("Not supported, call generate_chains_bidirectionally instead")
 
     @classmethod
     def generate_chains_bidirectionally(
-            cls,
-            source_likelihoods: npt.NDArray[np.float32],
-            source_name: str,
-            target_token_ids: List[int],
-            target_start_pos: int,
+        cls,
+        source_likelihoods: npt.NDArray[np.float32],
+        source_name: str,
+        target_token_ids: List[int],
+        target_start_pos: int,
     ) -> Sequence[Chain]:
 
         # target_start_pos is ignored
@@ -172,15 +172,14 @@ class WideChain(Chain):
         result_chains = []
         target_token_ids = np.array(target_token_ids)
 
-        def create_chain(target_window: npt.NDArray[np.int64],
-                         source_window: npt.NDArray[np.float32],
-                         target_begin_pos: int,
-                         source_begin_pos: int):
+        def create_chain(
+            target_window: npt.NDArray[np.int64],
+            source_window: npt.NDArray[np.float32],
+            target_begin_pos: int,
+            source_begin_pos: int,
+        ):
 
-            likelihoods = [
-                vec[idx]
-                for idx, vec in zip(target_window, source_window)
-            ]
+            likelihoods = [vec[idx] for idx, vec in zip(target_window, source_window)]
             result_chains.append(WideChain(source_name, target_begin_pos, source_begin_pos, likelihoods))
 
         for n in range(1, bound_1 + 1):
@@ -191,17 +190,17 @@ class WideChain(Chain):
         if ls > lt:
             for n in range(bound_1 + 1, bound_2 + 1):
                 target_window = target_token_ids[:]
-                source_window = source_likelihoods[n - bound_1:n]
+                source_window = source_likelihoods[n - bound_1 : n]
                 create_chain(target_window, source_window, 0, n - bound_1)
         else:
             for n in range(bound_1 + 1, bound_2 + 1):
-                target_window = target_token_ids[n - bound_1:n]
+                target_window = target_token_ids[n - bound_1 : n]
                 source_window = source_likelihoods[:]
                 create_chain(target_window, source_window, n - bound_1, 0)
 
         for n in range(bound_2 + 1, lt + ls):
-            target_window = target_token_ids[:-n + bound_2]
-            source_window = source_likelihoods[n - bound_2:]
+            target_window = target_token_ids[: -n + bound_2]
+            source_window = source_likelihoods[n - bound_2 :]
             create_chain(target_window, source_window, 0, n - bound_2)
 
         return result_chains

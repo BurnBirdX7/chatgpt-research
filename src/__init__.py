@@ -6,4 +6,4 @@ from .wiki_data_file import WikiDataFile, ListWikiFileDescriptor
 from .bz2_unpack import Bz2Unpack
 from .find_bz2_files import FindBz2Files
 from .query_sources import QueryColbertServerNode
-from .chaining import ElasticChain, ChainingNode, Pos2ChainMapNode, FilterChainsNode
+from .chaining import ElasticChain, ChainingNode, Pos2ChainMapNode, FilterOverlappingChainsNode

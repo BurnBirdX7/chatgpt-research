@@ -9,7 +9,6 @@ dependencies:
   - pytorch
   - torchvision
   - torchaudio
-  - scipy
   - pytorch-cuda=11.8
   - numpy
   - pandas
@@ -22,3 +21,5 @@ dependencies:
   - flask
   - networkx
   - scipy
+  - scikit-learn
+  - ujson

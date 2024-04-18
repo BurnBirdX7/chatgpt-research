@@ -24,3 +24,5 @@ dependencies:
   - networkx
   - pytest
   - scipy
+  - scikit-learn
+  - ujson

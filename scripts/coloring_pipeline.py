@@ -3,7 +3,7 @@ import itertools
 from transformers import RobertaForMaskedLM
 
 from src import QueryColbertServerNode
-from src.chaining import ChainingNode, FilterChainsNode
+from src.chaining import ChainingNode, FilterOverlappingChainsNode
 from src.chaining.nodes import AttachMetaData
 from src.embeddings_builder import (
     EmbeddingsFromTextNode,
@@ -15,7 +15,6 @@ from src.pipeline import (
     Pipeline,
     mapping_node,
     DictDescriptor,
-    BaseNode,
 )
 from src.config import ColbertServerConfig, EmbeddingBuilderConfig, IndexConfig
 from src.pipeline.wrapper_nodes import DictWrapperNode
@@ -82,7 +81,7 @@ def get_coloring_pipeline(name: str = "text-coloring") -> Pipeline:
     )
 
     # Filter overlapping chains out
-    pipeline.attach_back(FilterChainsNode("filtered-chains"))
+    pipeline.attach_back(FilterOverlappingChainsNode("filtered-chains"))
 
     return pipeline
 
