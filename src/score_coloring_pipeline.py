@@ -4,7 +4,6 @@ import numpy as np
 import numpy.typing as npt
 import matplotlib as mpl
 
-from sklearn.preprocessing import normalize
 from transformers import RobertaForMaskedLM
 
 from . import QueryColbertServerNode
@@ -16,6 +15,12 @@ from .pipeline import Pipeline, BaseNode, ListDescriptor
 from .source_coloring_pipeline import FilterDict
 from .text_processing import remove_punctuation, TextProcessingNode, remove_wiki_formatting
 
+
+def normalize(slice_: npt.NDArray) -> npt.NDArray:
+    min_ = np.min(slice_)
+    max_ = np.max(slice_)
+
+    return (slice_ - min_) / (max_ - min_)
 
 class Score2ColorsNode(BaseNode):
 
