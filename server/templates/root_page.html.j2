@@ -6,18 +6,27 @@
     <link rel="stylesheet" type="text/css" href="../static/style_start.css">
 </head>
 <body>
-<h1><b>FACT CHECKER</b></h1>
+<h1><b>Source Coloring</b></h1>
 
 <form method="POST" action="/result">
     <table id="center_table">
         <tr>
-            <td colspan="2">
+            <td colspan="3">
                 <label for="user_input">
                     <textarea id="user_input" name="user_input" cols="80" rows="10">Insert your text here</textarea>
                 </label>
             </td>
         </tr>
         <tr>
+            <td>
+                Chose coloring type:<br>
+                <label for="type-store">
+                    <input type="radio" id="type-store" name="type" value="score" checked>Score
+                </label><br>
+                <label for="type-source">
+                    <input type="radio" id="type-source" name="type" value="source">Source
+                </label>
+            </td>
             <td>
                 <label for="checkbox_store">
                     <input type="checkbox" id="checkbox_store" name="store" value="1">Save data for rerun
@@ -30,7 +39,7 @@
     </table>
 </form>
 <hr>
-<h2>Partially rerun</h2>
+<h2>Partially rerun source coloring</h2>
 <form action="/resume" method="GET">
     <label for="resume_point">
         Rerun point:

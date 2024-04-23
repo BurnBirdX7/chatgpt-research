@@ -1,3 +1,7 @@
+{% import "source_coloring.html.j2" as source_coloring %}
+{% import "score_coloring.html.j2" as score_coloring %}
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,92 +33,17 @@
 
 <h2>Results</h2>
 
-{#
-results = [
-    Result {
-        name = "string",
-        sources = [
-            Source{
-                url = "url",
-                color = "color_class"
-            },
-            ...
-        ],
-        token_coloring = [
-            TokenColored {
-                url = "url",
-                score = 1.0,
-                chain = "chain sre representation",
-                color_num = 11,
-                token = "text"
-            },
-            ...
-        ]
-    },
-    ...
-]
-
-#}
-
 {% for result in results %}
     <h3> {{ result.name }} </h3>
-    <table class="category-table" data-key="{{ result.key }}">
-        <tr>
-            <th>Colored text</th>
-            <th>Sources ({{ result.sources|length }}) </th>
-        </tr>
-        <tr>
-            <td class="src_text_box">
-                {%- for token in result.token_coloring -%}
-                    {%- if token.url is defined -%}
-                        {#- Each token carries all of meta-information -#}
-                        {#- TODO: Optimize -#}
-                        <span class="color{{ token.color_num }} src_text"
-                              data-source-url="{{ token.url }}"
-                              data-score="{{ token.score }}"
-
-                              data-target-pos="{{ token.target_pos }}"
-                              data-target-likelihood="{{ token.target_likelihood }}"
-
-                              data-target-text="{{ token.target_text[0] }}"
-                              data-target-text-pre="{{ token.target_text[1] }}"
-                              data-target-text-post="{{ token.target_text[2] }}"
-
-                              data-source-pos="{{ token.source_pos }}"
-                              data-source-token="{{ token.source_token }}"
-
-                              data-source-text="{{ token.source_text[0] }}"
-                              data-source-text-pre="{{ token.source_text[1] }}"
-                              data-source-text-post="{{ token.source_text[2] }}"
-
-                              data-chain="{{ token.chain|escape }}"
-                        >
-                            {{- token.token -}}
-                        </span>
-                    {%- else -%}
-                        <span class="color{{ token.color_num }} src_text"
-                              data-target-pos="{{ token.target_pos }}">
-                            {{- token.token -}}
-                        </span>
-                    {%- endif -%}
-                {%- endfor -%}
-            </td>
-            <td class="src_link_box">
-                <ul>
-                    {% for url, color_nums in result.sources %}
-                        <li>
-                            <a href="{{ url }}" class="source_reference" target="_blank">{{ url }}</a>
-                            {% for num in color_nums %}
-                                <span class="color{{ num }}">⏺︎</span>
-                            {% endfor %}
-                        </li>
-                    {% endfor %}
-                </ul>
-            </td>
-        </tr>
-    </table>
-
+    {%- if result.type == "chains" -%}
+    	{{ source_coloring.render(result) }}
+    {%- elif result.type == "score" -%}
+        {{ score_coloring.render(result) }}
+    {%- else -%}
+        Unknown type: {{ result.type }}
+    {%- endif -%}
 {% endfor %}
+
 <script src="/static/hover.js"></script>
 </body>
 </html>

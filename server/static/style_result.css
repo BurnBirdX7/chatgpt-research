@@ -154,6 +154,10 @@ h1, h2, h3 {
     text-align: center;
 }
 
+.category-block {
+    margin: auto;
+}
+
 
 /* Reference list styling */
 

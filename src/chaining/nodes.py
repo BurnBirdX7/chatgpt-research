@@ -1,9 +1,8 @@
+import logging
 from typing import List, Dict, Any, Set, Callable, Tuple, Type, Sequence
 
-import matplotlib as mpl
 import numpy as np
 import numpy.typing as npt
-from sklearn.preprocessing import normalize
 
 from ..config import EmbeddingBuilderConfig
 from ..embeddings_builder import NDArrayDescriptor
@@ -20,7 +19,6 @@ __all__ = [
     "AttachMetaData",
     "WideChaining",
     "CollectTokenScoreNode",
-    "Score2ColorsNode",
 ]
 
 
@@ -158,7 +156,7 @@ class Pos2ChainMapNode(BaseNode):
 class WideChaining(BaseNode):
 
     def __init__(self, name, eb_config: EmbeddingBuilderConfig):
-        super().__init__(name, [str, list, dict], NDArrayDescriptor())
+        super().__init__(name, [str, list, dict], ChainListDescriptor())
         self.eb_config = eb_config
 
     def process(
@@ -186,10 +184,16 @@ class CollectTokenScoreNode(BaseNode):
 
     @staticmethod
     def default_score(slice_: npt.NDArray[np.float32]) -> np.float32:
-        return np.log(slice_).sum() / len(slice_)
+        slice_ = slice_[slice_.nonzero()]
+
+        if len(slice_) == 0:
+            logging.getLogger(__name__).debug("Zero len slice encountered")
+            return np.float32(0.0)
+
+        return np.exp(np.log(slice_).sum() / len(slice_))
 
     def __init__(self, name: str):
-        super().__init__(name, [list, list], ListDescriptor())
+        super().__init__(name, [list, list], NDArrayDescriptor())
         self.func = CollectTokenScoreNode.default_score
 
     def process(self, tokens: List[str], chains: List[WideChain]) -> npt.NDArray[np.float32]:
@@ -197,14 +201,3 @@ class CollectTokenScoreNode(BaseNode):
         for idx, chain in enumerate(chains):
             likelihood_table[idx, chain.target_begin_pos : chain.target_end_pos] = chain.likelihoods
         return np.apply_along_axis(self.func, 0, likelihood_table)
-
-
-class Score2ColorsNode(BaseNode):
-
-    def __init__(self, name: str, cmap_name: str = "plasma"):
-        super().__init__(name, [np.ndarray], ListDescriptor())
-        self.cmap = mpl.colormaps[cmap_name]
-
-    def process(self, scores: npt.NDArray[np.float32]) -> List[str]:
-        norm = normalize(scores) * 0.7
-        return [f"#{r:02x}{g:02x}{b:02x}" for r, g, b, _ in self.cmap(norm)]

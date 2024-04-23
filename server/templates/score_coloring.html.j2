@@ -1,0 +1,15 @@
+{% macro render(result) %}
+    <div class="category-block" data-key="{{ result.key }}">
+        <div class="src_text_box">
+            {%- for token in result.token_coloring -%}
+                <span style="color: {{ token.color }};"
+                      class="src_text"
+                      data-target-pos="{{ token.target_pos }}"
+                      data-score="{{ token.score }}"
+                >
+                    {{- token.token -}}
+                </span>
+            {%- endfor -%}
+        </div>
+    </div>
+{% endmacro %}

@@ -636,7 +636,7 @@ class Pipeline:
             ujson.dump(history, file, indent=2)
 
     def __run(
-        self,
+        self: Pipeline,
         input_: Any,
         history: Dict[str, str],
         cache: Dict[str, Any],

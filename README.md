@@ -56,8 +56,6 @@ Scripts aren't systematized, you'd need to check docstring inside each one to un
 
 Most important scripts are:
  * `scripts` module:
-   * `coloring_pipeline` - is not a script,
-     it provides a single function - `get_coloring_pipeline` that currently represents all the analysis
    * `estimate_centroid` - text embeddings are often skewed from 0 coordinates, compute centroid to offset them back,
       and to improve cosine distance comparison quality.
    * `estimate_thresholds` - computes cosine distance thresholds that we can use to reject unrelated 

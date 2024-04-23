@@ -20,7 +20,7 @@ let displayTop10Chains = displayTop10ChainsCheckbox.checked;
 
 // Functions:
 function getKey(elem) {
-    const target = elem.closest(".category-table");
+    const target = elem.closest(".category-block");
     return target.getAttribute('data-key');
 }
 

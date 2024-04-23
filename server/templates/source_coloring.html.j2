@@ -1,0 +1,57 @@
+{% macro render(result) %}
+    <table class="category-block" data-key="{{ result.key }}">
+        <tr>
+            <th>Colored text</th>
+            <th>Sources ({{ result.sources|length }}) </th>
+        </tr>
+        <tr>
+            <td class="src_text_box">
+                {%- for token in result.token_coloring -%}
+                    {%- if token.url is defined -%}
+                        {#- Each token carries all of meta-information -#}
+                        {#- TODO: Optimize -#}
+                        <span class="color{{ token.color_num }} src_text"
+                              data-source-url="{{ token.url }}"
+                              data-score="{{ token.score }}"
+
+                              data-target-pos="{{ token.target_pos }}"
+                              data-target-likelihood="{{ token.target_likelihood }}"
+
+                              data-target-text="{{ token.target_text[0] }}"
+                              data-target-text-pre="{{ token.target_text[1] }}"
+                              data-target-text-post="{{ token.target_text[2] }}"
+
+                              data-source-pos="{{ token.source_pos }}"
+                              data-source-token="{{ token.source_token }}"
+
+                              data-source-text="{{ token.source_text[0] }}"
+                              data-source-text-pre="{{ token.source_text[1] }}"
+                              data-source-text-post="{{ token.source_text[2] }}"
+
+                              data-chain="{{ token.chain|escape }}"
+                        >
+                            {{- token.token -}}
+                        </span>
+                    {%- else -%}
+                        <span class="color{{ token.color_num }} src_text"
+                              data-target-pos="{{ token.target_pos }}">
+                            {{- token.token -}}
+                        </span>
+                    {%- endif -%}
+                {%- endfor -%}
+            </td>
+            <td class="src_link_box">
+                <ul>
+                    {% for url, color_nums in result.sources %}
+                        <li>
+                            <a href="{{ url }}" class="source_reference" target="_blank">{{ url }}</a>
+                            {% for num in color_nums %}
+                                <span class="color{{ num }}">⏺︎</span>
+                            {% endfor %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+    </table>
+{% endmacro %}
