@@ -40,12 +40,12 @@ def score_color_text(text: str | None, override_data: bool) -> Tuple[str, List[C
         score_pipeline.cleanup_file(score_pipeline.unstamped_history_filepath)
     score_pipeline.store_intermediate_data = override_data
 
-    start = time.time()
-
     if text is None:
         raise ValueError("Resuming is not supported")
 
     result = score_pipeline.run(text)
+
+    storage.chains[score_pipeline.name] = result.cache['wide-chains']
 
     coloring = ScoreColoring(
         title="Score coloring",
