@@ -30,6 +30,7 @@ def pipeline_preset() -> ScoreColoringPipeline:
 score_pipeline = pipeline_preset()
 logger = logging.getLogger(__name__)
 
+
 @lru_cache(5)
 def score_color_text(text: str | None, override_data: bool) -> Tuple[str, List[Coloring]]:
     storage.clear_cache()
@@ -45,7 +46,7 @@ def score_color_text(text: str | None, override_data: bool) -> Tuple[str, List[C
 
     result = score_pipeline.run(text)
 
-    storage.chains[score_pipeline.name] = result.cache['wide-chains']
+    storage.chains[score_pipeline.name] = result.cache["wide-chains"]
 
     coloring = ScoreColoring(
         title="Score coloring",

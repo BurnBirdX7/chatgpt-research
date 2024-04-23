@@ -5,10 +5,7 @@ import logging
 from flask import Flask, render_template, request, Response, jsonify
 
 from server.score_coloring import score_color_text
-from server.source_coloring import (
-    source_color_text,
-    get_resume_points
-)
+from server.source_coloring import source_color_text, get_resume_points
 from server.render_colored_text import render_source_colored_text
 from server.statistics_funcs import plot_pos_likelihoods, get_top10_target_chains, get_top10_source_chains
 from src.pipeline.pipeline_draw import bytes_draw_pipeline
@@ -26,7 +23,7 @@ def request_page():
 @app.route("/result", methods=["POST"])
 def result_html():
     if "type" not in request.form:
-        return Response("\"type\" is required")
+        return Response('"type" is required')
 
     type_ = request.form["type"]
 
@@ -37,14 +34,14 @@ def result_html():
     elif type_ == "source":
         _, coloring_variants = source_color_text(user_input, store_data)
     else:
-        return Response(f"Unsupported type \"{type_}\"")
+        return Response(f'Unsupported type "{type_}"')
     return Response(render_source_colored_text(user_input, coloring_variants), mimetype="text/html")
 
 
 @app.route("/resume", methods=["GET"])
 def resume_html():
     if "type" in request.args and request.args["type"] == "score":
-        return Response("\"scores\" type not supported by /resume", 400)
+        return Response('"scores" type not supported by /resume', 400)
 
     if "resume_point" not in request.args:
         resume_point = "all-chains"

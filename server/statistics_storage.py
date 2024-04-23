@@ -6,7 +6,7 @@ from src.chaining import Chain
 
 class SingletonStorage:
 
-    def __init__(self):
+    def __init__(self: "SingletonStorage"):
         self._registered_cached_funcs: List[Callable] = []
 
         # Dictionaries, [pipeline_key => contents]

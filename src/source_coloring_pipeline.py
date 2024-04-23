@@ -92,7 +92,7 @@ class SourceColoringPipeline(Pipeline):
         return SourceColoringPipeline(name, use_bidirectional_chaining)
 
     @staticmethod
-    def new_extended(name: str, use_bidirectional_chaining: bool = True) -> SourceColoringPipeline:
+    def new_extended(name: str = "coloring", use_bidirectional_chaining: bool = True) -> SourceColoringPipeline:
         pipeline = SourceColoringPipeline.new(name, use_bidirectional_chaining)
 
         # (MISC) Split source texts into tokens

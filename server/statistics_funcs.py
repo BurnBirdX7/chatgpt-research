@@ -16,8 +16,8 @@ def get_chains_for_target_pos(target_pos: int, key: str) -> List[Chain]:
     return [chain for chain in chains if chain.target_begin_pos <= target_pos < chain.target_end_pos]
 
 
-def get_chains_for_source_pos(source_name: str, source_pos: int):
-    chains = storage.chains["bidirectional"]
+def get_chains_for_source_pos(key: str, source_name: str, source_pos: int):
+    chains = storage.chains[key]
     return [
         chain
         for chain in chains
@@ -46,6 +46,8 @@ def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: L
 
     ax.set_xlabel("likelihood")
     ax.set_ylabel("frequency")
+    ax.set_yscale("log")
+
     fig.savefig(img, format="png")
     plt.close(fig)
     img.seek(0)
@@ -68,16 +70,18 @@ def _chain2dict(chain: Chain) -> dict[str, str | int | float]:
 
 
 def _get_top10_source_chains(key: str, source_name: str, source_pos: int) -> Tuple[str, list[Chain]]:
-    chains = get_chains_for_source_pos(source_name, source_pos)
+    chains = get_chains_for_source_pos(key, source_name, source_pos)
     chains = sorted(chains, reverse=True, key=lambda chain: chain.get_score())
     tok = storage.sources[source_name][source_pos]
     return tok, list(chains[:10])
+
 
 @lru_cache(200)
 def get_top10_target_chains(target_pos: int, key: str) -> list[dict]:
     chains = _get_top10_target_chains(target_pos, key)
 
     return [_chain2dict(chain) for chain in chains]
+
 
 @lru_cache(200)
 def plot_pos_likelihoods(target_pos: int, target_likelihood: float, key: str) -> bytes:

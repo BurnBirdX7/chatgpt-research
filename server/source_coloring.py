@@ -3,9 +3,9 @@ from __future__ import annotations
 import datetime
 import logging
 import time
+import typing as t
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Tuple, List
 
 from server.render_colored_text import Coloring, SourceColoring
 from server.statistics_storage import storage
@@ -40,11 +40,15 @@ bidir_pipeline = pipeline_preset("bidirectional", use_bidirectional_chaining=Tru
 
 logger = logging.getLogger(__name__)
 
-def get_resume_points() -> List[str]:
+
+def get_resume_points() -> t.List[str]:
     return list(unidir_pipeline.default_execution_order)
 
+
 @lru_cache(5)
-def source_color_text(text: str | None, override_data: bool, resume_node: str = "all-chains") -> Tuple[str, List[Coloring]]:
+def source_color_text(
+    text: str | None, override_data: bool, resume_node: str = "all-chains"
+) -> t.Tuple[str, t.List[SourceColoring]]:
     storage.clear_cache()
 
     stats = OrderedDict()
@@ -115,4 +119,4 @@ def source_color_text(text: str | None, override_data: bool, resume_node: str = 
         for _, stat in stats.items():
             print(str(stat))
 
-    return text, coloring_variants
+    return t.cast(str, text), coloring_variants

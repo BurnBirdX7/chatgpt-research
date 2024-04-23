@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 from src import QueryColbertServerNode
 from src.chaining import ElasticChain
-from scripts.coloring_pipeline import get_extended_coloring_pipeline, get_coloring_pipeline
+from src.source_coloring_pipeline import SourceColoringPipeline
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ class Stat:
         return 2 * p * r / (p + r) if p is not None and r is not None else None
 
 
-pipeline = get_extended_coloring_pipeline()
+pipeline = SourceColoringPipeline.new_extended()
 pipeline.store_intermediate_data = False
 pipeline.force_caching("input-tokenized")
 queryNode: QueryColbertServerNode = pipeline.nodes["all-sources-dict-raw"]  # type: ignore

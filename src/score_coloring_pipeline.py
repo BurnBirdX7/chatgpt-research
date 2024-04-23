@@ -22,6 +22,7 @@ def normalize(slice_: npt.NDArray) -> npt.NDArray:
 
     return (slice_ - min_) / (max_ - min_)
 
+
 class Score2ColorsNode(BaseNode):
 
     def __init__(self, name: str, cmap_name: str = "plasma"):
