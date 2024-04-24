@@ -104,7 +104,7 @@ def render_coloring(coloring: Coloring):
     raise ValueError("Unrecognized coloring")
 
 
-def render_source_colored_text(input_text: str, colorings: List[Coloring]) -> str:
+def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
     template_ = jinjaEnv.get_template("result_page.html.j2")
 
     result_list = [render_coloring(coloring) for coloring in colorings]

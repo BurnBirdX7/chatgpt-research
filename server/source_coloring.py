@@ -1,20 +1,24 @@
 from __future__ import annotations
 
-import datetime
 import logging
-import time
 import typing as t
-from collections import OrderedDict
 from functools import lru_cache
 
 from server.render_colored_text import Coloring, SourceColoring
 from server.statistics_storage import storage
 from src.pipeline import Pipeline
+from src.pipeline.pipeline_group import PipelineGroup
+from src.pipeline.pipeline_result import PipelineResult
 from src.source_coloring_pipeline import SourceColoringPipeline
 
 
+__all__ = ["get_resume_points", "run", "resume"]
+
+logger = logging.getLogger(__name__)
+
+
 # Pipeline configuration
-def pipeline_preset(name: str, use_bidirectional_chaining: bool) -> Pipeline:
+def _pipeline_preset(name: str, use_bidirectional_chaining: bool) -> Pipeline:
     pipeline = SourceColoringPipeline.new_extended(name, use_bidirectional_chaining)
     pipeline.assert_prerequisites()
 
@@ -35,88 +39,65 @@ def pipeline_preset(name: str, use_bidirectional_chaining: bool) -> Pipeline:
 
 
 # GLOBALS
-unidir_pipeline = pipeline_preset("unidirectional", use_bidirectional_chaining=False)
-bidir_pipeline = pipeline_preset("bidirectional", use_bidirectional_chaining=True)
+_unidir_pipeline = _pipeline_preset("unidirectional", use_bidirectional_chaining=False)
+_bidir_pipeline = _pipeline_preset("bidirectional", use_bidirectional_chaining=True)
+_pipeline_group = PipelineGroup("all-chains", [_unidir_pipeline, _bidir_pipeline])
 
-logger = logging.getLogger(__name__)
+
+def _collect_result(result: PipelineResult, is_first: bool) -> Coloring:
+    if is_first:
+        storage.sources = result.cache["narrowed-sources-dict-tokenized"]
+
+    storage.chains[result.pipeline_name] = result.cache["all-chains"]
+
+    if result.pipeline_name == "bidirectional":
+        title = "Bidirectional chaining"
+    else:
+        title = "Unidirectional chaining"
+
+    return SourceColoring(
+        title=title,
+        pipeline_name=result.pipeline_name,
+        tokens=result.cache["input-tokenized"],
+        chains=result.last_node_result,
+    )
 
 
 def get_resume_points() -> t.List[str]:
-    return list(unidir_pipeline.default_execution_order)
+    return list(_unidir_pipeline.default_execution_order)
 
 
 @lru_cache(5)
-def source_color_text(
-    text: str | None, override_data: bool, resume_node: str = "all-chains"
-) -> t.Tuple[str, t.List[SourceColoring]]:
+def run(input_text: str, override_data: bool) -> t.List[SourceColoring]:
     storage.clear_cache()
+    logger.info(f"Coloring... override = {override_data}")
 
-    stats = OrderedDict()
+    _pipeline_group.override_data(override_data)
 
-    logger.info(f"Coloring.... override = {override_data}")
+    colorings: t.Dict[str, SourceColoring]
+    colorings, stats = _pipeline_group.run(input_text, _collect_result)
 
-    if override_data:
-        unidir_pipeline.cleanup_file(unidir_pipeline.unstamped_history_filepath)
-        bidir_pipeline.cleanup_file(bidir_pipeline.unstamped_history_filepath)
+    print(stats.get_str())
 
-    unidir_pipeline.store_intermediate_data = override_data
-    bidir_pipeline.store_intermediate_data = override_data
+    return list(colorings.values())
 
-    coloring_variants = []
 
-    start = time.time()
+@lru_cache(5)
+def resume(resume_point: str) -> t.Tuple[str, t.List[Coloring]]:
+    storage.clear_cache()
+    logger.info("Rerunning coloring... override = False")
 
-    # UNIDIRECTIONAL
-    if text is None:
-        result = unidir_pipeline.resume_from_disk(unidir_pipeline.unstamped_history_filepath, resume_node)
-    else:
-        result = unidir_pipeline.run(text)
-    coloring_variants.append(
-        SourceColoring(
-            title="Unidirectional chaining",
-            pipeline_name=unidir_pipeline.name,
-            tokens=result.cache["input-tokenized"],
-            chains=result.last_node_result,
-        )
-    )
-    storage.chains[unidir_pipeline.name] = result.cache["all-chains"]
-    stats["unidirectional"] = result.statistics
+    input_text: str = ""
 
-    # BIDIRECTIONAL
-    if text is None:
-        exec_order = bidir_pipeline.default_execution_order
-        if exec_order.index(resume_node) > exec_order.index("all-chains"):
-            result = bidir_pipeline.resume_from_disk(bidir_pipeline.unstamped_history_filepath, resume_node)
-        else:
-            result = bidir_pipeline.resume_from_cache(result, resume_node)
+    def __collect_text(result: PipelineResult, is_first: bool) -> Coloring:
+        if is_first:
+            nonlocal input_text
+            input_text = result.cache["$input"]
+        return _collect_result(result, is_first)
 
-    else:
-        result = bidir_pipeline.resume_from_cache(result, "all-chains")
+    colorings: t.Dict[str, SourceColoring]
+    colorings, stats = _pipeline_group.resume(resume_point=resume_point, result_collector=__collect_text)
 
-    coloring_variants.append(
-        SourceColoring(
-            title="Bidirectional chaining",
-            pipeline_name=bidir_pipeline.name,
-            tokens=result.cache["input-tokenized"],
-            chains=result.last_node_result,
-        )
-    )
-    storage.chains[bidir_pipeline.name] = result.cache["all-chains"]
-    stats["bidirectional"] = result.statistics
-    storage.sources = result.cache["narrowed-sources-dict-tokenized"]
+    print(stats.get_str())
 
-    # Preserve input
-    storage.input_tokenized = result.cache["input-tokenized"]
-    if text is None:
-        text = result.cache["$input"]
-    del result
-
-    seconds = time.time() - start
-
-    print(f"Time taken to run: {datetime.timedelta(seconds=seconds)}")
-    for i, (name, stats) in enumerate(stats.items()):
-        print(f"Statistics (run {i + 1}, {name})")
-        for _, stat in stats.items():
-            print(str(stat))
-
-    return t.cast(str, text), coloring_variants
+    return input_text, list(colorings.values())

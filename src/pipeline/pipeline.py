@@ -5,13 +5,13 @@ import json
 import logging
 import os.path
 import pathlib
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from typing import Any, Dict, Set, List
 
 import ujson
 
 from src.pipeline.base_nodes import Node
-from .pipeline_result import PipelineResult, PipelineHistory, NodeStatistics
+from .pipeline_result import PipelineResult, PipelineHistory, NodeStatistics, PipelineStatistics
 
 
 class PipelineError(RuntimeError):
@@ -499,7 +499,7 @@ class Pipeline:
         } | {to_load_name for to_load_name in self.__must_load_output if to_load_name in pre_execution_order}
 
         self.logger.info(f"Loading node outputs for these nodes: {names_to_load}")
-        statistic_dic = {}
+        statistic_dic = OrderedDict()
         for load_node_name in names_to_load:
             if load_node_name not in history:
                 self.logger.warning(f"{load_node_name} is missing from history file, it may lead to crash")
@@ -520,7 +520,7 @@ class Pipeline:
 
         try:
             res = self.__run(None, history, cached_data, execution_order)
-            res.statistics = statistic_dic | res.statistics
+            res.statistics.nodes = statistic_dic | res.statistics.nodes
             return res
         except Exception as e:
             raise PipelineError("Pipeline failed with an exception", history) from e
@@ -664,15 +664,17 @@ class Pipeline:
         -------
         PipelineResult
         """
+        pipeline_stats = PipelineStatistics.start(self.name)
+
         self.assert_prerequisites()
 
         if not os.path.exists(self.artifacts_folder):
             os.mkdir(self.artifacts_folder)
 
-        statistic_dic: Dict[str, NodeStatistics] = {}
-
         prev_output: Any = input_
         prev_node_name: str | None = "$input" if input_ is not None else None
+
+        pipeline_stats.nodes_started()
 
         # Execution:
         for cur_node_name in execution_order:
@@ -694,10 +696,10 @@ class Pipeline:
                 self.logger.info(f'Running "{cur_node_name}" node')
 
                 # Process data
-                stat_track = NodeStatistics.start(cur_node_name)
-                stat_track.produce_start()
+                node_stats = NodeStatistics.start(cur_node_name)
+                node_stats.produce_start()
                 prev_output = cur_node.process(*cur_input_data)
-                stat_track.produce_end()
+                node_stats.produce_end()
 
                 prev_node_name = cur_node_name
 
@@ -705,17 +707,17 @@ class Pipeline:
                     cache[cur_node_name] = prev_output
 
                 # Save data to disk before resuming
-                stat_track.descriptor_start()
+                node_stats.descriptor_start()
                 self.__store_data(cur_node, prev_output, history)
-                stat_track.descriptor_end()
+                node_stats.descriptor_end()
 
                 # Collect statistics
-                statistic_dic[cur_node_name] = stat_track.get()
+                pipeline_stats.add_node_stats(node_stats.get())
 
             except Exception as e:
                 raise RuntimeError(f'Exception occurred during processing of node "{cur_node.name}"') from e
 
-        return PipelineResult(self.name, cache[self.output_node.name], history, cache, statistic_dic)
+        return PipelineResult(self.name, cache[self.output_node.name], history, cache, pipeline_stats.get())
 
     def __store_data(self, node: Node, data: Any, history: PipelineHistory) -> None:
         """Stores data of specific node to the disk. Creates and fills a file

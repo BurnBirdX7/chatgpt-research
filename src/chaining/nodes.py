@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Any, Set, Callable, Tuple, Type, Sequence
+import typing as t
 
 import numpy as np
 import numpy.typing as npt
@@ -28,7 +28,7 @@ class ChainingNode(BaseNode):
         name: str,
         embedding_builder_config: EmbeddingBuilderConfig,
         use_bidirectional_chaining: bool = False,
-        chain_class: Type[Chain] = HardChain,
+        chain_class: t.Type[Chain] = HardChain,
     ):
         super().__init__(name, [str, list, dict], ChainListDescriptor())
         self.eb_config = embedding_builder_config
@@ -36,7 +36,7 @@ class ChainingNode(BaseNode):
         self.chain_class = chain_class
 
     @property
-    def chaining_func(self) -> Callable[[npt.NDArray[np.float32], str, List[int], int], Sequence[Chain]]:
+    def chaining_func(self) -> t.Callable[[npt.NDArray[np.float32], str, t.List[int], int], t.Sequence[Chain]]:
         if self.use_bidirectional_chaining:
             return self.chain_class.generate_chains_bidirectionally
         else:
@@ -45,9 +45,9 @@ class ChainingNode(BaseNode):
     def process(
         self,
         input_text: str,
-        sources: List[List[str]],
-        source_likelihoods: Dict[str, npt.NDArray[np.float32]],
-    ) -> List[Chain]:
+        sources: t.List[t.List[str]],
+        source_likelihoods: t.Dict[str, npt.NDArray[np.float32]],
+    ) -> t.List[Chain]:
         """
         Parameters
         ----------
@@ -64,7 +64,7 @@ class ChainingNode(BaseNode):
         tokenizer = self.eb_config.tokenizer
 
         input_token_ids = tokenizer.encode(input_text, add_special_tokens=False)
-        result_chains: List[Chain] = []
+        result_chains: t.List[Chain] = []
         for token_pos, (token_id, token_sources) in enumerate(zip(input_token_ids, sources)):
             self.logger.debug(f"position: {token_pos + 1} / {len(input_token_ids)}")
 
@@ -89,10 +89,10 @@ class FilterOverlappingChainsNode(BaseNode):
     def __init__(self, name: str):
         super().__init__(name, [list], ChainListDescriptor())
 
-    def process(self, chains: List[Chain]) -> List[Chain]:
+    def process(self, chains: t.List[Chain]) -> t.List[Chain]:
         self.logger.debug(f"Chain count: {len(chains)}")
-        filtered_chains: List[Chain] = []
-        marked_positions: Set[int] = set()  # positions that are marked with some source
+        filtered_chains: t.List[Chain] = []
+        marked_positions: t.Set[int] = set()  # positions that are marked with some source
 
         chains = [chain for chain in chains if chain.significant_len() > 1]
 
@@ -116,13 +116,15 @@ class AttachMetaData(BaseNode):
         super().__init__(name, [list, list, dict], ChainListDescriptor())
 
     @staticmethod
-    def get_texts(token_list: List[str], beg: int, end: int) -> Tuple[str, str, str]:
+    def get_texts(token_list: t.List[str], beg: int, end: int) -> t.Tuple[str, str, str]:
         text = "".join(token_list[beg:end])
         pre = "".join(token_list[max(beg - 3, 0) : beg])
         post = "".join(token_list[end : end + 3])
         return text, pre, post
 
-    def process(self, chains: List[Chain], target_tokens: List[str], source_tokens_dict: Dict[str, List[str]]) -> Any:
+    def process(
+        self, chains: t.List[Chain], target_tokens: t.List[str], source_tokens_dict: t.Dict[str, t.List[str]]
+    ) -> t.Any:
         for chain in chains:
             source_tokens = source_tokens_dict[chain.source]
             chain.attachment["source_tokens"] = source_tokens
@@ -144,8 +146,8 @@ class Pos2ChainMapNode(BaseNode):
     def __init__(self, name: str):
         super().__init__(name, [list], Pos2ChainMappingDescriptor())
 
-    def process(self, chains: List[Chain]) -> Dict[int, Chain]:
-        pos2chain: Dict[int, Chain] = {}
+    def process(self, chains: t.List[Chain]) -> t.Dict[int, Chain]:
+        pos2chain: t.Dict[int, Chain] = {}
         for i, chain in enumerate(chains):
             for pos in chain.get_target_token_positions():
                 pos2chain[pos] = chain
@@ -160,12 +162,12 @@ class WideChaining(BaseNode):
         self.eb_config = eb_config
 
     def process(
-        self, input_text: str, sources: List[List[str]], source_likelihoods: Dict[str, npt.NDArray[np.float32]]
-    ) -> List[Chain]:
+        self, input_text: str, sources: t.List[t.List[str]], source_likelihoods: t.Dict[str, npt.NDArray[np.float32]]
+    ) -> t.List[Chain]:
         tokenizer = self.eb_config.tokenizer
         input_token_ids = tokenizer.encode(input_text, add_special_tokens=False)
 
-        source_chains: Dict[str, Sequence[Chain]] = {}
+        source_chains: t.Dict[str, t.Sequence[Chain]] = {}
 
         for token_pos, (token_id, token_sources) in enumerate(zip(input_token_ids, sources)):
             self.logger.debug(f"position: {token_pos + 1} / {len(input_token_ids)}")
@@ -194,10 +196,10 @@ class CollectTokenScoreNode(BaseNode):
 
     def __init__(self, name: str):
         super().__init__(name, [list, list], NDArrayDescriptor())
-        self.func = CollectTokenScoreNode.default_score
+        self.score_func: t.Callable[[npt.NDArray[np.float32]], np.float32] = CollectTokenScoreNode.default_score
 
-    def process(self, tokens: List[str], chains: List[WideChain]) -> npt.NDArray[np.float32]:
+    def process(self, tokens: t.List[str], chains: t.List[WideChain]) -> npt.NDArray[np.float32]:
         likelihood_table = np.zeros(shape=(len(chains), len(tokens)), dtype=np.float32)
         for idx, chain in enumerate(chains):
             likelihood_table[idx, chain.target_begin_pos : chain.target_end_pos] = chain.likelihoods
-        return np.apply_along_axis(self.func, 0, likelihood_table)
+        return np.apply_along_axis(self.score_func, 0, likelihood_table)

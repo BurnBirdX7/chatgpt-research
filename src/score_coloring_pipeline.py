@@ -4,9 +4,7 @@ import numpy as np
 import numpy.typing as npt
 import matplotlib as mpl
 
-from transformers import RobertaForMaskedLM
-
-from . import QueryColbertServerNode
+from . import QueryColbertServerNode, Roberta
 from .chaining.nodes import WideChaining, CollectTokenScoreNode
 from .config import EmbeddingBuilderConfig, IndexConfig, ColbertServerConfig
 from .embeddings_builder import EmbeddingsFromTextNode, LikelihoodsForMultipleSources, TokenizeTextNode
@@ -44,10 +42,10 @@ class ScoreColoringPipeline(Pipeline):
         # CONFIGS:
         self.colbert_cfg: ColbertServerConfig = ColbertServerConfig.load_from_env()  # type: ignore
         self.text_embeddingBuilder_cfg = EmbeddingBuilderConfig(
-            normalize=True, centroid_file="artifacts/centroid-colbert.npy"
+            model=Roberta.get_default_masked_model(), normalize=True, centroid_file="artifacts/centroid-colbert.npy"
         )
         self.chaining_embeddingBuilder_cfg = EmbeddingBuilderConfig(
-            model=RobertaForMaskedLM.from_pretrained("roberta-large").to(self.text_embeddingBuilder_cfg.model.device),
+            model=Roberta.get_default_masked_model(),
             centroid_file="artifacts/centroid-colbert.npy",
         )
         self.source_index_cfg = IndexConfig(faiss_use_gpu=False)

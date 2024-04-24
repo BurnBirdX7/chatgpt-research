@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import copy
 import datetime
+import textwrap
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Dict, Any
 
@@ -18,6 +20,89 @@ Pipe files are files filled by data descriptors, they store information required
 Pipe file can store output itself in case if simple data (str->str mappings or integers)
     or paths to files that store actual data
 """
+
+
+@dataclass
+class PipelineResult:
+    """
+    Collection of data produced by a pipeline
+    """
+
+    pipeline_name: str
+    last_node_result: Any
+    history: PipelineHistory
+    cache: Dict[str, Any]
+    statistics: PipelineStatistics
+
+    def copy(self):
+        return copy.deepcopy(self)
+
+
+@dataclass
+class PipelineStatistics:
+    pipeline_name: str
+    all_seconds: float
+    prerequisite_seconds: float
+    nodes: OrderedDict[str, NodeStatistics]
+
+    @staticmethod
+    def start(pipeline_name: str) -> PipelineStatisticsCollector:
+        return PipelineStatisticsCollector(pipeline_name)
+
+    def get_str(self):
+        d_all = datetime.timedelta(seconds=self.all_seconds)
+        d_prereq = datetime.timedelta(seconds=self.prerequisite_seconds)
+
+        nodes_str = "\n".join([node.get_str() for node in self.nodes.values()])
+
+        return (
+            f"Pipeline Stats <{self.pipeline_name}>:\n"
+            f"    all time           : {d_all}\n"
+            f"    prerequisite check : {d_prereq}\n"
+            f"    {textwrap.indent(nodes_str, '    ')}"
+        )
+
+
+@dataclass
+class NodeStatistics:
+    """
+    Time statistics of each node that was called during the pipeline run
+    """
+
+    name: str
+    node_seconds: float
+    descriptor_seconds: float
+    all_seconds: float
+
+    @staticmethod
+    def start(name: str) -> NodeStatisticsCollector:
+        """Convenience method for creating node statistics collector"""
+        return NodeStatisticsCollector(name)
+
+    def get_str(self) -> str:
+        d_all = datetime.timedelta(seconds=self.all_seconds)
+        d_node = datetime.timedelta(seconds=self.node_seconds)
+        d_desc = datetime.timedelta(seconds=self.descriptor_seconds)
+
+        return (
+            f"Node Stats <{self.name}>:\n"
+            f"    all        : {d_all}\n"
+            f"    node       : {d_node}\n"
+            f"    descriptor : {d_desc}"
+        )
+
+    def __str__(self) -> str:
+        time_ = []
+        if self.node_seconds > 0:
+            time_.append(f"time: {datetime.timedelta(seconds=self.node_seconds)}")
+        if self.descriptor_seconds > 0:
+            time_.append(f"descriptor time: {datetime.timedelta(seconds=self.descriptor_seconds)}")
+        if self.all_seconds > 0:
+            time_.append(f"other time: {datetime.timedelta(seconds=self.all_seconds)})")
+
+        s = ", ".join(time_)
+
+        return f'NodeStatistics("{self.name}", {s})'
 
 
 class NodeStatisticsCollector:
@@ -54,66 +139,29 @@ class NodeStatisticsCollector:
             name=self.node_name,
             node_seconds=node_sec,
             descriptor_seconds=desc_sec,
-            other_seconds=all_time - node_sec - desc_sec,
+            all_seconds=all_time,
         )
 
 
-@dataclass
-class NodeStatistics:
-    """
-    Time statistics of each node that was called during the pipeline run
-    """
+class PipelineStatisticsCollector:
+    def __init__(self, name: str) -> None:
+        self.pipeline_name = name
+        self._start_time: float = time.time()
+        self._nodes_start_time: float = 0.0
+        self._nodes: OrderedDict[str, NodeStatistics] = OrderedDict()
 
-    name: str
-    node_seconds: float
-    descriptor_seconds: float
-    other_seconds: float
+    def nodes_started(self):
+        self._nodes_start_time = time.time()
 
-    def __str__(self) -> str:
+    def add_node_stats(self, node_stat: NodeStatistics):
+        self._nodes[node_stat.name] = node_stat
 
-        time_ = []
-        if self.node_seconds > 0:
-            time_.append(f"time: {datetime.timedelta(seconds=self.node_seconds)}")
-        if self.descriptor_seconds > 0:
-            time_.append(f"descriptor time: {datetime.timedelta(seconds=self.descriptor_seconds)}")
-        if self.other_seconds > 0:
-            time_.append(f"other time: {datetime.timedelta(seconds=self.other_seconds)})")
+    def get(self) -> PipelineStatistics:
+        end_time = time.time()
 
-        s = ", ".join(time_)
-
-        return f'NodeStatistics("{self.name}", {s})'
-
-    @staticmethod
-    def start(name: str) -> NodeStatisticsCollector:
-        """Convenience method for creating node statistics collector"""
-        return NodeStatisticsCollector(name)
-
-    def __add__(self, other: NodeStatistics):
-        if not isinstance(other, NodeStatistics):
-            return NotImplemented
-
-        if self.name != other.name:
-            raise ValueError("Adding statistics with different names")
-
-        return NodeStatistics(
-            name=self.name,
-            node_seconds=self.node_seconds + other.node_seconds,
-            descriptor_seconds=self.descriptor_seconds + other.descriptor_seconds,
-            other_seconds=self.other_seconds + other.other_seconds,
+        return PipelineStatistics(
+            pipeline_name=self.pipeline_name,
+            all_seconds=end_time - self._start_time,
+            prerequisite_seconds=self._nodes_start_time - self._start_time,
+            nodes=self._nodes,
         )
-
-
-@dataclass
-class PipelineResult:
-    """
-    Collection of data produced by a pipeline
-    """
-
-    pipeline_name: str
-    last_node_result: Any
-    history: PipelineHistory
-    cache: Dict[str, Any]
-    statistics: Dict[str, NodeStatistics]
-
-    def copy(self):
-        return copy.deepcopy(self)
