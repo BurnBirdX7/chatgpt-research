@@ -56,7 +56,7 @@ def get_resume_points() -> t.List[str]:
     return list(_default_score_pipeline.default_execution_order)
 
 
-def _collect_result(result: PipelineResult, is_first: bool) -> Coloring:
+def _collect_result(result: PipelineResult, _: bool) -> Coloring:
     storage.chains[result.pipeline_name] = result.cache["wide-chains"]
 
     title = result.pipeline_name[0].upper() + result.pipeline_name[1:] + " score coloring"
@@ -86,4 +86,20 @@ def run(text: str, override_data: bool) -> t.List[Coloring]:
 
 
 def resume(resume_point: str) -> t.Tuple[str, t.List[Coloring]]:
-    raise NotImplementedError("Not implemented")  # TODO
+    storage.clear_cache()
+    logger.info("Rerunning coloring... override = False")
+
+    input_text: str = ""
+
+    def __collect_text(result: PipelineResult, is_first: bool) -> Coloring:
+        if is_first:
+            nonlocal input_text
+            input_text = result.cache["$input"]
+        return _collect_result(result, is_first)
+
+    colorings: t.Dict[str, ScoreColoring]
+    colorings, stats = _pipeline_group.resume(resume_point=resume_point, result_collector=__collect_text)
+
+    print(stats.get_str())
+
+    return input_text, list(colorings.values())

@@ -1,6 +1,7 @@
 {% macro render(result) %}
-    <div class="category-block" data-key="{{ result.key }}" data-type="score">
-        <div class="src_text_box">
+    <table class="category-block" data-key="{{ result.key }}" data-type="score">
+        <tr>
+            <td rowspan="2" class="src_text_box">
             {%- for token in result.token_coloring -%}
                 <span style="color: {{ token.color }};"
                       class="src_text"
@@ -10,6 +11,15 @@
                     {{- token.token -}}
                 </span>
             {%- endfor -%}
-        </div>
-    </div>
+            </td>
+            <td style="white-space: nowrap">
+                <span style="color: {{ result.highest_score_color }}">highest score: {{ result.highest_score }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td style="white-space: nowrap">
+                <span style="color: {{ result.lowest_score_color }}">lowest score: {{ result.lowest_score }}</span>
+            </td>
+        </tr>
+    </table>
 {% endmacro %}

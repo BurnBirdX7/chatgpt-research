@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import logging
 
 from flask import Flask, render_template, request, Response, jsonify
@@ -18,7 +19,11 @@ app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
 def request_page():
-    return render_template("root_page.html.j2", resume_points=source_coloring.get_resume_points())
+    return render_template(
+        "root_page.html.j2",
+        source_resume_points=source_coloring.get_resume_points(),
+        score_resume_points=score_coloring.get_resume_points(),
+    )
 
 
 @app.route("/result", methods=["POST"])
@@ -81,6 +86,20 @@ def source_chains_json(key: str, source_name: str, source_pos: int):
 
 
 if __name__ == "__main__":
-    # TODO: Add option to change debug level
-    logging.basicConfig(level=logging.DEBUG, format="[%(name)s]:%(levelname)s:%(message)s")
+    parser = argparse.ArgumentParser(description="Fact-checker server")
+    parser.add_argument(
+        "--log",
+        action="store",
+        dest="logging_level",
+        type=str,
+        choices=["CRITICAL", "FATAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        default="INFO",
+        help="Logging level, has effect on most of the logging",
+    )
+
+    args = parser.parse_args()
+
+    logging_level = getattr(logging, args.logging_level)
+
+    logging.basicConfig(level=logging_level, format="[%(name)s]:%(levelname)s:%(message)s")
     app.run(host="127.0.0.1", port=4567)

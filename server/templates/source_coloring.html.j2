@@ -5,7 +5,7 @@
             <th>Sources ({{ result.sources|length }}) </th>
         </tr>
         <tr>
-            <td class="src_text_box">
+            <td class="src_text_box src_text_column">
                 {%- for token in result.token_coloring -%}
                     {%- if token.url is defined -%}
                         {#- Each token carries all of meta-information -#}
@@ -40,7 +40,7 @@
                     {%- endif -%}
                 {%- endfor -%}
             </td>
-            <td class="src_link_box">
+            <td class="src_link_column">
                 <ul>
                     {% for url, color_nums in result.sources %}
                         <li>

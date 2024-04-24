@@ -57,7 +57,7 @@ def render_source_coloring(coloring: SourceColoring) -> dict:
                 {
                     "url": chain.source,
                     "color_num": color_num,
-                    "score": chain.get_score(),
+                    "score": f"{chain.get_score():.2e}",
                     "target_pos": t_pos,
                     "target_likelihood": chain.get_target_likelihood(t_pos),
                     "target_text": chain.attachment["target_text"],
@@ -87,13 +87,25 @@ def render_score_coloring(coloring: ScoreColoring) -> dict:
         {
             "target_pos": i,
             "token": token,
-            "score": score,
+            "score": f"{score:.2e}",
             "color": color,
         }
         for i, (token, score, color) in enumerate(zip(coloring.tokens, coloring.scores, coloring.colors))
     ]
 
-    return {"type": "score", "token_coloring": token_list, "key": coloring.pipeline_name, "name": coloring.title}
+    max_score, max_color = max(zip(coloring.scores, coloring.colors), key=lambda t: t[0])
+    min_score, min_color = min(zip(coloring.scores, coloring.colors), key=lambda t: t[0])
+
+    return {
+        "type": "score",
+        "token_coloring": token_list,
+        "key": coloring.pipeline_name,
+        "name": coloring.title,
+        "highest_score": f"{max_score:.2e}",
+        "highest_score_color": max_color,
+        "lowest_score": f"{min_score:.2e}",
+        "lowest_score_color": min_color,
+    }
 
 
 def render_coloring(coloring: Coloring):

@@ -141,11 +141,11 @@ table {
     background-color: yellow;
 }
 
-.src_text_box {
+.src_text_column {
     width: 55%;
 }
 
-.src_link_box {
+.src_link_column {
     width: 45%;
 }
 
