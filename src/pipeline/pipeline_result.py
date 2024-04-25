@@ -49,9 +49,13 @@ class PipelineStatistics:
     def start(pipeline_name: str) -> PipelineStatisticsCollector:
         return PipelineStatisticsCollector(pipeline_name)
 
+    @staticmethod
+    def render_time(time_: float) -> str:
+        return NodeStatistics.render_time(time_)
+
     def get_str(self):
-        d_all = datetime.timedelta(seconds=self.all_seconds)
-        d_prereq = datetime.timedelta(seconds=self.prerequisite_seconds)
+        d_all = self.render_time(self.all_seconds)
+        d_prereq = self.render_time(self.prerequisite_seconds)
 
         nodes_str = "\n".join([node.get_str() for node in self.nodes.values()])
 
@@ -59,7 +63,7 @@ class PipelineStatistics:
             f"Pipeline Stats <{self.pipeline_name}>:\n"
             f"    all time           : {d_all}\n"
             f"    prerequisite check : {d_prereq}\n"
-            f"    {textwrap.indent(nodes_str, '    ')}"
+            f"{textwrap.indent(nodes_str, '    ')}"
         )
 
 
@@ -79,30 +83,21 @@ class NodeStatistics:
         """Convenience method for creating node statistics collector"""
         return NodeStatisticsCollector(name)
 
-    def get_str(self) -> str:
-        d_all = datetime.timedelta(seconds=self.all_seconds)
-        d_node = datetime.timedelta(seconds=self.node_seconds)
-        d_desc = datetime.timedelta(seconds=self.descriptor_seconds)
+    @staticmethod
+    def render_time(time_: float) -> str:
+        minutes, seconds = divmod(time_, 60)
+        if minutes > 0:
+            return f"{int(minutes)} min, {seconds:.2f} sec"
+        else:
+            return f"{seconds:.2f} sec"
 
+    def get_str(self) -> str:
         return (
             f"Node Stats <{self.name}>:\n"
-            f"    all        : {d_all}\n"
-            f"    node       : {d_node}\n"
-            f"    descriptor : {d_desc}"
+            f"    all        : {self.render_time(self.all_seconds)}\n"
+            f"    node       : {self.render_time(self.node_seconds)}\n"
+            f"    descriptor : {self.render_time(self.descriptor_seconds)}"
         )
-
-    def __str__(self) -> str:
-        time_ = []
-        if self.node_seconds > 0:
-            time_.append(f"time: {datetime.timedelta(seconds=self.node_seconds)}")
-        if self.descriptor_seconds > 0:
-            time_.append(f"descriptor time: {datetime.timedelta(seconds=self.descriptor_seconds)}")
-        if self.all_seconds > 0:
-            time_.append(f"other time: {datetime.timedelta(seconds=self.all_seconds)})")
-
-        s = ", ".join(time_)
-
-        return f'NodeStatistics("{self.name}", {s})'
 
 
 class NodeStatisticsCollector:

@@ -99,7 +99,7 @@ class GroupStatistics:
     pipelines: t.List[PipelineStatistics] = dataclasses.field(default_factory=list)
 
     def get_str(self) -> str:
-        d_all = datetime.timedelta(seconds=self.all_seconds)
+        d_all = PipelineStatistics.render_time(self.all_seconds)
 
         return f"Group Stats:\n\tall time : {d_all}\n" + textwrap.indent(
             "\n".join(stat.get_str() for stat in self.pipelines), "    "
