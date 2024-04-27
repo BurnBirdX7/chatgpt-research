@@ -60,9 +60,9 @@ def _get_top10_target_chains(target_pos: int, key: str) -> List[Chain]:
     return list(chains[:10])
 
 
-def _chain2dict(chain: Chain) -> dict[str, str | int | float]:
+def _chain2dict(key: str, chain: Chain) -> dict[str, str | int | float]:
     return {
-        "text": "".join(storage.input_tokenized[chain.target_begin_pos : chain.target_end_pos]),
+        "text": "".join(storage.input_tokenized[key][chain.target_begin_pos : chain.target_end_pos]),
         "score": chain.get_score(),
         "len": chain.target_len(),
         "debug": str(chain),
@@ -80,7 +80,7 @@ def _get_top10_source_chains(key: str, source_name: str, source_pos: int) -> Tup
 def get_top10_target_chains(target_pos: int, key: str) -> list[dict]:
     chains = _get_top10_target_chains(target_pos, key)
 
-    return [_chain2dict(chain) for chain in chains]
+    return [_chain2dict(key, chain) for chain in chains]
 
 
 @lru_cache(200)
@@ -92,7 +92,7 @@ def plot_pos_likelihoods(target_pos: int, target_likelihood: float, key: str) ->
 def get_top10_source_chains(key: str, source_name: str, source_pos: int) -> dict:
     tok, chains = _get_top10_source_chains(key, source_name, source_pos)
 
-    return {"token": tok, "chains": [_chain2dict(chain) for chain in chains]}
+    return {"token": tok, "chains": [_chain2dict(key, chain) for chain in chains]}
 
 
 # Register functions that store cache, to allow clearing that cache on request

@@ -67,9 +67,9 @@ def get_resume_points() -> t.List[str]:
     return list(_unidir_pipeline.default_execution_order)
 
 
-@lru_cache(5)
+@lru_cache(1)
 def run(input_text: str, override_data: bool) -> t.List[SourceColoring]:
-    storage.clear_cache()
+    storage.clear_cache([_unidir_pipeline.name, _bidir_pipeline.name])
     logger.info(f"Coloring... override = {override_data}")
 
     _pipeline_group.override_data(override_data)
@@ -81,10 +81,8 @@ def run(input_text: str, override_data: bool) -> t.List[SourceColoring]:
 
     return list(colorings.values())
 
-
-@lru_cache(5)
 def resume(resume_point: str) -> t.Tuple[str, t.List[Coloring]]:
-    storage.clear_cache()
+    storage.clear_cache([_unidir_pipeline.name, _bidir_pipeline.name])
     logger.info("Rerunning coloring... override = False")
 
     input_text: str = ""

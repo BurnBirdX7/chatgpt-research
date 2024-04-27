@@ -10,7 +10,7 @@ from typing import Dict
 import pandas as pd
 import ujson
 
-from evaluation.evaluate_coloring import start, pipeline, queryNode
+from evaluation.evaluate_source_coloring import start, pipeline, queryNode
 
 import logging
 

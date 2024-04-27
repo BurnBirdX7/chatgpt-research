@@ -126,7 +126,7 @@ async function updatePopup(event, target) {
     // ! INNER HTML SECTION
 
     popup.style.display = 'block';
-    popup.style.left = (event.pageX + 10) + 'px';
+    popup.style.left = Math.min(event.pageX + 10, window.innerWidth - popup.offsetWidth) + 'px';
     popup.style.top = Math.max(0, event.pageY - 10 - popup.offsetHeight) + 'px';
     popup.querySelector("#popup_close").addEventListener("click", () => {
         popupFixated = false;

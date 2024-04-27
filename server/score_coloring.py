@@ -70,9 +70,9 @@ def _collect_result(result: PipelineResult, _: bool) -> Coloring:
     )
 
 
-@lru_cache(5)
+@lru_cache(1)
 def run(text: str, override_data: bool) -> t.List[Coloring]:
-    storage.clear_cache()
+    storage.clear_cache(map(lambda p: p.name, _pipeline_group.pipelines))
     logger.info(f"Coloring scores... override = {override_data}")
 
     _pipeline_group.override_data(override_data)
@@ -84,9 +84,8 @@ def run(text: str, override_data: bool) -> t.List[Coloring]:
 
     return list(colorings.values())
 
-
 def resume(resume_point: str) -> t.Tuple[str, t.List[Coloring]]:
-    storage.clear_cache()
+    storage.clear_cache(map(lambda p: p.name, _pipeline_group.pipelines))
     logger.info("Rerunning coloring... override = False")
 
     input_text: str = ""
