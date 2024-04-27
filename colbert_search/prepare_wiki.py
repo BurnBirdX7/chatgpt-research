@@ -1,138 +1,82 @@
 from __future__ import annotations
 
-import os.path
+import html
+import re
 import sys
 import typing as t
-import urllib.parse
 import xml.etree.ElementTree as ET
+from collections import defaultdict
+
 import mwparserfromhell as mw
 
+from collection_context import CollectionContext, is_title_banned, SplitCollectionContext
 from src.pipeline import BaseNode, ListDescriptor
-from src import WikiDataFile, SourceMapping
+from src import WikiDataFile
 
 from parse_context import ParseContext
 
-banned_title_prefixes: list[str] = [
-    "Category:",
-    "File:",
-    "See also",
-    "References",
-    "External links",
-]
+
+def _not_table(node: mw.nodes.Node) -> bool:
+    # Tables are excluded from survey
+    if isinstance(node, mw.nodes.Tag):
+        if node.tag == "table":
+            return False
+    return True
+
+def _not_ref(node: mw.nodes.Node) -> bool:
+    # Reference links are excluded from survey
+    return not re.match(r"(<ref.*>.*</ref>|<ref .*/>)", str(node))
 
 
-def is_title_banned(title: str) -> bool:
-    for banned in banned_title_prefixes:
-        if title.strip().startswith(banned):
-            return True
+def _not_special_link(node: mw.nodes.Node) -> bool:
+    # Special links are excluded due to parsing problems
+    return not re.match(r"\[\[(File|Help|Extention|User|Manual):.*]]", str(node))
 
-    return False
 
-def parse_wikitext(text: str) -> t.Dict[str, str]:
+def _not_empty(node: mw.nodes.Node) -> bool:
+    # Nodes that cannot be rendered as text, or nodes that consist of whitespace chars are omitted
+    s = node.__strip__()
+    return s is not None and s.strip() != ""
+
+
+def _ok(node: mw.nodes.Node) -> bool:
+    return _not_table(node) and _not_ref(node) and _not_special_link(node) and _not_empty(node)
+
+def parse_wikitext(text: str) -> t.Dict[str, t.List[str]]:
     """
-    :param text: WikiText
-    :return: Dictionary of sections, keys are section names and values are section texts
+    Transforms string with WikiText into dictionary with section names as keys and lists of paragraphs as values
+
     """
-    final_dict = {}
-    wikicode = mw.parse(text)
-    sections = wikicode.get_sections(flat=True)
-    for section in sections:
-        headings = section.filter_headings()
-        text = section.strip_code(normalize=True)
-        if len(headings) == 1:
-            heading = headings[0].title.strip_code().strip()
-            split_text = text.split("\n", 1)
-            if len(split_text) == 1:
-                continue
-            text = split_text[1]  # Remove heading
-        elif len(headings) == 0:
-            heading = ""
-        else:
+    result = defaultdict(list)
+    code = mw.parse(text)
+    sections = code.get_sections(flat=True)
+    section: mw.wikicode.Wikicode
+    for i, section in enumerate(sections):
+        if len(section.nodes) == 0:
+            # Empty section
             continue
 
-        final_dict[heading] = str(text)
+        heading: str
+        if isinstance(section.get(0), mw.nodes.Heading):
+            nodes = section.nodes[1:]
+            heading = str(section.get(0).title).strip()
+        else:
+            nodes = section.nodes
+            heading = ""
 
-    return final_dict
+        # Collect full text
+        section_text = ""
+        for node in nodes:
+            if _ok(node):
+                section_text += html.unescape(str(node.__strip__()))
 
-
-class SplitCollectionContext:
-    def __init__(self, collection_name: str, path: str):
-        self.collection_name = collection_name
-        self.fid: int = 0
-        self.path = path
-        self.past_cts: t.List[CollectionContext] = []
-        self.last_ctx: CollectionContext | None = None
-
-    def new(self) -> CollectionContext:
-        self.fid += 1
-        self.close()
-        self.last_ctx = CollectionContext(self.collection_name, self.fid, self.path)
-        return self.last_ctx
-
-    def last(self) -> CollectionContext | None:
-        return self.last_ctx
-
-    def close(self):
-        if self.last_ctx is None:
-            return
-        self.last_ctx.close()
-        self.past_cts.append(self.last_ctx)
-        self.last_ctx = None
-
-
-class CollectionContext:
-    class Files(t.NamedTuple):
-        passage_file_path: str
-        mapping_file_path: str
-
-    def __init__(self, collection_name: str, num: int, path: str):
-        self.collection_name = collection_name
-        self.path = path
-
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-        self.passage_file_path = os.path.join(self.path, f"{self.collection_name}_passages_{num}.tsv")
-        self.mapping_file_path = os.path.join(self.path, f"{self.collection_name}_sources_{num}.csv")
-
-        self.passage_file = open(self.passage_file_path, "w")
-        self.mapping = SourceMapping()
-
-        self.pid = 0
-        self.closed = False
-
-    def new_passages(self, title: str, sections: t.Dict[str, str]):
-        for heading, section in sections.items():
-            if is_title_banned(heading):
+        # Split into paragraphs
+        for p in section_text.split('\n'):
+            if len(p.strip()) < 10:
                 continue
+            result[heading].append(p.strip())
 
-            if "\n" in heading.strip():  # Header is malformed, remove part of it
-                heading = heading.strip().split("\n", maxsplit=1)[0]
-            safe_header = urllib.parse.quote_plus(heading)
-
-            section_start_pid = self.pid
-            for paragraph in section.split("\n"):
-                safe_paragraph = paragraph.strip()
-                if len(safe_paragraph) == 0:
-                    continue
-
-                safe_paragraph = safe_paragraph.replace("\t", " ")  # make tsv-safe
-                self.passage_file.write(f"{self.pid}\t{safe_paragraph}\n")
-                self.pid += 1
-
-            safe_title = urllib.parse.quote_plus(title)
-            url = f"https://en.wikipedia.org/wiki/{safe_title}#{safe_header}"
-            self.mapping.append_interval(self.pid - section_start_pid, url)
-
-    def close(self):
-        if self.closed:
-            return
-        self.closed = True
-        self.passage_file.close()
-        self.mapping.to_csv(self.mapping_file_path)
-
-    def get_files(self) -> Files:
-        return self.Files(self.passage_file_path, self.mapping_file_path)
+    return result
 
 
 class Reporter:
