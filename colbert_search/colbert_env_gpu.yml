@@ -21,6 +21,7 @@ dependencies:
   - scipy
   - flask
   - python-dotenv
+  - mwparserfromhell
   - pip:
     - bitarray
     - datasets
