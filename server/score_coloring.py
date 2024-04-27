@@ -45,9 +45,9 @@ def _reversed_mean(slice_: npt.NDArray[np.float32]) -> np.float32:
 
 
 # GLOBAL
-_default_score_pipeline = pipeline_preset("geometric mean")
+_default_score_pipeline = pipeline_preset("geometric_mean")
 _max_score_pipeline = pipeline_preset("max", np.max)
-_reversed_score_pipeline = pipeline_preset("reversed geometric mean", _reversed_mean)
+_reversed_score_pipeline = pipeline_preset("reversed_geometric_mean", _reversed_mean)
 
 _pipeline_group = PipelineGroup("wide-chains", [_default_score_pipeline, _max_score_pipeline, _reversed_score_pipeline])
 
@@ -59,7 +59,7 @@ def get_resume_points() -> t.List[str]:
 def _collect_result(result: PipelineResult, _: bool) -> Coloring:
     storage.chains[result.pipeline_name] = result.cache["wide-chains"]
 
-    title = result.pipeline_name[0].upper() + result.pipeline_name[1:] + " score coloring"
+    title = result.pipeline_name[0].upper() + result.pipeline_name[1:].replace("_", " ") + " score coloring"
 
     return ScoreColoring(
         title=title,

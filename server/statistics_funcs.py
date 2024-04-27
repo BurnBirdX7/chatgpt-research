@@ -11,12 +11,12 @@ from server.statistics_storage import storage
 from src.chaining import Chain
 
 
-def get_chains_for_target_pos(target_pos: int, key: str) -> List[Chain]:
+def _get_chains_for_target_pos(target_pos: int, key: str) -> List[Chain]:
     chains = storage.chains[key]
     return [chain for chain in chains if chain.target_begin_pos <= target_pos < chain.target_end_pos]
 
 
-def get_chains_for_source_pos(key: str, source_name: str, source_pos: int):
+def _get_chains_for_source_pos(key: str, source_name: str, source_pos: int):
     chains = storage.chains[key]
     return [
         chain
@@ -25,7 +25,7 @@ def get_chains_for_source_pos(key: str, source_name: str, source_pos: int):
     ]
 
 
-def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: List[Chain]) -> bytes:
+def _plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: List[Chain]) -> bytes:
     likelihoods = np.array([chain.get_target_likelihood(target_pos) for chain in chains])
 
     if (likelihoods < 0).any():
@@ -33,7 +33,7 @@ def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: L
 
     img = io.BytesIO()
 
-    fig, ax = plt.subplots(figsize=(8, 3))
+    fig, ax = plt.subplots(figsize=(8, 4))
     ax.hist(likelihoods, bins=16, range=(0, 1.0), color="grey")
     ax.axvline(x=np.max(likelihoods), color="r")
     ax.axvline(x=np.mean(likelihoods), color="g")
@@ -55,7 +55,7 @@ def plot_chains_likelihoods(target_pos: int, target_likelihood: float, chains: L
 
 
 def _get_top10_target_chains(target_pos: int, key: str) -> List[Chain]:
-    chains = get_chains_for_target_pos(target_pos, key)
+    chains = _get_chains_for_target_pos(target_pos, key)
     chains = sorted(chains, reverse=True, key=lambda chain: chain.get_score())
     return list(chains[:10])
 
@@ -70,7 +70,7 @@ def _chain2dict(chain: Chain) -> dict[str, str | int | float]:
 
 
 def _get_top10_source_chains(key: str, source_name: str, source_pos: int) -> Tuple[str, list[Chain]]:
-    chains = get_chains_for_source_pos(key, source_name, source_pos)
+    chains = _get_chains_for_source_pos(key, source_name, source_pos)
     chains = sorted(chains, reverse=True, key=lambda chain: chain.get_score())
     tok = storage.sources[source_name][source_pos]
     return tok, list(chains[:10])
@@ -85,7 +85,7 @@ def get_top10_target_chains(target_pos: int, key: str) -> list[dict]:
 
 @lru_cache(200)
 def plot_pos_likelihoods(target_pos: int, target_likelihood: float, key: str) -> bytes:
-    return plot_chains_likelihoods(target_pos, target_likelihood, get_chains_for_target_pos(target_pos, key))
+    return _plot_chains_likelihoods(target_pos, target_likelihood, _get_chains_for_target_pos(target_pos, key))
 
 
 @lru_cache(200)

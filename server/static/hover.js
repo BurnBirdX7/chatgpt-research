@@ -98,14 +98,16 @@ async function updatePopup(event, target) {
     const score = target.getAttribute('data-score')
     const {key, type} = getKeyAndType(target);
 
+    popup.innerHTML = "<i style='color: gray'>Click to pin</i><br>"
+
     if (source_url != null) {
-        popup.innerHTML = renderSourceTypePopup(target, source_url, target_pos, target_likelihood, score)
+        popup.innerHTML += renderSourceTypePopup(target, source_url, target_pos, target_likelihood, score)
     } else if (type === "source") {
-        popup.innerHTML = `This token: \`<code>${target.innerText}</code>\` [${target_pos}] <br>`
+        popup.innerHTML += `This token: \`<code>${target.innerText}</code>\` [${target_pos}] <br>`
     } else if (type === "score") {
-        popup.innerHTML = `This token: \`<code>${target.innerText}</code>\`, pos: ${target_pos}, score: ${score} <br>`
+        popup.innerHTML += `This token: \`<code>${target.innerText}</code>\`, pos: ${target_pos}, score: ${score} <br>`
     } else {
-        popup.innerHTML = "Unsupported token type"
+        popup.innerHTML += "Unsupported token type"
     }
 
     if (loadImages) {
@@ -125,7 +127,7 @@ async function updatePopup(event, target) {
 
     popup.style.display = 'block';
     popup.style.left = (event.pageX + 10) + 'px';
-    popup.style.top = (event.pageY - 10 - popup.offsetHeight) + 'px';
+    popup.style.top = Math.max(0, event.pageY - 10 - popup.offsetHeight) + 'px';
     popup.querySelector("#popup_close").addEventListener("click", () => {
         popupFixated = false;
         popup.style.display = 'none';

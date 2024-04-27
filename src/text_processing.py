@@ -70,7 +70,7 @@ def remove_punctuation(text: str) -> str:
         if ch in allowed:
             return False
         cat = unicodedata.category(ch)
-        return cat.startswith("P")
+        return cat == "Pf" or cat == "Pi"
 
     transform_table = {i: None for i in range(sys.maxunicode) if pred(i)}
 
