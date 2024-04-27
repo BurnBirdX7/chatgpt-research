@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import html
+import logging
 import re
 import sys
 import typing as t
@@ -9,11 +11,11 @@ from collections import defaultdict
 
 import mwparserfromhell as mw
 
-from collection_context import CollectionContext, is_title_banned, SplitCollectionContext
+from _collection_context import CollectionContext, is_title_banned, SplitCollectionContext
 from src.pipeline import BaseNode, ListDescriptor
 from src import WikiDataFile
 
-from parse_context import ParseContext
+from _xml_parse_runner import XmlParseRunner
 
 
 def _not_table(node: mw.nodes.Node) -> bool:
@@ -22,6 +24,7 @@ def _not_table(node: mw.nodes.Node) -> bool:
         if node.tag == "table":
             return False
     return True
+
 
 def _not_ref(node: mw.nodes.Node) -> bool:
     # Reference links are excluded from survey
@@ -42,6 +45,7 @@ def _not_empty(node: mw.nodes.Node) -> bool:
 def _ok(node: mw.nodes.Node) -> bool:
     return _not_table(node) and _not_ref(node) and _not_special_link(node) and _not_empty(node)
 
+
 def parse_wikitext(text: str) -> t.Dict[str, t.List[str]]:
     """
     Transforms string with WikiText into dictionary with section names as keys and lists of paragraphs as values
@@ -59,7 +63,7 @@ def parse_wikitext(text: str) -> t.Dict[str, t.List[str]]:
         heading: str
         if isinstance(section.get(0), mw.nodes.Heading):
             nodes = section.nodes[1:]
-            heading = str(section.get(0).title).strip()
+            heading = "".join(map(str, section.get(0).title.ifilter_text(recursive=False))).strip()
         else:
             nodes = section.nodes
             heading = ""
@@ -71,7 +75,7 @@ def parse_wikitext(text: str) -> t.Dict[str, t.List[str]]:
                 section_text += html.unescape(str(node.__strip__()))
 
         # Split into paragraphs
-        for p in section_text.split('\n'):
+        for p in section_text.split("\n"):
             if len(p.strip()) < 10:
                 continue
             result[heading].append(p.strip())
@@ -80,23 +84,30 @@ def parse_wikitext(text: str) -> t.Dict[str, t.List[str]]:
 
 
 class Reporter:
-    last_page: int = 0
+    def __init__(self, logger: logging.Logger):
+        self.rate: int = 100
+        self.next_limit = self.rate
+        self.logger = logger
+        self.page_count = 0
+        self.passage_count = 0
 
-    @classmethod
-    def report(cls, page: int) -> None:
-        if page == cls.last_page:
+    def report(self, passages: int) -> None:
+        self.page_count += 1
+        self.passage_count += passages
+        if self.page_count < self.next_limit:
             return
 
-        cls.last_page = page
+        self.next_limit += self.rate
+        self.logger.debug(f"Processed {self.page_count} pages and pr oduced {self.passage_count} passages...")
 
-        if page % 2500 == 0:
-            print(f"{page:6d}")
-        elif page % 100 == 0:
-            print(f"{page:6d}", end=".")
+def prepare_wiki(
+    collection_name: str, wiki_path: str, output_dir: str, logger: logging.Logger = logging.getLogger(__name__)
+) -> t.List[CollectionContext.Files]:
+    logger.info(f"Parsing wiki XML, path: \"{wiki_path}\"")
+    reporter = Reporter(logger)
 
-
-def prepare_wiki(collection_name: str, path: str, output_dir: str) -> t.List[CollectionContext.Files]:
     def _page_process(elem: ET.Element):
+        nonlocal reporter
         if "ns" not in data or data["ns"] != "0":
             return
         if "redirect" in data:
@@ -105,32 +116,25 @@ def prepare_wiki(collection_name: str, path: str, output_dir: str) -> t.List[Col
             return
 
         sections = parse_wikitext(elem.text)
-        collection_ctx.last().new_passages(data["title"], sections)
-
-    a = False
-
-    def _update_context(_):
-        nonlocal collection_ctx
-        if collection_ctx.last_ctx.pid >= 100:
-            collection_ctx.new()
-            nonlocal a
-            if a:
-                raise StopIteration
-            a = True
-
-    print(f"Parsing wiki from file {path}")
-
-    collection_ctx = SplitCollectionContext(collection_name, output_dir)
-    collection_ctx.new()
-
-    data: t.Dict[str, str] = {}
-    parse_ctx = ParseContext(path)
-    parse_ctx.collect_contents("ns", data)
-    parse_ctx.collect_contents("redirect", data)
-    parse_ctx.collect_contents("title", data)
+        passage_count = collection_ctx.last().new_passages(data["title"], sections)
+        reporter.report(passage_count)
 
     def _clear_data(_):
         data.clear()
+
+    def _update_context(_):
+        nonlocal collection_ctx
+        if collection_ctx.last_ctx.pid >= 1_000_000:
+            collection_ctx.new()
+
+    collection_ctx = SplitCollectionContext(collection_name, output_dir, logger)
+    collection_ctx.new()
+
+    data: t.Dict[str, str] = {}
+    parse_ctx = XmlParseRunner(wiki_path)
+    parse_ctx.collect_contents("ns", data)
+    parse_ctx.collect_contents("redirect", data)
+    parse_ctx.collect_contents("title", data)
 
     parse_ctx.end_handler("text", _page_process)
     parse_ctx.end_handler("page", _clear_data)
@@ -155,6 +159,7 @@ class PrepareWiki(BaseNode):
                 f"wiki-{file.num}-p{file.p_first}-p{file.p_last}",
                 file.path,
                 self.output_dir,
+                self.logger,
             )
             passage_files += pf
 
@@ -162,8 +167,24 @@ class PrepareWiki(BaseNode):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("Usage: python -m colbert_search prepare_wiki [collection_name] [wiki_file] [output_dir]")
-        exit(1)
+    parser = argparse.ArgumentParser(
+        "python -m colbert_search prepare_wiki", description="Prepare number of collections from a single wiki dump"
+    )
 
-    prepare_wiki(*sys.argv[1:])
+    parser.add_argument(
+        "--collection", "-c", action="store", dest="collection_name", help="name of produced collection", required=True
+    )
+    parser.add_argument("--file", "-f", action="store", dest="wiki_path", help="path to the wiki .xml", required=True)
+    parser.add_argument(
+        "--output",
+        "-o",
+        action="store",
+        dest="output_dir",
+        help="directory where new collections will be dumped",
+        required=True,
+    )
+    namespace = parser.parse_args()
+
+    logging.basicConfig(level=logging.DEBUG)
+
+    prepare_wiki(**vars(namespace))

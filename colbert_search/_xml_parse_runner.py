@@ -9,7 +9,7 @@ EventHandler = t.Callable[[ET.Element], None]
 
 _tag_regex = re.compile(r"{(.*)}(\w+)")
 
-class ParseContext:
+class XmlParseRunner:
 
     def __init__(self, filepath: str):
         self._iter = ET.iterparse(filepath, events=("start-ns", "end")).__iter__()

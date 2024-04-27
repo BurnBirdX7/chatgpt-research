@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import logging
 import signal
-import sys
+import os
+import re
 
 import torch
 from dotenv import load_dotenv
-
-import os
-import re
 
 from typing import List, Tuple, Any, Dict
 from flask import Flask, request
@@ -55,8 +53,6 @@ def init_searchers(dir_path: str) -> List[Tuple[Searcher, SourceMapping]]:
 
 
 searchers: List[Tuple[Searcher, SourceMapping]] = []
-counter = {"api_calls": 0}
-
 
 def search(searcher: Searcher, source_mapping: SourceMapping, query: str, k: int) -> list[dict[str, Any]]:
     pids, ranks, scores = searcher.search(query, k=100)
@@ -68,12 +64,8 @@ def search(searcher: Searcher, source_mapping: SourceMapping, query: str, k: int
         url, p_start, p_end = source_mapping.get_source_and_interval(pid)
 
         if url not in topk_dict:
-            paragraphs = []
-            for paragraph_pid in range(p_start, p_end):
-                paragraphs.append(searcher.collection[paragraph_pid])
-
             topk_dict[url] = {
-                "text": "\n".join(paragraphs),
+                "text": "\n".join(searcher.collection[paragraph_pid] for paragraph_pid in range(p_start, p_end)),
                 "source_url": url,
                 "score": score,
             }
@@ -106,8 +98,6 @@ def colbert_server(config: ColbertServerConfig):
 
     @app.route("/api/search", methods=["GET"])
     def api_search():
-        counter["api_calls"] += 1
-        print("API request count:", counter["api_calls"])
         result = api_search_query(request.args.get("query"), request.args.get("k"))
         torch.cuda.empty_cache()
         return result

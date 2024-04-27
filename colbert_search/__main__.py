@@ -31,8 +31,6 @@ def main():
     else:
         env["PYTHONPATH"] = f"{project_root}:{module_root}"
 
-    print(f"PYTHONPATH: {env['PYTHONPATH']}")
-
     subprocess.run(args, cwd=module_root, env=env)
 
 
