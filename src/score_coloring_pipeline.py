@@ -4,14 +4,15 @@ import numpy as np
 import numpy.typing as npt
 import matplotlib as mpl
 
-from . import QueryColbertServerNode, Roberta
-from .chaining.nodes import WideChaining, CollectTokenScoreNode
-from .config import EmbeddingBuilderConfig, IndexConfig, ColbertServerConfig
-from .embeddings_builder import EmbeddingsFromTextNode, LikelihoodsForMultipleSources, TokenizeTextNode
-from .index import IndexFromSourcesNode, SearchIndexNode
-from .pipeline import Pipeline, BaseNode, ListDescriptor
-from .source_coloring_pipeline import FilterDict
-from .text_processing import remove_punctuation, TextProcessingNode, remove_wiki_formatting
+from src.query_sources import QueryColbertServerNode
+from src.roberta import Roberta
+from src.chaining.nodes import WideChaining, CollectTokenScoreNode
+from src.config import EmbeddingBuilderConfig, IndexConfig, ColbertServerConfig
+from src.embeddings_builder import EmbeddingsFromTextNode, LikelihoodsForMultipleSources, TokenizeTextNode
+from src.index import IndexFromSourcesNode, SearchIndexNode
+from src.pipeline import Pipeline, BaseNode, ListDescriptor
+from src.source_coloring_pipeline import FilterDict
+from src.text_processing import remove_punctuation, TextProcessingNode, remove_wiki_formatting
 
 
 def normalize(slice_: npt.NDArray) -> npt.NDArray:

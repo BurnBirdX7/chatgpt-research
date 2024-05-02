@@ -119,7 +119,7 @@ async function updatePopup(event, target) {
     }
 
     if (type === "source" && displayDebugChains) {
-        renderDebugChains(target)
+        popup.innerHTML += renderDebugChains(target)
     }
 
     popup.innerHTML += "<button id=\"popup_close\">Unpin</button>"

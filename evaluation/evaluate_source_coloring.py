@@ -6,7 +6,7 @@ import ujson
 import time
 import logging
 from dataclasses import dataclass
-from typing import Callable, List, TextIO
+from typing import Callable, List
 
 import pandas as pd
 from sklearn import metrics

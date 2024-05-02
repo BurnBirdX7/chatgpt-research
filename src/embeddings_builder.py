@@ -111,6 +111,10 @@ class EmbeddingsBuilder:
         torch.Tensor
             A Tensor with dimensions (token_count, embedding_len)
 
+        Notes
+        -----
+        Ignores `normalize` parameter of the config
+
         """
         tokenizer_output = self.tokenizer(
             text,
@@ -125,7 +129,12 @@ class EmbeddingsBuilder:
         with torch.no_grad():
             output = self.model(input_ids, attention_mask=attention_mask, output_hidden_states=True)
 
-        return output.hidden_states[-1][attention_mask > 0.0][1:-1]
+        # We need last state
+        # attention_mask > 0.0 produces 2d-mask
+        # 2d mask applied to 3d array produces 2d array
+        # trim first and last (special) tokens
+        embeddings = output.hidden_states[-1][attention_mask > 0.0][1:-1]
+        return embeddings
 
     def from_text(self, text: str) -> np.ndarray:
         """

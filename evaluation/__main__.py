@@ -1,8 +1,6 @@
+import argparse
 import json
-import os
-import signal
 import subprocess
-import sys
 import time
 from collections import defaultdict
 from typing import Dict
@@ -10,11 +8,14 @@ from typing import Dict
 import pandas as pd
 import ujson
 
-from evaluation.evaluate_source_coloring import start, pipeline, queryNode
+from src.config import ColbertServerConfig
+from evaluation.evaluate_score_coloring import start
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
+from src import QueryColbertServerNode
+
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -23,14 +24,16 @@ def init_evaluation():
         json.dump({"idx": 0, "preds": {}, "skips": []}, f, indent=2)
 
     all_passages = pd.read_csv("passages.csv")
-    pos_passages = all_passages[all_passages["supported"]].sample(100)
-    neg_passages = all_passages[~all_passages["supported"]].sample(100)
+    pos_passages = all_passages[all_passages["supported"]].sample(500)
+    neg_passages = all_passages[~all_passages["supported"]].sample(500)
     passages = pd.concat([pos_passages, neg_passages], ignore_index=True)
     passages.to_csv("selected_passages.csv", index=False)
 
 
+queryNode = QueryColbertServerNode('-', ColbertServerConfig.load_from_env())
+
 def await_colbert_start():
-    while pipeline.prerequisites_check() is not None:
+    while queryNode.prerequisite_check() is not None:
         logger.info("Sleeping while colbert server is starting up...")
         time.sleep(5)
 
@@ -39,7 +42,7 @@ def await_colbert_death():
     while True:
         logger.info("Waiting for colbert server to die...")
         time.sleep(2)
-        if pipeline.prerequisites_check() is not None:
+        if queryNode.prerequisite_check() is not None:
             break
 
 
@@ -57,16 +60,22 @@ def skip(dat: dict, idx: int):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2 or sys.argv[1] != "bootstrap":
-        start()
+    parser = argparse.ArgumentParser("python -m evaluation")
+    parser.add_argument('action', choices=['bootstrap', 'init', 'roc'], type=str)
+    namespace = parser.parse_args()
 
-    if len(sys.argv) == 3 and sys.argv[2] == "init":
+    if namespace.action == 'roc':
+        start()
+        exit(0)
+
+    if namespace.action == 'init':
         init_evaluation()
         exit(0)
 
+    # Bootstrap
     tries: Dict[str, int] = defaultdict(lambda: 0)
     while True:
-        logger.info(f"Starting evaluation cycle, counter = {tries}")
+        logger.info(f"Starting evaluation cycle, counter = {tries!s}")
         colbert_server = subprocess.Popen(
             ["conda", "run", "-n", "colbert", "python", "-m", "colbert_search", "colbert_server"]
         )
@@ -75,9 +84,10 @@ if __name__ == "__main__":
 
         await_colbert_start()
 
-        main_proc = subprocess.Popen(["python", "-m", "evaluation"])
+        main_proc = subprocess.Popen(["python", "-m", "evaluation", "roc"])
         ret_code = main_proc.wait()
         if ret_code != 0:
+            logger.warning(f"Main process returned {ret_code}, killing ColBERT server...")
             # Execution failed
 
             # Request colbert server kill:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sys
 
 from src import FindBz2Files, Bz2Unpack
@@ -33,8 +34,15 @@ def get_wiki_pipeline(output_path: str) -> Pipeline:
 
 
 if __name__ == "__main__":
-    in_path = sys.argv[1]
-    out_path = sys.argv[2]
+    parser = argparse.ArgumentParser(
+        "python -m colbert_search wiki_pipeline",
+        description="Takes directory that contains archived wiki dumps (.bz2 archives)"
+        "and converts it into collection that can be supplied to ColBERT",
+    )
+    parser.add_argument("-i", dest="in_path", help="directory that contains archived wiki dumps", required=True)
+    parser.add_argument("-o", dest="out_path", help="directory where artifacts will be stored", required=True)
 
-    pipeline = get_wiki_pipeline(out_path)
-    pipeline.run(in_path)
+    namespace = parser.parse_args()
+
+    pipeline = get_wiki_pipeline(namespace.out_path)
+    pipeline.run(namespace.in_path)

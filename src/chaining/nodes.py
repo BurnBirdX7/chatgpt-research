@@ -4,9 +4,9 @@ import typing as t
 import numpy as np
 import numpy.typing as npt
 
-from ..config import EmbeddingBuilderConfig
-from ..embeddings_builder import NDArrayDescriptor
-from ..pipeline import BaseNode, ListDescriptor
+from src.config import EmbeddingBuilderConfig
+from src.embeddings_builder import NDArrayDescriptor
+from src.pipeline import BaseNode, ListDescriptor
 from .descriptors import ChainListDescriptor, Pos2ChainMappingDescriptor
 from .chain import Chain
 from .hard_chain import HardChain
@@ -185,21 +185,25 @@ class WideChaining(BaseNode):
 class CollectTokenScoreNode(BaseNode):
 
     @staticmethod
-    def default_score(slice_: npt.NDArray[np.float32]) -> np.float32:
-        slice_ = slice_[slice_.nonzero()]
-
+    def default_score(slice_: t.List[float]) -> np.float32:
         if len(slice_) == 0:
             logging.getLogger(__name__).debug("Zero len slice encountered")
             return np.float32(0.0)
 
-        return np.exp(np.log(slice_).sum() / len(slice_))
+        return np.exp(np.log(slice_, dtype=np.float32).sum() / len(slice_))
 
     def __init__(self, name: str):
         super().__init__(name, [list, list], NDArrayDescriptor())
-        self.score_func: t.Callable[[npt.NDArray[np.float32]], np.float32] = CollectTokenScoreNode.default_score
+        self.score_func: t.Callable[[t.List[float]], np.float32] = CollectTokenScoreNode.default_score
 
     def process(self, tokens: t.List[str], chains: t.List[WideChain]) -> npt.NDArray[np.float32]:
-        likelihood_table = np.zeros(shape=(len(chains), len(tokens)), dtype=np.float32)
-        for idx, chain in enumerate(chains):
-            likelihood_table[idx, chain.target_begin_pos : chain.target_end_pos] = chain.likelihoods
-        return np.apply_along_axis(self.score_func, 0, likelihood_table)
+        likelihoods = [[] for _ in tokens]
+        for chain in chains:
+            for pos in range(chain.target_begin_pos, chain.target_end_pos):
+                likelihoods[pos].append(chain.get_target_likelihood(pos))
+
+        arr = np.empty(len(tokens))
+        for i in range(len(tokens)):
+            arr[i] = self.score_func(likelihoods[i])
+
+        return arr

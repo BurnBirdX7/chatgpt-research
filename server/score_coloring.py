@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Pipeline configuration
 def pipeline_preset(
-    name: str, score_func: t.Callable[[npt.NDArray[np.float32]], np.float32] | None = None
+    name: str, score_func: t.Callable[[t.List[float]], np.float32] | None = None
 ) -> ScoreColoringPipeline:
     pipeline = ScoreColoringPipeline(name)
     pipeline.assert_prerequisites()
@@ -40,16 +40,40 @@ def pipeline_preset(
     return pipeline
 
 
-def _reversed_mean(slice_: npt.NDArray[np.float32]) -> np.float32:
-    return 1 - np.exp(np.log(1 - slice_).sum() / len(slice_))
+def _reversed_mean(slice_: t.List[float]) -> np.float32:
+    return 1 - np.exp(np.log(1.000001 - np.array(slice_)).sum() / len(slice_))
+
+
+def _max(slice_: t.List[float]) -> np.float32:
+    return np.max(slice_).astype(np.float32)
+
+
+def _wrap(cut: int, func: t.Callable[[t.List[float]], np.float32]):
+    def _func(slice_: t.List[float]) -> np.float32:
+        cut_slice = np.sort(slice_).tolist()[:-cut]
+        return func(cut_slice)
+
+    return _func
 
 
 # GLOBAL
 _default_score_pipeline = pipeline_preset("geometric_mean")
-_max_score_pipeline = pipeline_preset("max", np.max)
+_max_score_pipeline = pipeline_preset("max", _max)
 _reversed_score_pipeline = pipeline_preset("reversed_geometric_mean", _reversed_mean)
 
-_pipeline_group = PipelineGroup("wide-chains", [_default_score_pipeline, _max_score_pipeline, _reversed_score_pipeline])
+first_pipelines = [_default_score_pipeline, _max_score_pipeline, _reversed_score_pipeline]
+
+logging.basicConfig(level=logging.DEBUG)
+
+for pipeline in list(first_pipelines):  # list(...) to make a copy of the list
+    func = pipeline.nodes["scores"].score_func  # type: ignore
+
+    for i in range(1, 6, 2):
+        new_pipeline = pipeline_preset(pipeline.name + f"_(cut_top_{i})", _wrap(i, func))
+        logger.info(f"{pipeline.name} --> {new_pipeline.name}")
+        first_pipelines.append(new_pipeline)
+
+_pipeline_group = PipelineGroup("scores", first_pipelines)
 
 
 def get_resume_points() -> t.List[str]:
@@ -83,6 +107,7 @@ def run(text: str, override_data: bool) -> t.List[Coloring]:
     print(stats.get_str())
 
     return list(colorings.values())
+
 
 def resume(resume_point: str) -> t.Tuple[str, t.List[Coloring]]:
     storage.clear_cache(map(lambda p: p.name, _pipeline_group.pipelines))

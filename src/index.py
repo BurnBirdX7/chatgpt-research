@@ -100,7 +100,9 @@ class Index:
         :return: tuple(indexes, distances) where
                     indexes and distances are numpy array of shape (N, k)
         """
-        dists, ids = self.index.search(x, k)
+        x_ = np.copy(x)
+        faiss.normalize_L2(x_)
+        dists, ids = self.index.search(x_, k)
         return ids, dists
 
     def get_source(self, idx: int) -> str:
@@ -117,7 +119,7 @@ class Index:
         :return: tuple(source_strings, distances)
         """
         indexes, distances = self.search(x)
-        return list(map(lambda i: self.get_source(i), indexes)), distances
+        return [self.get_source(i) for i in indexes], distances
 
     def get_topk_sources_for_embeddings(self, x: np.ndarray, k: int) -> List[List[str]]:
         """
@@ -128,8 +130,11 @@ class Index:
         :return: list of lists with dimensions (N, k)
         """
 
-        indexes, _ = self.search_topk(x, k)
-        return [self.get_sources(idxs) for idxs in indexes]  # indexes has (N, k) dims => idxs has (k,) dims
+        indexes, dists = self.search_topk(x, k)
+        return [
+            [self.get_source(idx) for idx, dst in zip(idxs, dsts) if dst >= self.config.threshold]
+            for idxs, dsts in zip(indexes, dists)
+        ]  # indexes has (N, k) dims => idxs has (k,) dims
 
 
 class IndexDescriptor(BaseDataDescriptor[Index]):

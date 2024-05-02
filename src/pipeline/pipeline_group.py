@@ -20,10 +20,14 @@ class PipelineGroup:
 
     def __init__(self, diverge_point: str, pipelines: t.Sequence[Pipeline]):
         self.diverge_point = diverge_point
-        self.pipelines = pipelines
+        self.pipelines = list(pipelines)
 
         for pipeline in self.pipelines:
             pipeline.dont_timestamp_history = True
+
+    def add_pipeline(self, pipeline: Pipeline):
+        self.pipelines.append(pipeline)
+        pipeline.dont_timestamp_history = True
 
     def for_each(self, func: t.Callable[[Pipeline], None]):
         for pipeline in self.pipelines:
