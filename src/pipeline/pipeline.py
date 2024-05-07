@@ -696,7 +696,7 @@ class Pipeline:
                     f"expected types: {cur_node.in_types}, got: {typs}"
                 )
             try:
-                self.logger.info(f'Running "{cur_node_name}" node')
+                self.logger.debug(f'Running "{cur_node_name}" node')
 
                 # Process data
                 node_stats = NodeStatistics.start(cur_node_name)

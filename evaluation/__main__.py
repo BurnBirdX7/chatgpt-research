@@ -23,9 +23,9 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-def init_evaluation(n: int):
-    with open("progress.json", "w") as f:
-        json.dump({"idx": 0, "preds": {}, "skips": []}, f, indent=2)
+def init_evaluation(n: int, type: str):
+    with open(f".progress.{type}.json", "w") as f:
+        json.dump({"idx": 0, "preds": {}, "stats": {}, "skips": [], "type": type}, f, indent=2)
 
     all_passages = pd.read_csv("passages.csv")
     pos_passages = all_passages[all_passages["supported"]].sample(n // 2)
@@ -69,15 +69,19 @@ def skip(dat: dict, idx: int):
 
 def main(namespace: argparse.Namespace):
     if not namespace.resume:
-        init_evaluation(namespace.sample)
+        init_evaluation(namespace.sample, namespace.action)
 
     if not namespace.persistent:
         # Assume ROC # TODO
-        match namespace.type:
-            case "score":
+        match namespace.type, namespace.action:
+            case "score", "roc":
                 evaluation.evaluate_score_coloring.start(namespace.output)
-            case "source":
-                evaluation.evaluate_source_coloring.start(namespace.output)
+            case "source", "roc":
+                evaluation.evaluate_source_coloring.start_roc(namespace.output)
+            case "source", "binary":
+                evaluation.evaluate_source_coloring.start_bool()
+            case _:
+                raise ValueError(f"Unsupported params {namespace.type=}, {namespace.action=}")
         exit(0)
 
     # Persistent
@@ -88,8 +92,7 @@ def main(namespace: argparse.Namespace):
             colbert_server = subprocess.Popen(
                 ["conda", "run", "-n", "colbert", "python", "-m", "colbert_search", "colbert_server"], stdout=sys.stdout
             )
-
-        logger.info(f"Colbert server PID: {colbert_server.pid}")
+            logger.info(f"Colbert server PID: {colbert_server.pid}")
 
         await_colbert_start()
 
@@ -137,7 +140,7 @@ def main(namespace: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("python -m evaluation")
-    parser.add_argument("action", choices=["roc"], type=str, help="Type of collected statistics")
+    parser.add_argument("action", choices=["roc", "binary"], type=str, help="Type of collected statistics")
     parser.add_argument("--type", "-t", choices=["score", "source"], type=str, help="Evaluated method", required=True)
     parser.add_argument(
         "--persistent",

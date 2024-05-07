@@ -11,6 +11,8 @@ from src.pipeline import Pipeline, PipelineResult
 
 logger = logging.getLogger(__name__)
 
+_filename = ".progress.roc.json"
+
 
 def roc_curve(
     pipeline: Pipeline,
@@ -19,7 +21,7 @@ def roc_curve(
     start_idx: int,
     output: pathlib.Path,
 ):
-    with open("progress.json", "r") as f:
+    with open(_filename, "r") as f:
         progress = ujson.load(f)
 
     preds = {f.__name__: [] for f in statistics} | progress["preds"]
@@ -31,7 +33,7 @@ def roc_curve(
         for func in statistics:
             preds[func.__name__].append(func(res))
 
-        with open("progress.json", "w") as f:
+        with open(_filename, "w") as f:
             progress["idx"] = i + 1
             progress["preds"] = preds
             ujson.dump(progress, f, indent=2)
