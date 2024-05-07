@@ -6,7 +6,7 @@ import itertools
 import numpy as np
 import numpy.typing as npt
 import torch
-from typing import Optional, List, Set, Dict, Any
+from typing import List, Set, Dict
 
 from src.chaining.chain import Chain
 
@@ -20,7 +20,7 @@ class HardChain(Chain):
         source: str,
         target_begin_pos: int,
         source_begin_pos: int,
-        all_likelihoods: List[float] | npt.NDArray[np.float32] | None = None,
+        likelihoods: List[float] | npt.NDArray[np.float32] | None = None,
         parent: Chain | List[Chain] | None = None,
         cause: str = "",
         end_skips: int = 0,
@@ -39,7 +39,7 @@ class HardChain(Chain):
         source_begin_pos : int
             first token position of the chain in matched source text
 
-        all_likelihoods : List[float] or NDArray[float], optional
+        likelihoods : List[float] or NDArray[float], optional
             All likelihoods of tokens from target text appearing in source text.
             If no value is supplied, length of 0 is assumed
 
@@ -48,8 +48,8 @@ class HardChain(Chain):
             Generally is a chain that was reduced or transformed into this chain
         """
         super().__init__(source, target_begin_pos, source_begin_pos, parent, cause)
-        self.all_likelihoods: npt.NDArray[np.float32] = np.array(
-            [] if (all_likelihoods is None) else all_likelihoods, dtype=np.float32
+        self.likelihoods: npt.NDArray[np.float32] = np.array(
+            [] if (likelihoods is None) else likelihoods, dtype=np.float32
         )
 
         self.begin_skips = begin_skips
@@ -60,7 +60,7 @@ class HardChain(Chain):
     # ----- #
 
     def __len__(self):
-        return len(self.all_likelihoods)
+        return len(self.likelihoods)
 
     def __eq__(self, other: HardChain | None) -> bool:
         if other is None:
@@ -75,7 +75,7 @@ class HardChain(Chain):
             and self.source_begin_pos == other.source_begin_pos
             and self.begin_skips == other.begin_skips
             and self.end_skips == other.end_skips
-            and np.array_equal(self.all_likelihoods, other.all_likelihoods)
+            and np.array_equal(self.likelihoods, other.likelihoods)
         )
 
     def __hash__(self):
@@ -122,19 +122,19 @@ class HardChain(Chain):
                 f"Got chains:\n{self}\nand\n{other}"
             )
 
-        if self.all_likelihoods[-1] != other.all_likelihoods[0]:
+        if self.likelihoods[-1] != other.likelihoods[0]:
             raise ValueError(
                 "Added chains must have one common likelihood"
                 "on the end of left chain and beginning of the right chain. "
                 f"Got chains:\n{self}\nand\n{other}"
-                f"with likelihoods: {other.all_likelihoods[-1]} and {other.all_likelihoods[0]}"
+                f"with likelihoods: {other.likelihoods[-1]} and {other.likelihoods[0]}"
             )
 
         chain = HardChain(
             source=self.source,
             target_begin_pos=self.target_begin_pos,
             source_begin_pos=self.source_begin_pos,
-            all_likelihoods=np.concatenate([self.all_likelihoods[:-1], other.all_likelihoods]),
+            likelihoods=np.concatenate([self.likelihoods[:-1], other.likelihoods]),
             begin_skips=self.begin_skips,
             end_skips=other.end_skips,
             parent=[self, other],
@@ -160,7 +160,7 @@ class HardChain(Chain):
             f"HardChain("
             f"target_begin_pos={self.target_begin_pos}, "
             f"source_begin_pos={self.source_begin_pos,}, "
-            f"all_likelihoods={self.all_likelihoods!r}, "
+            f"all_likelihoods={self.likelihoods!r}, "
             f"source={self.source!r}, "
             f"parent={self.parent!r}, "
             f"cause={self.cause!r}, "
@@ -226,13 +226,13 @@ class HardChain(Chain):
 
     @property
     def significant_likelihoods(self) -> npt.NDArray[np.float32]:
-        return self.all_likelihoods[self.all_likelihoods >= HardChain.likelihood_significance_threshold]
+        return self.likelihoods[self.likelihoods >= HardChain.likelihood_significance_threshold]
 
     def get_target_likelihood(self, target_pos: int) -> float:
         if target_pos < self.target_begin_pos or target_pos >= self.target_end_pos:
             return -1.0
 
-        return float(self.all_likelihoods[target_pos - self.target_begin_pos])
+        return float(self.likelihoods[target_pos - self.target_begin_pos])
 
     def get_score(self) -> float:
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
@@ -252,7 +252,7 @@ class HardChain(Chain):
         return {
             "target_begin_pos": self.target_begin_pos,
             "source_begin_pos": self.source_begin_pos,
-            "all_likelihoods": self.all_likelihoods.tolist(),
+            "all_likelihoods": self.likelihoods.tolist(),
             "source": self.source,
             "begin_skips": self.begin_skips,
             "end_skips": self.end_skips,
@@ -263,7 +263,7 @@ class HardChain(Chain):
         return HardChain(
             target_begin_pos=d["target_begin_pos"],
             source_begin_pos=d["source_begin_pos"],
-            all_likelihoods=np.array(d["all_likelihoods"]),
+            likelihoods=np.array(d["all_likelihoods"]),
             source=d["source"],
             begin_skips=d["begin_skips"],
             end_skips=d.get("end_skips", d["end_skips:"]),
@@ -276,7 +276,7 @@ class HardChain(Chain):
     def append_end(self, likelihood: float) -> None:
         """Appends significant likelihood to the chain"""
         assert likelihood >= HardChain.likelihood_significance_threshold
-        self.all_likelihoods = np.append(self.all_likelihoods, np.float32(likelihood))
+        self.likelihoods = np.append(self.likelihoods, np.float32(likelihood))
         self.end_skips = 0
 
     def skip_end(self, likelihood: float) -> None:
@@ -285,14 +285,14 @@ class HardChain(Chain):
         self.end_skips += 1
         if len(self.significant_likelihoods) == 0:  # No significant likelihoods encountered yet
             self.begin_skips += 1
-        self.all_likelihoods = np.append(self.all_likelihoods, np.float32(likelihood))
+        self.likelihoods = np.append(self.likelihoods, np.float32(likelihood))
 
     def reverse(self) -> HardChain:
         rev_chain = HardChain(
             source=self.source,
             target_begin_pos=self.target_begin_pos - len(self) + 1,
             source_begin_pos=self.source_begin_pos - len(self) + 1,
-            all_likelihoods=np.flip(self.all_likelihoods, axis=0),
+            likelihoods=np.flip(self.likelihoods, axis=0),
             parent=self,
         )
 

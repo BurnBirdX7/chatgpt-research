@@ -26,13 +26,11 @@ def _pipeline_preset(name: str, use_bidirectional_chaining: bool) -> Pipeline:
     pipeline.force_caching("$input")
     pipeline.force_caching("all-chains")
     if use_bidirectional_chaining:
-        pipeline.force_caching("narrowed-sources-dict-tokenized")
+        pipeline.force_caching("narrowed-sources-dict-tokenized")  # TODO: Review
 
     # Options
     pipeline.store_optional_data = True
     pipeline.dont_timestamp_history = True
-    all_chains: ChainingNode = pipeline.nodes["all-chains"]  # type: ignore
-    all_chains.use_bidirectional_chaining = use_bidirectional_chaining
 
     return pipeline
 

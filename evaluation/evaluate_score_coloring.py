@@ -45,7 +45,7 @@ def _pipeline_setup() -> Pipeline:
 
 def start_roc(output: pathlib.Path):
     passages = pd.read_csv("selected_passages.csv")
-    with open(".progress.roc.json", "r") as f:
+    with open(".eval_progress.roc.json", "r") as f:
         start_idx = int(ujson.load(f)["idx"])
 
     logger.info(f"Starting evaluation with progress counter on {start_idx}")

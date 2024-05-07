@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 def init_evaluation(n: int, type: str):
-    with open(f".progress.{type}.json", "w") as f:
-        json.dump({"idx": 0, "preds": {}, "stats": {}, "skips": [], "type": type}, f, indent=2)
+    with open(f".eval_progress.{type}.json", "w") as f:
+        json.dump({"idx": 0, "preds": {}, "stats": {}, "p_stats": {}, "skips": [], "type": type}, f, indent=2)
 
     all_passages = pd.read_csv("passages.csv")
     pos_passages = all_passages[all_passages["supported"]].sample(n // 2)
@@ -79,6 +79,8 @@ def main(namespace: argparse.Namespace):
                 evaluation.evaluate_source_coloring.start_roc(namespace.output)
             case "source", "binary":
                 evaluation.evaluate_source_coloring.start_bool(namespace.output)
+            case "source", "stats":
+                evaluation.evaluate_source_coloring.start_stats(namespace.output)
             case _:
                 print(f"Unsupported params {namespace.type=}, {namespace.action=}", file=sys.stderr)
         exit(0)
@@ -88,16 +90,20 @@ def main(namespace: argparse.Namespace):
         fileout: t.TextIO
         if namespace.colbert_stdout == "stdout":
             fileout = sys.stdout
+            fileerr = sys.stderr
         else:
             path: pathlib.Path = namespace.colbert_stdout_file
             fileout = open(path, "w")
+            fileerr = open(path.parent.joinpath(path.name + "-err"))
 
     tries: t.Dict[str, int] = defaultdict(lambda: 0)
     while True:
         logger.info(f"Starting evaluation cycle, tries dictionary = {tries!s}")
         if namespace.maintain_colbert:
             colbert_server = subprocess.Popen(
-                ["conda", "run", "-n", "colbert", "python", "-m", "colbert_search", "colbert_server"], stdout=fileout
+                ["conda", "run", "-n", "colbert", "python", "-m", "colbert_search", "colbert_server"],
+                stdout=fileout,
+                stderr=fileerr,
             )
             logger.info(f"Colbert server PID: {colbert_server.pid}")
 
@@ -148,7 +154,7 @@ def main(namespace: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("python -m evaluation")
-    parser.add_argument("action", choices=["roc", "binary"], type=str, help="Type of collected statistics")
+    parser.add_argument("action", choices=["roc", "binary", "stats"], type=str, help="Type of collected statistics")
     parser.add_argument("--type", "-t", choices=["score", "source"], type=str, help="Evaluated method", required=True)
     parser.add_argument(
         "--persistent",

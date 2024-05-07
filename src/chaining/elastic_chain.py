@@ -462,7 +462,7 @@ class ElasticChain(Chain):
         # log2(2 + len) * ((lik_h_0 * ... * lik_h_len) ^ 1 / len)   = score
         g_mean = np.exp(np.log(self.significant_likelihoods).mean())
         score = g_mean * (self.target_len() ** 2)
-        return score
+        return score.item()
 
     def reached_skip_limit(self, skip_limit: int) -> bool:
         def reached_limit(mask):

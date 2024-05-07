@@ -24,6 +24,7 @@ class PipelineGroup:
 
         for pipeline in self.pipelines:
             pipeline.dont_timestamp_history = True
+            pipeline.force_caching(diverge_point)
 
     def add_pipeline(self, pipeline: Pipeline):
         self.pipelines.append(pipeline)

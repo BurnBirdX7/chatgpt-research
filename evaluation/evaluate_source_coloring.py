@@ -9,11 +9,13 @@ import typing as t
 
 import pandas as pd
 
-from src.pipeline import PipelineResult
+from src.pipeline import PipelineResult, Pipeline
+from src.pipeline.pipeline_group import PipelineGroup
 from src.source_coloring_pipeline import SourceColoringPipeline
 
 from evaluation.binary_stats import estimate_bool
 from evaluation.roc_curve import roc_curve
+from evaluation.stats import collect_statistics
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,7 +60,7 @@ def _prepare_pipeline() -> SourceColoringPipeline:
 
 def start_roc(output: pathlib.Path):
     passages = pd.read_csv("selected_passages.csv")
-    with open(".progress.roc.json", "r") as f:
+    with open(".eval_progress.roc.json", "r") as f:
         start_idx = int(ujson.load(f)["idx"])
 
     logger.info(f"Starting evaluation with progress counter on {start_idx}")
@@ -69,7 +71,27 @@ def start_roc(output: pathlib.Path):
 def start_bool(output: pathlib.Path):
     passages = pd.read_csv("selected_passages.csv")
 
-    with open(".progress.binary.json", "r") as f:
+    with open(".eval_progress.binary.json", "r") as f:
         start_idx = int(ujson.load(f)["idx"])
 
     estimate_bool(_prepare_pipeline(), incremental, passages, start_idx, output)
+
+
+def start_stats(output: pathlib.Path):
+    passages = pd.read_csv("selected_passages.csv")
+
+    with open(".eval_progress.stats.json", "r") as f:
+        start_idx = int(ujson.load(f)["idx"])
+
+    def _pipeline_preset(name: str, use_bidirectional_chaining: bool) -> Pipeline:
+        pipeline = SourceColoringPipeline.new_extended(name, use_bidirectional_chaining)
+        pipeline.force_caching("input-tokenized")
+        pipeline.store_intermediate_data = False
+        return pipeline
+
+    # GLOBALS
+    unidir_pipeline = _pipeline_preset("unidirectional", use_bidirectional_chaining=False)
+    bidir_pipeline = _pipeline_preset("bidirectional", use_bidirectional_chaining=True)
+    pipeline_group = PipelineGroup("all-chains", [unidir_pipeline, bidir_pipeline])
+
+    collect_statistics(pipeline_group, passages, start_idx, output)

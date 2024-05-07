@@ -11,7 +11,7 @@ from src.pipeline import Pipeline, PipelineResult
 
 logger = logging.getLogger(__name__)
 
-_filename = ".progress.roc.json"
+_filename = ".eval_progress.roc.json"
 
 
 def roc_curve(

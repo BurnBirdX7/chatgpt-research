@@ -9,7 +9,10 @@ import ujson
 
 from src.pipeline import Pipeline, PipelineResult
 
+
 logger = logging.getLogger(__name__)
+StatTuple = collections.namedtuple("StatTuple", ["func", "value"])
+_filename = ".eval_progress.binary.json"
 
 
 @dataclasses.dataclass
@@ -31,12 +34,7 @@ class Stat:
 
     @classmethod
     def from_dict(cls, d: t.Dict[str, int]) -> "Stat":
-        return Stat(
-            tp=d["tp"],
-            tn=d["tn"],
-            fp=d["fp"],
-            fn=d["fn"],
-        )
+        return Stat(**d)
 
     @property
     def accuracy(self) -> float:
@@ -55,11 +53,6 @@ class Stat:
         p = self.precision
         r = self.recall
         return 2 * p * r / (p + r) if p != -1 and r != -1 else -1
-
-
-StatTuple = collections.namedtuple("StatTuple", ["func", "value"])
-
-_filename = ".progress.binary.json"
 
 
 def estimate_bool(
