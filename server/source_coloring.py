@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 # Pipeline configuration
 def _pipeline_preset(name: str, use_bidirectional_chaining: bool) -> Pipeline:
     pipeline = SourceColoringPipeline.new_extended(name, use_bidirectional_chaining)
-    pipeline.assert_prerequisites()
 
     # Force caching
     pipeline.force_caching("input-tokenized")
@@ -49,6 +48,7 @@ def _collect_result(result: PipelineResult, is_first: bool) -> Coloring:
         storage.sources = result.cache["narrowed-sources-dict-tokenized"]
 
     storage.chains[result.pipeline_name] = result.cache["all-chains"]
+    storage.input_tokenized[result.pipeline_name] = result.cache["input-tokenized"]
 
     if result.pipeline_name == "bidirectional":
         title = "Bidirectional chaining"

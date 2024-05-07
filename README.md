@@ -66,6 +66,10 @@ Most important scripts are:
    * `colbert_server` server that provides ColBERT full-text search on-demand and on multiple ColBERT Indexes
    * `prepare_wiki` script that converts wikitext into ColBERT-readable passages, part of `wiki_pipeline`
 
+## Server
+
+
+
 ## PyLucene
 
 [!] _Unmaintained section_

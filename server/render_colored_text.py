@@ -117,7 +117,7 @@ def render_coloring(coloring: Coloring):
 
 
 def render_colored_text(input_text: str, colorings: List[Coloring]) -> str:
-    template_ = jinjaEnv.get_template("result_page.html.j2")
+    template_ = jinjaEnv.get_template("coloring_result_page.html.j2")
 
     result_list = [render_coloring(coloring) for coloring in colorings]
 

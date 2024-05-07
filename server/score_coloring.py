@@ -22,7 +22,6 @@ def pipeline_preset(
     name: str, score_func: t.Callable[[t.List[float]], np.float32] | None = None
 ) -> ScoreColoringPipeline:
     pipeline = ScoreColoringPipeline(name)
-    pipeline.assert_prerequisites()
 
     if score_func is not None:
         pipeline.nodes["scores"].score_func = score_func  # type: ignore
@@ -70,7 +69,7 @@ for pipeline in list(first_pipelines):  # list(...) to make a copy of the list
 
     for i in range(1, 6, 2):
         new_pipeline = pipeline_preset(pipeline.name + f"_(cut_top_{i})", _wrap(i, func))
-        logger.info(f"{pipeline.name} --> {new_pipeline.name}")
+        logger.debug(f"{pipeline.name} --> {new_pipeline.name}")
         first_pipelines.append(new_pipeline)
 
 _pipeline_group = PipelineGroup("scores", first_pipelines)

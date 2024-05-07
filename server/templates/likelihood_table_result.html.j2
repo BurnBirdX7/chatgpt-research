@@ -1,0 +1,70 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FACT CHECKER</title>
+    <link rel="stylesheet" type="text/css" href="/static/style_table.css">
+</head>
+<body>
+<h1><b>Likelihood table</b></h1>
+
+<form method="post">
+    <p style="font-size: medium">Probabilities of column tokens appearing in place of row tokens</p>
+    <input name="source_text" type="hidden" value="{{ target_text }}">
+    <input name="target_text" type="hidden" value="{{ source_text }}">
+    <input type="submit" value="reverse">
+</form>
+<br>
+
+<table>
+    <tr>
+        <td class="hheader"></td>
+        <th class="hheader">Tok</th>
+        {% for tok in result.target_tokens %}
+        <th>`<u>{{ tok }}</u>`</th>
+        {% endfor %}
+        <th class="hheader" rowspan="2">Target text</th>
+    </tr>
+    <tr>
+        <th class="hheader">Tok</th>
+        <th class="hheader">ID</th>
+        {% for tid in result.target_ids %}
+        <th>{{ tid }}</th>
+        {% endfor %}
+    </tr>
+
+    {% for tok, tid, row in zip(result.source_tokens, result.source_ids, result.table) %}
+    <tr>
+        <th>`<u>{{ tok }}</u>`</th>
+        <th>{{ tid }}</th>
+        {% for prob in row %}
+            {% if prob >= 0.5 %}
+            <td class="high-score">
+            {% elif prob >= 0.1 %}
+            <td class="medium-score">
+            {% elif prob >= 1e-3 %}
+            <td class="low-score">
+            {% elif prob >= 1e-9 %}
+            <td class="borderline-score">
+            {% else %}
+            <td>
+            {% endif %}
+            {% if prob < 0.1 %}
+                {{ "%.0e"|format(prob) }}
+            {% else %}
+                {{ "%.2f"|format(prob) }}
+            {% endif %}
+            </td>
+        {% endfor %}
+    </tr>
+
+    {% endfor %}
+    <th class="hheader" colspan="2">Source text</th>
+
+
+</table>
+
+
+</body>
+</html>

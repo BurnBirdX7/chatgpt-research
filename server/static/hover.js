@@ -27,7 +27,7 @@ function getKeyAndType(elem) {
     };
 }
 
-function renderTop10(target) {
+function renderTop10(target, key, target_pos) {
     if (target.top10 === undefined && !target.sent) {
         target.sent = true
         fetch(`/api/target-chains/${key}/${target_pos}`)
@@ -115,7 +115,7 @@ async function updatePopup(event, target) {
     }
 
     if (type === "source" && displayTop10Chains) {
-        renderTop10(target)
+        renderTop10(target, key, target_pos)
     }
 
     if (type === "source" && displayDebugChains) {

@@ -12,11 +12,11 @@ import numpy.typing as npt
 from transformers import RobertaTokenizer, RobertaModel  # type: ignore
 from typing import List, Tuple, Optional, Callable, Dict, Any
 
-from .pipeline.base_data_descriptor import ValueType
-from .pipeline.data_descriptors import ComplexDictDescriptor
-from .source_mapping import SourceMapping
-from .config import EmbeddingBuilderConfig
-from .pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor, ListDescriptor
+from src.pipeline.base_data_descriptor import ValueType
+from src.pipeline.data_descriptors import ComplexDictDescriptor
+from src.source_mapping import SourceMapping
+from src.config import EmbeddingBuilderConfig
+from src.pipeline import BaseNode, BaseDataDescriptor, base_data_descriptor, ListDescriptor
 
 
 class EmbeddingsBuilder:
@@ -245,7 +245,7 @@ class TokenizeTextNode(BaseNode):
         super().__init__(name, [str], ListDescriptor())
         self.eb_config = config
 
-    def process(self, text: str, *ignore) -> List[str]:
+    def process(self, text: str) -> List[str]:
         tokenizer = self.eb_config.tokenizer
         tokens = tokenizer.tokenize(text)
         readable_tokens = list(map(lambda s: tokenizer.convert_tokens_to_string([s]), tokens))

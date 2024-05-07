@@ -1,0 +1,37 @@
+
+body {
+    font-size: xx-small;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+td, th {
+    border: 1px solid gray;
+}
+
+.high-score {
+    background-color: lightgreen
+}
+
+.medium-score {
+    background-color: lightblue
+}
+
+.low-score {
+    background-color: peachpuff
+}
+
+.borderline-score {
+    background-color: lightgray
+}
+
+u {
+    font-family: monospace;
+}
+
+.hheader {
+    border: 0;
+    color: darkgray;
+}

@@ -5,6 +5,7 @@ import logging
 
 from flask import Flask, render_template, request, Response, jsonify
 
+from src.likelihood_table import likelihood_table
 from server.render_colored_text import render_colored_text
 from server.statistics_funcs import plot_pos_likelihoods, get_top10_target_chains, get_top10_source_chains
 from src.pipeline.pipeline_draw import bytes_draw_pipeline
@@ -17,12 +18,32 @@ import server.score_coloring as score_coloring
 app = Flask(__name__)
 
 
-@app.route("/", methods=["GET"])
-def request_page():
+@app.route("/")
+def root_page():
+    return render_template("root.html.j2", urls=["/factcheck", "/table"])
+
+
+@app.route("/factcheck", methods=["GET"])
+def factcheck_request_html():
     return render_template(
-        "root_page.html.j2",
+        "coloring_page.j2",
         source_resume_points=source_coloring.get_resume_points(),
         score_resume_points=score_coloring.get_resume_points(),
+    )
+
+
+@app.route("/table")
+def table_request_html():
+    return render_template("likelihood_table.html")
+
+
+@app.route("/table_result", methods=["POST"])
+def table_result_html():
+    source_text = request.form["source_text"]
+    target_text = request.form["target_text"]
+    r = likelihood_table(source_text, target_text)
+    return render_template(
+        "likelihood_table_result.html.j2", result=r, zip=zip, source_text=source_text, target_text=target_text
     )
 
 
