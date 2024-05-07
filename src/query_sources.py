@@ -25,11 +25,11 @@ class QueryColbertServerNode(BaseNode):
 
     def request_kill(self):
         conn = http.client.HTTPConnection(self.server_config.ip_address, self.server_config.port)
-        conn.request("GET", "/api/kill")
+        conn.request("GET", self.server_config.api_kill_path)
         self.logger.info("Request server kill")
 
     def request(self, conn: http.client.HTTPConnection, text: str) -> List[Dict[str, str]]:
-        url = self.server_config.get_api_url() + "?query=" + urlparse.quote_plus(text)
+        url = self.server_config.get_search_url() + "?query=" + urlparse.quote_plus(text)
         conn.request("GET", url)
         response = conn.getresponse()
         content = response.read().decode("utf-8")

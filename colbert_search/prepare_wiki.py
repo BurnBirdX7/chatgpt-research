@@ -100,10 +100,11 @@ class Reporter:
         self.next_limit += self.rate
         self.logger.debug(f"Processed {self.page_count} pages and pr oduced {self.passage_count} passages...")
 
+
 def prepare_wiki(
     collection_name: str, wiki_path: str, output_dir: str, logger: logging.Logger = logging.getLogger(__name__)
 ) -> t.List[CollectionContext.Files]:
-    logger.info(f"Parsing wiki XML, path: \"{wiki_path}\"")
+    logger.info(f'Parsing wiki XML, path: "{wiki_path}"')
     reporter = Reporter(logger)
 
     def _page_process(elem: ET.Element):

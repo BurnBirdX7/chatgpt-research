@@ -35,7 +35,8 @@ conda activate factcheck
   but based on Lucene full-text search.
    * [PyLucene](#pylucene) is required to use it,
   it has no integration in the current process, and also you'd need to compile Lucene index
-  of all the sources you want to consider a possibility in the analysis 
+  of all the sources you want to consider a possibility in the analysis
+* `evaluation` - evaluation
 
 
 
@@ -49,6 +50,7 @@ To run scripts use:
 # in project root
 python -m <module-name> <script-name> [scipt-args...]
 ```
+
 
 ### Scripts
 
@@ -68,7 +70,18 @@ Most important scripts are:
 
 ## Server
 
+Endpoints:
+ * `/factcheck` - for text coloring, ColBERT server must be running. See `colbert_search`'s [README](colbert_search/README.md)
+ * `/table` - for likelihood analysis
 
+See `python -m server --help`.
+
+## Evaluation
+
+Before evaluation, you need to start ColBERT Server, see `colbert_search`'s [README](colbert_search/README.md)\
+Before evaluation, you need to run `python -m colbert_search fever_collect_dataset`
+
+See `python -m evaluation --help`
 
 ## PyLucene
 

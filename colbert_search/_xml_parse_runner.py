@@ -9,6 +9,7 @@ EventHandler = t.Callable[[ET.Element], None]
 
 _tag_regex = re.compile(r"{(.*)}(\w+)")
 
+
 class XmlParseRunner:
 
     def __init__(self, filepath: str):
@@ -51,7 +52,7 @@ class XmlParseRunner:
 
     def _next(self):
         event: str
-        elem : t.Tuple[str, str] | ET.Element
+        elem: t.Tuple[str, str] | ET.Element
         event, elem = self._iter.__next__()
         if event == "start-ns":
             if elem[0] == "":

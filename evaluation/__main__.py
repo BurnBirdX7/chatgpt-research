@@ -1,15 +1,19 @@
 import argparse
 import json
+import pathlib
 import subprocess
+import sys
 import time
 from collections import defaultdict
-from typing import Dict
+import typing as t
 
 import pandas as pd
 import ujson
 
+import evaluation.evaluate_score_coloring
+import evaluation.evaluate_source_coloring
+import src.log
 from src.config import ColbertServerConfig
-from evaluation.evaluate_score_coloring import start
 
 import logging
 
@@ -19,23 +23,27 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-def init_evaluation():
+def init_evaluation(n: int):
     with open("progress.json", "w") as f:
         json.dump({"idx": 0, "preds": {}, "skips": []}, f, indent=2)
 
     all_passages = pd.read_csv("passages.csv")
-    pos_passages = all_passages[all_passages["supported"]].sample(500)
-    neg_passages = all_passages[~all_passages["supported"]].sample(500)
+    pos_passages = all_passages[all_passages["supported"]].sample(n // 2)
+    neg_passages = all_passages[~all_passages["supported"]].sample(n // 2)
     passages = pd.concat([pos_passages, neg_passages], ignore_index=True)
     passages.to_csv("selected_passages.csv", index=False)
 
 
-queryNode = QueryColbertServerNode('-', ColbertServerConfig.load_from_env())
+queryNode = QueryColbertServerNode("-", ColbertServerConfig.load_from_env())
+
 
 def await_colbert_start():
-    while queryNode.prerequisite_check() is not None:
+    check = queryNode.prerequisite_check()
+    while check is not None:
         logger.info("Sleeping while colbert server is starting up...")
+        logger.error(f"ColBERT prereq failed: {check}")
         time.sleep(5)
+        check = queryNode.prerequisite_check()
 
 
 def await_colbert_death():
@@ -59,32 +67,44 @@ def skip(dat: dict, idx: int):
         ujson.dump(dat, f, indent=2)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser("python -m evaluation")
-    parser.add_argument('action', choices=['bootstrap', 'init', 'roc'], type=str)
-    namespace = parser.parse_args()
+def main(namespace: argparse.Namespace):
+    if not namespace.resume:
+        init_evaluation(namespace.sample)
 
-    if namespace.action == 'roc':
-        start()
+    if not namespace.persistent:
+        # Assume ROC # TODO
+        match namespace.type:
+            case "score":
+                evaluation.evaluate_score_coloring.start(namespace.output)
+            case "source":
+                evaluation.evaluate_source_coloring.start(namespace.output)
         exit(0)
 
-    if namespace.action == 'init':
-        init_evaluation()
-        exit(0)
-
-    # Bootstrap
-    tries: Dict[str, int] = defaultdict(lambda: 0)
+    # Persistent
+    tries: t.Dict[str, int] = defaultdict(lambda: 0)
     while True:
-        logger.info(f"Starting evaluation cycle, counter = {tries!s}")
+        logger.info(f"Starting evaluation cycle, tries dictionary = {tries!s}")
         colbert_server = subprocess.Popen(
-            ["conda", "run", "-n", "colbert", "python", "-m", "colbert_search", "colbert_server"]
+            ["conda", "run", "-n", "colbert", "python", "-m", "colbert_search", "colbert_server"], stdout=sys.stdout
         )
 
         logger.info(f"Colbert server PID: {colbert_server.pid}")
 
         await_colbert_start()
 
-        main_proc = subprocess.Popen(["python", "-m", "evaluation", "roc"])
+        main_proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "evaluation",
+                namespace.action,
+                "--type",
+                namespace.type,
+                "--resume",
+                "--output",
+                str(namespace.output),
+            ]
+        )
         ret_code = main_proc.wait()
         if ret_code != 0:
             logger.warning(f"Main process returned {ret_code}, killing ColBERT server...")
@@ -110,3 +130,24 @@ if __name__ == "__main__":
         break
 
     colbert_server.kill()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("python -m evaluation")
+    parser.add_argument("action", choices=["roc"], type=str, help="Type of collected statistics")
+    parser.add_argument("--type", "-t", choices=["score", "source"], type=str, help="Evaluated method", required=True)
+    parser.add_argument(
+        "--persistent",
+        "-p",
+        action="store_true",
+        help="Persistent run that relaunches process on error, and maintains ColBERT server",
+    )
+    parser.add_argument("--separate-colbert", help="Rely on remote ColBERT server, see src.config.colbert_server_config")
+    parser.add_argument("--resume", "-r", action="store_true", help="Resume previous run")
+    parser.add_argument("--output", "-o", type=pathlib.Path, help="Output directory", default=pathlib.Path.cwd())
+    parser.add_argument("--sample", "-n", type=int, help="Sample size", default=100)
+    src.log.add_log_arg(parser)
+    namespace = parser.parse_args()
+    src.log.process_log_arg(namespace)
+
+    main(namespace)

@@ -54,6 +54,7 @@ def init_searchers(dir_path: str) -> List[Tuple[Searcher, SourceMapping]]:
 
 searchers: List[Tuple[Searcher, SourceMapping]] = []
 
+
 def search(searcher: Searcher, source_mapping: SourceMapping, query: str, k: int) -> list[dict[str, Any]]:
     pids, ranks, scores = searcher.search(query, k=100)
     pids, ranks, scores = pids[:k], ranks[:k], scores[:k]
@@ -96,12 +97,6 @@ def api_search_query(query: str, k_str: str | None):
 def colbert_server(config: ColbertServerConfig):
     app = Flask(__name__)
 
-    @app.route("/api/search", methods=["GET"])
-    def api_search():
-        result = api_search_query(request.args.get("query"), request.args.get("k"))
-        torch.cuda.empty_cache()
-        return result
-
     @app.route("/", methods=["GET"])
     def root():
         page = """
@@ -117,11 +112,17 @@ def colbert_server(config: ColbertServerConfig):
 
         return page
 
-    @app.route("/api/ping", methods=["GET"])
+    @app.route(config.api_search_path, methods=["GET"])
+    def api_search():
+        result = api_search_query(request.args.get("query"), request.args.get("k"))
+        torch.cuda.empty_cache()
+        return result
+
+    @app.route(config.api_ping_path, methods=["GET"])
     def api_ping():
         return "colbert-pong"
 
-    @app.route("/api/kill", methods=["GET"])
+    @app.route(config.api_kill_path, methods=["GET"])
     def api_kill():
         print("REQUESTED SERVER KILL, shutting down...")
         os.kill(os.getpid(), signal.SIGTERM)

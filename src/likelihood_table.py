@@ -7,8 +7,8 @@ import typing as t
 import numpy as np
 import numpy.typing as npt
 
-from embeddings_builder import TokenizeTextNode
 from src import Roberta
+from src.embeddings_builder import TokenizeTextNode
 from src.config.embeddings_config import EmbeddingBuilderConfig
 
 

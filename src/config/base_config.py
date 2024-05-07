@@ -24,7 +24,7 @@ class BaseConfig:
         return isinstance(self, cls)
 
     @classmethod
-    def load_from_env(cls: Type["BaseConfig"], use_defaults: bool = True, prefix: str | None = None) -> "BaseConfig":
+    def load_from_env(cls: Type["BaseConfig"], use_defaults: bool = True, prefix: str | None = None):
         """
         Loads config fields from environment variables
 

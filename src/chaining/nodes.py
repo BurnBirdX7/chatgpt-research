@@ -197,12 +197,12 @@ class CollectTokenScoreNode(BaseNode):
         self.score_func: t.Callable[[t.List[float]], np.float32] = CollectTokenScoreNode.default_score
 
     def process(self, tokens: t.List[str], chains: t.List[WideChain]) -> npt.NDArray[np.float32]:
-        likelihoods = [[] for _ in tokens]
+        likelihoods: t.List[t.List[float]] = [[] for _ in tokens]
         for chain in chains:
             for pos in range(chain.target_begin_pos, chain.target_end_pos):
                 likelihoods[pos].append(chain.get_target_likelihood(pos))
 
-        arr = np.empty(len(tokens))
+        arr = np.empty(len(tokens), dtype=np.float32)
         for i in range(len(tokens)):
             arr[i] = self.score_func(likelihoods[i])
 

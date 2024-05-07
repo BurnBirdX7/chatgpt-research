@@ -22,6 +22,7 @@ def is_title_banned(title: str) -> bool:
 
     return False
 
+
 class SplitCollectionContext:
     def __init__(self, collection_name: str, path: str, logger: logging.Logger = logging.getLogger(__name__)):
         self.logger = logger
@@ -34,7 +35,7 @@ class SplitCollectionContext:
     def new(self) -> CollectionContext:
         self.fid += 1
         self.close()
-        self.logger.info(f"New CollectionContext created in Split Context")
+        self.logger.info("New CollectionContext created in Split Context")
         self.last_ctx = CollectionContext(self.collection_name, self.fid, self.path, self.logger)
         return self.last_ctx
 
@@ -74,7 +75,7 @@ class CollectionContext:
 
     def new_passages(self, title: str, sections: t.Dict[str, t.List[str]]) -> int:
         page_start_pid = self.pid
-        safe_title = title.replace('-', '_').replace(' ', '_')
+        safe_title = title.replace("-", "_").replace(" ", "_")
         for heading, section in sections.items():
             if is_title_banned(heading):
                 continue
@@ -83,7 +84,7 @@ class CollectionContext:
                 self.logger.warning(f"New line found in the heading of page {title}...")
                 self.logger.warning(heading)
                 heading = heading.strip().split("\n", maxsplit=1)[0]
-            safe_header = heading.replace('-', '_').replace(' ', '_')
+            safe_header = heading.replace("-", "_").replace(" ", "_")
 
             section_start_pid = self.pid
             for paragraph in section:

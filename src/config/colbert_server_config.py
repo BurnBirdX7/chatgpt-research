@@ -11,6 +11,7 @@ class ColbertServerConfig(BaseConfig):
     # Class attributes
     api_search_path = "/api/search"
     api_ping_path = "/api/ping"
+    api_kill_path = "/api/kill"
 
-    def get_api_url(self) -> str:
+    def get_search_url(self) -> str:
         return f"http://{self.ip_address}:{self.port}/api/search"

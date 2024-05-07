@@ -1,21 +1,48 @@
-# ColBERT index
+# ColBERT Search
 
-## Initialization
+## Init
 
-Download ColBERT, ColVERTv2 checkpoint and FEVER dataset by executing:
+Before running anything from this package:
+
+1. Download ColBERT, ColVERTv2 checkpoint and FEVER dataset by executing:
+    ```shell
+    # From project root
+    ./colbert_search/install_colbert.sh
+    ```
+
+2. Use Conda environment provided in file `colbert_search/colbert_env_gpu.yml`
+    ```shell
+    # From project root
+    conda env create --file colbert_search/colbert_env_gpu.yml
+    ```
+
+## Run
+
+### Server
+
 ```shell
-# From project root 
-cd colbert_search
-./install_colbert.sh
+python -m colbert_search colbert_server
 ```
 
-Use Conda environment provided in file `colbert_search/colbert_env_gpu.yml`
+Set `COLBERTSERVERCONFIG_PORT` environment variable to configure port
+
+### Data processing
+
+#### Indexes
+
+To prepare wiki dumps as ColBERT indexes:
 
 ```shell
-# From project root
-conda env create --file colbert_search/colbert_env_gpu.yml
+python -m colbert_search prepare_wiki
 ```
 
-When using GPU environment, you install CUDA Toolkit of specific version:
-executing `conda list pytorch` (with colbert environment activated) will help you determine which one you need.
-[**[CUDA Toolkit Achieve](https://developer.nvidia.com/cuda-toolkit-archive)**].
+See `python -m colbert_search prepare_wiki --help`.
+
+#### FEVER
+
+For FEVER-based tests, FEVER articles can be added to the indexes
+
+`python -m colbert_search fever_collect_dataset`
+
+
+

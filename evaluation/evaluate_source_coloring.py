@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import datetime
 import functools
+import pathlib
+
 import ujson
 import time
 import logging
@@ -9,23 +11,26 @@ from dataclasses import dataclass
 from typing import Callable, List
 
 import pandas as pd
-from sklearn import metrics
-import matplotlib.pyplot as plt
 
-from src import QueryColbertServerNode
+from src.pipeline import Pipeline, PipelineResult
 from src.chaining import ElasticChain
 from src.source_coloring_pipeline import SourceColoringPipeline
+
+from evaluation.roc_curve import roc_curve
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def overall_cover(tokens: list[str], pos2chain: dict[int, ElasticChain]) -> float:
+def overall_cover(res: PipelineResult) -> float:
+    tokens = res.cache["input-tokenized"]
+    pos2chain = res.last_node_result
     return len(pos2chain) / len(tokens)
 
 
-def longest_chain_cover(tokens: list[str], pos2chain: dict[int, ElasticChain]):
-    chains = pos2chain.values()
+def longest_chain_cover(res: PipelineResult) -> float:
+    tokens = res.cache["input-tokenized"]
+    chains = res.last_node_result
     max_chain = max(chains, key=lambda ch: ch.target_len())
     return max_chain.target_len() / len(tokens)
 
@@ -70,59 +75,21 @@ class Stat:
         return (self.tp + self.tn) / (self.tp + self.tn + self.fp + self.fn)
 
     @property
-    def precision(self) -> float | None:
-        return self.tp / (self.tp + self.fp) if self.tp + self.fp else None
+    def precision(self) -> float:
+        return self.tp / (self.tp + self.fp) if self.tp + self.fp else -1
 
     @property
-    def recall(self) -> float | None:
-        return self.tp / (self.tp + self.fn) if self.tp + self.fn > 0 else None
+    def recall(self) -> float:
+        return self.tp / (self.tp + self.fn) if self.tp + self.fn > 0 else -1
 
     @property
-    def f1(self) -> float | None:
+    def f1(self) -> float:
         p = self.precision
         r = self.recall
-        return 2 * p * r / (p + r) if p is not None and r is not None else None
+        return 2 * p * r / (p + r) if p != -1 and r != -1 else -1
 
 
-pipeline = SourceColoringPipeline.new_extended()
-pipeline.store_intermediate_data = False
-pipeline.force_caching("input-tokenized")
-queryNode: QueryColbertServerNode = pipeline.nodes["all-sources-dict-raw"]  # type: ignore
-
-
-def roc_curve(passages: pd.DataFrame, start_idx: int):
-    with open("progress.json", "r") as f:
-        progress = ujson.load(f)
-
-    preds = {f.__name__: [] for f in statistics} | progress["preds"]
-
-    for i, x_test, y_true in passages[start_idx:].itertuples():
-        logger.info(f"Evaluating {i + 1} / {len(passages)}...")
-        res = pipeline.run(x_test)
-        tokens = res.cache["input-tokenized"]
-        for func in statistics:
-            preds[func.__name__].append(func(tokens, res.last_node_result))
-
-        with open("progress.json", "w") as f:
-            progress["idx"] = i + 1
-            progress["preds"] = preds
-            ujson.dump(progress, f, indent=2)
-
-    for func, y_pred in preds.items():
-        fpr, tpr, thresholds = metrics.roc_curve(passages.drop(progress["skips"])["supported"], y_pred)
-        roc_auc = metrics.auc(fpr, tpr)
-        plt.title(f"ROC curve for {func} func")
-        plt.plot(fpr, tpr, "b", label=f"AUC = {roc_auc:0.2f}")
-        plt.legend(loc="lower right")
-        plt.plot([0, 1], [0, 1], "r--")
-        plt.xlim([0, 1])
-        plt.ylim([0, 1])
-        plt.ylabel("True Positive Rate")
-        plt.xlabel("False Positive Rate")
-        plt.show()
-
-
-def estimate_bool():
+def estimate_bool(pipeline: Pipeline):
     start_time = time.time()
 
     # Sample passages
@@ -148,6 +115,8 @@ def estimate_bool():
     best_accuracy = ("", 0.0)
     best_f1 = ("", 0.0)
 
+    key: str
+    stat: Stat
     for key, stat in stats.items():
         print(f"{key}:")
         print(f"\t{stat}")
@@ -175,11 +144,16 @@ def estimate_bool():
     print(f"time elapsed: {datetime.timedelta(seconds=time.time() - start_time)}")
 
 
-def start():
+def start(output: pathlib.Path):
     passages = pd.read_csv("selected_passages.csv")
     with open("progress.json", "r") as f:
         start_idx = int(ujson.load(f)["idx"])
 
     logger.info(f"Starting evaluation with progress counter on {start_idx}")
-    roc_curve(passages, start_idx)
+
+    pipeline = SourceColoringPipeline.new_extended()
+    pipeline.store_intermediate_data = False
+    pipeline.force_caching("input-tokenized")
+
+    roc_curve(pipeline, statistics, passages, start_idx, output)
     exit(0)

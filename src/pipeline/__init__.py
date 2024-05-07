@@ -3,3 +3,4 @@ from .base_nodes import BaseNode, Node
 from .mapping_node import mapping_node
 from .data_descriptors import *
 from .pipeline import Pipeline
+from .pipeline_result import PipelineResult

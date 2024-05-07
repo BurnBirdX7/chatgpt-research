@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import argparse
-import logging
 
 from flask import Flask, render_template, request, Response, jsonify
 
 from src.likelihood_table import likelihood_table
-from server.render_colored_text import render_colored_text
-from server.statistics_funcs import plot_pos_likelihoods, get_top10_target_chains, get_top10_source_chains
 from src.pipeline.pipeline_draw import bytes_draw_pipeline
 from src.source_coloring_pipeline import SourceColoringPipeline
+import src.log
 
+
+from server.render_colored_text import render_colored_text
+from server.statistics_funcs import plot_pos_likelihoods, get_top10_target_chains, get_top10_source_chains
 import server.source_coloring as source_coloring
 import server.score_coloring as score_coloring
+
 
 # FLASK
 app = Flask(__name__)
@@ -108,19 +110,9 @@ def source_chains_json(key: str, source_name: str, source_pos: int):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fact-checker server")
-    parser.add_argument(
-        "--log",
-        action="store",
-        dest="logging_level",
-        type=str,
-        choices=["CRITICAL", "FATAL", "ERROR", "WARNING", "INFO", "DEBUG"],
-        default="INFO",
-        help="Logging level, has effect on most of the logging",
-    )
-
+    parser.add_argument("--port", "-p", type=int, default=4567)
+    src.log.add_log_arg(parser)
     args = parser.parse_args()
+    src.log.process_log_arg(args)
 
-    logging_level = getattr(logging, args.logging_level)
-
-    logging.basicConfig(level=logging_level, format="[%(name)s]:%(levelname)s:%(message)s")
-    app.run(host="127.0.0.1", port=4567)
+    app.run(host="127.0.0.1", port=args.port)

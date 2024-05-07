@@ -81,6 +81,7 @@ def run(input_text: str, override_data: bool) -> t.List[SourceColoring]:
 
     return list(colorings.values())
 
+
 def resume(resume_point: str) -> t.Tuple[str, t.List[Coloring]]:
     storage.clear_cache([_unidir_pipeline.name, _bidir_pipeline.name])
     logger.info("Rerunning coloring... override = False")
