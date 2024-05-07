@@ -1,13 +1,15 @@
 import collections
 import dataclasses
-import datetime
-import time
+import logging
+import pathlib
 import typing as t
 
 import pandas as pd
 import ujson
 
 from src.pipeline import Pipeline, PipelineResult
+
+logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
@@ -65,50 +67,56 @@ def estimate_bool(
     statistics: t.Sequence[t.Callable[[PipelineResult], bool]],
     passages: pd.DataFrame,
     start_idx: int,
+    output: pathlib.Path,
 ):
-    start_time = time.time()
-
-    with open(_filename, "r") as f:
-        progress = ujson.load(f)
+    with open(_filename, "r") as file:
+        progress = ujson.load(file)
 
     stats = {f.__name__: Stat() for f in statistics} | {k: Stat.from_dict(v) for k, v in progress["stats"].items()}
 
     print(f"{stats.keys()=}")
 
     for i, passage, supported in passages[start_idx:].itertuples():
+        logger.info(f"Evaluating {i + 1} / {len(passages)}...")
         result = pipeline.run(passage)
+        for func in statistics:
+            stats[func.__name__].add(func(result), supported)
 
-        for f in statistics:
-            pred = f(result)
-            stats[f.__name__].add(pred, supported)
-
-        with open(_filename, "w") as f:
+        with open(_filename, "w") as file:
             progress["idx"] = i + 1
             progress["stats"] = {k: dataclasses.asdict(v) for k, v in stats.items()}
-            ujson.dump(progress, f, indent=2)
+            ujson.dump(progress, file, indent=2)
 
-    best_precision = StatTuple("", 0.0)
-    best_recall = StatTuple("", 0.0)
-    best_accuracy = StatTuple("", 0.0)
-    best_f1 = StatTuple("", 0.0)
+    bests = {
+        "precision": StatTuple("", 0.0),
+        "recall": StatTuple("", 0.0),
+        "accuracy": StatTuple("", 0.0),
+        "f1": StatTuple("", 0.0),
+    }
 
     key: str
     stat: Stat
     for key, stat in stats.items():
-        if stat.accuracy > best_accuracy[1]:
-            best_accuracy = key, stat.accuracy
+        for val_name, tup in bests.items():
+            val: float = getattr(stat, val_name)
+            if val > tup[1]:
+                bests[val_name] = StatTuple(key, val)
 
-        if stat.recall > best_recall[1]:
-            best_recall = key, stat.recall
+    data = {
+        f"best_{val_name}": {
+            "name": name,
+            "value": val,
+            "stats": dataclasses.asdict(stats[name]),
+            "accuracy": stats[name].accuracy,
+            "recall": stats[name].recall,
+            "precision": stats[name].precision,
+            "f1": stats[name].f1,
+        }
+        for val_name, (name, val) in bests.items()
+        if name in stats
+    }
 
-        if stat.precision > best_precision[1]:
-            best_precision = key, stat.precision
-
-        if stat.f1 > best_f1[1]:
-            best_f1 = key, stat.f1
-
-    print(f"{best_accuracy=}")
-    print(f"{best_precision=}")
-    print(f"{best_recall=}")
-    print(f"{best_f1=}")
-    print(f"time elapsed: {datetime.timedelta(seconds=time.time() - start_time)}")
+    path = output.joinpath("binary_stats.json")
+    with open(path, "w") as f:
+        ujson.dump(data, f)
+    logger.info(f"Data saved to {path}")

@@ -41,7 +41,7 @@ def await_colbert_start():
     check = queryNode.prerequisite_check()
     while check is not None:
         logger.info("Sleeping while colbert server is starting up...")
-        logger.error(f"ColBERT prereq failed: {check}")
+        logger.debug(f"ColBERT prereq failed: {check}")
         time.sleep(5)
         check = queryNode.prerequisite_check()
 
@@ -54,8 +54,8 @@ def await_colbert_death():
             break
 
 
-def get_progress() -> dict:
-    with open("progress.json", "r") as f:
+def get_progress(action: str) -> dict:
+    with open(f".progress.{action}.json", "r") as f:
         return ujson.load(f)
 
 
@@ -72,25 +72,32 @@ def main(namespace: argparse.Namespace):
         init_evaluation(namespace.sample, namespace.action)
 
     if not namespace.persistent:
-        # Assume ROC # TODO
         match namespace.type, namespace.action:
             case "score", "roc":
-                evaluation.evaluate_score_coloring.start(namespace.output)
+                evaluation.evaluate_score_coloring.start_roc(namespace.output)
             case "source", "roc":
                 evaluation.evaluate_source_coloring.start_roc(namespace.output)
             case "source", "binary":
-                evaluation.evaluate_source_coloring.start_bool()
+                evaluation.evaluate_source_coloring.start_bool(namespace.output)
             case _:
-                raise ValueError(f"Unsupported params {namespace.type=}, {namespace.action=}")
+                print(f"Unsupported params {namespace.type=}, {namespace.action=}", file=sys.stderr)
         exit(0)
 
     # Persistent
+    if namespace.maintain_colbert:
+        fileout: t.TextIO
+        if namespace.colbert_stdout == "stdout":
+            fileout = sys.stdout
+        else:
+            path: pathlib.Path = namespace.colbert_stdout_file
+            fileout = open(path, "w")
+
     tries: t.Dict[str, int] = defaultdict(lambda: 0)
     while True:
         logger.info(f"Starting evaluation cycle, tries dictionary = {tries!s}")
         if namespace.maintain_colbert:
             colbert_server = subprocess.Popen(
-                ["conda", "run", "-n", "colbert", "python", "-m", "colbert_search", "colbert_server"], stdout=sys.stdout
+                ["conda", "run", "-n", "colbert", "python", "-m", "colbert_search", "colbert_server"], stdout=fileout
             )
             logger.info(f"Colbert server PID: {colbert_server.pid}")
 
@@ -110,32 +117,33 @@ def main(namespace: argparse.Namespace):
             ]
         )
         ret_code = main_proc.wait()
-        if ret_code != 0:
-            logger.warning(f"Main process returned {ret_code}, killing ColBERT server...")
-            # Execution failed
+        if ret_code == 0:
+            break
 
-            # Request colbert server kill:
+        logger.warning(f"Main process returned {ret_code}, killing ColBERT server...")
+        # Execution failed
+
+        # Request colbert server kill:
+        if namespace.maintain_colbert:
             queryNode.request_kill()
 
-            # Estimate progress
-            progress = get_progress()
-            idx = progress["idx"]
-            tries[idx] += 1
+        # Estimate progress
+        progress = get_progress(namespace.action)
+        idx = progress["idx"]
+        tries[idx] += 1
 
-            # If no progress was made in 5 tries, skip the element
-            if tries[idx] >= 3:
-                logger.info(f"Skipping idx {idx}")
-                skip(progress, idx)
+        # If no progress was made in 5 tries, skip the element
+        if tries[idx] >= 3:
+            logger.info(f"Skipping idx {idx}")
+            skip(progress, idx)
 
-            # Await colbert death
-            if namespace.maintain_colbert:
-                await_colbert_death()
-
-            continue
-        break
+        # Await colbert death
+        if namespace.maintain_colbert:
+            await_colbert_death()
 
     if namespace.maintain_colbert:
-        colbert_server.kill()
+        queryNode.request_kill()
+        await_colbert_death()
 
 
 if __name__ == "__main__":
@@ -148,18 +156,30 @@ if __name__ == "__main__":
         action="store_true",
         help="Persistent run that relaunches process on error, and maintains ColBERT server",
     )
+    parser.add_argument("--resume", "-r", action="store_true", help="Resume previous run")
+    parser.add_argument("--output", "-o", type=pathlib.Path, help="Output directory", default=pathlib.Path.cwd())
+    parser.add_argument("--sample", "-n", type=int, help="Sample size", default=100)
+
     parser.add_argument(
-        "--separate-colbert",
-        "--remote-colbert",
+        "--colbert-remote",
         dest="maintain_colbert",
         action="store_false",
         help="Rely on remote ColBERT server, see src.config.colbert_server_config for configuration",
     )
-    parser.add_argument("--resume", "-r", action="store_true", help="Resume previous run")
-    parser.add_argument("--output", "-o", type=pathlib.Path, help="Output directory", default=pathlib.Path.cwd())
-    parser.add_argument("--sample", "-n", type=int, help="Sample size", default=100)
+    parser.add_argument("--colbert-stdout", choices=["stdout", "file"], default="file")
+    parser.add_argument(
+        "--colbert-stdout-file",
+        type=pathlib.Path,
+        help="If --colbert-stdout=stdout, this option is ignored",
+        default=".colbert_server_output.txt",
+    )
+
     src.log.add_log_arg(parser)
     namespace = parser.parse_args()
     src.log.process_log_arg(namespace)
 
+    start_time = time.time()
     main(namespace)
+    end_time = time.time()
+
+    print(f"Elapsed time: {end_time-start_time:.3f} seconds")

@@ -33,11 +33,11 @@ def longest_chain_cover(res: PipelineResult) -> float:
 
 
 def prob2bool(func: t.Callable[[PipelineResult], float]) -> t.List[t.Callable[[PipelineResult], bool]]:
-    wrappers = []
+    wrappers: t.List[t.Callable[[PipelineResult], bool]] = []
     for threshold in range(5, 96, 10):
 
         @functools.wraps(func)
-        def wrapper(res: PipelineResult):
+        def wrapper(res: PipelineResult) -> bool:
             return func(res) >= threshold
 
         wrapper.__name__ = func.__name__ + f"_tr{threshold}"
@@ -58,7 +58,7 @@ def _prepare_pipeline() -> SourceColoringPipeline:
 
 def start_roc(output: pathlib.Path):
     passages = pd.read_csv("selected_passages.csv")
-    with open("progress.json", "r") as f:
+    with open(".progress.roc.json", "r") as f:
         start_idx = int(ujson.load(f)["idx"])
 
     logger.info(f"Starting evaluation with progress counter on {start_idx}")
@@ -66,10 +66,10 @@ def start_roc(output: pathlib.Path):
     roc_curve(_prepare_pipeline(), statistics, passages, start_idx, output)
 
 
-def start_bool():
+def start_bool(output: pathlib.Path):
     passages = pd.read_csv("selected_passages.csv")
 
-    with open("progress.json", "r") as f:
+    with open(".progress.binary.json", "r") as f:
         start_idx = int(ujson.load(f)["idx"])
 
-    estimate_bool(_prepare_pipeline(), incremental, passages, start_idx)
+    estimate_bool(_prepare_pipeline(), incremental, passages, start_idx, output)
