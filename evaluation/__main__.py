@@ -84,9 +84,10 @@ def main(namespace: argparse.Namespace):
     tries: t.Dict[str, int] = defaultdict(lambda: 0)
     while True:
         logger.info(f"Starting evaluation cycle, tries dictionary = {tries!s}")
-        colbert_server = subprocess.Popen(
-            ["conda", "run", "-n", "colbert", "python", "-m", "colbert_search", "colbert_server"], stdout=sys.stdout
-        )
+        if namespace.maintain_colbert:
+            colbert_server = subprocess.Popen(
+                ["conda", "run", "-n", "colbert", "python", "-m", "colbert_search", "colbert_server"], stdout=sys.stdout
+            )
 
         logger.info(f"Colbert server PID: {colbert_server.pid}")
 
@@ -124,12 +125,14 @@ def main(namespace: argparse.Namespace):
                 skip(progress, idx)
 
             # Await colbert death
-            await_colbert_death()
+            if namespace.maintain_colbert:
+                await_colbert_death()
 
             continue
         break
 
-    colbert_server.kill()
+    if namespace.maintain_colbert:
+        colbert_server.kill()
 
 
 if __name__ == "__main__":
@@ -142,7 +145,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Persistent run that relaunches process on error, and maintains ColBERT server",
     )
-    parser.add_argument("--separate-colbert", help="Rely on remote ColBERT server, see src.config.colbert_server_config")
+    parser.add_argument(
+        "--separate-colbert",
+        "--remote-colbert",
+        dest="maintain_colbert",
+        action="store_false",
+        help="Rely on remote ColBERT server, see src.config.colbert_server_config for configuration",
+    )
     parser.add_argument("--resume", "-r", action="store_true", help="Resume previous run")
     parser.add_argument("--output", "-o", type=pathlib.Path, help="Output directory", default=pathlib.Path.cwd())
     parser.add_argument("--sample", "-n", type=int, help="Sample size", default=100)
